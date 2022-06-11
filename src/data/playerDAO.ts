@@ -2,6 +2,7 @@ import mysql from "mysql";
 import "dotenv/config";
 import { promisify } from "util";
 import logger from "../utilities/winstonConfig";
+import { Player } from "../models/Player";
 
 const pool = mysql.createPool({
     connectionLimit: 10,
@@ -12,42 +13,308 @@ const pool = mysql.createPool({
 });
 
 export default class PlayerDAO {
-    async createSecondaryPlayer() {
+    className = this.constructor.name;
+
+    /**
+     *
+     */
+    async createSecondaryPlayer(player: Player, callback: any) {
+        logger.verbose("Entering method createSecondaryPlayer", {
+            class: this.className,
+        });
         pool.getConnection(async (err: any, conn: any) => {
             try {
                 if (err) throw err;
 
-                let sql = "SELECT * FROM player";
+                let sql =
+                    "INSERT INTO player (AUTH_ID, FIRST_NAME, LAST_NAME, GENDER) VALUES (?,?,?,?)";
+
+                // console.log("bruh");
+
+                conn.query = promisify(conn.query);
+                let result = await conn.query(sql, [
+                    player.$authId,
+                    player.$firstName,
+                    player.$lastName,
+                    1,
+                ]);
+
+                callback(result);
+                return;
+            } catch (error) {
+                if (error instanceof Error)
+                    logger.error("Database Connection / Query Error", {
+                        type: error.message,
+                        class: this.className,
+                    });
+                callback(null);
+                return;
+            }
+        });
+    }
+
+    /** Methods to be written */
+    //showTeam() -- show only one team based on passed id or name?
+
+    /**
+     * Will fetch all the teams that are currently on the network and return them to user. No protection or further authentication needed to see all teams
+     *
+     * @param callback Passes back the result with all of the teams on network
+     */
+    async showAllTeams(callback: any) {
+        logger.verbose("Entering method showAllTeams()", {
+            class: this.className,
+        });
+
+        pool.getConnection(async (err: any, conn: any) => {
+            try {
+                if (err) throw err;
+
+                let sql = "SELECT * FROM team";
 
                 conn.query = promisify(conn.query);
                 let result = await conn.query(sql);
 
-                console.log("test");
+                return callback(result);
             } catch (error) {
                 if (error instanceof Error)
-                    logger.error("Database connection / query error", {
-                        type: error.message,
-                        class: "playerDao",
+                    logger.error("Database Connection / Query Error", {
+                        type: error,
+                        class: this.className,
                     });
-                return null;
+                return callback(null);
+            }
+        });
+    }
+
+    /**
+     * This method shows all the teams that a player is on. This will show multiple teams, but not all teams in network.
+     *
+     * @param id Uses player id to search the teams that they are on
+     * @param callback Passes back result with list of team info
+     */
+    async showAllPlayersTeams(id: string, callback: any) {
+        logger.verbose("Entering method showAllPlayersTeams()", {
+            class: this.className,
+        });
+
+        pool.getConnection(async (err: any, conn: any) => {
+            try {
+                if (err) throw err;
+
+                let sql =
+                    "SELECT team.ID, team.NAME, team.WINS, team.LOSSES FROM team_roster JOIN team on team_roster.team_ID=team.ID WHERE team_roster.player_AUTH_ID=?";
+
+                conn.query = promisify(conn.query);
+                let result = await conn.query(sql, [id]);
+
+                callback(result);
+                return;
+            } catch (error) {
+                if (error instanceof Error)
+                    logger.error("Database Connection / Query Error", {
+                        type: error.message,
+                        class: this.className,
+                    });
+                callback(null);
+                return;
+            }
+        });
+    }
+
+    public getConnectionFromPool(callback: any) {
+        logger.verbose("Entering method getConnectionFromPool", {
+            class: this.className,
+        });
+        pool.getConnection(async (err: any, conn: any) => {
+            try {
+                if (err) throw err;
+
+                return callback(conn);
+            } catch (error) {
+                if (error instanceof Error)
+                    logger.error("Database Connection Error", {
+                        type: error,
+                        class: this.className,
+                    });
+
+                return callback(null);
+            }
+        });
+    }
+
+    async findTeamVisibility(teamId: number, callback: any) {
+        logger.verbose("Entering method findTeamVisibility()", {
+            class: this.className,
+        });
+
+        pool.getConnection(async (err: any, conn: any) => {
+            try {
+                let sql =
+                    "SELECT ID, VISIBILITY, CURRENT_TEAM_SIZE, MAX_TEAM_SIZE FROM team WHERE ID = ?";
+
+                conn.query = promisify(conn.query);
+                let authResult = await conn.query(sql, [teamId]);
+
+                conn.release();
+                return callback(authResult);
+            } catch (error) {
+                if (error instanceof Error)
+                    logger.error("Database Connection / Query Error", {
+                        type: error,
+                        class: this.className,
+                    });
+
+                return callback(null);
+            }
+        });
+    }
+
+    async joinTeam(playerId: string, teamId: number, callback: any) {
+        logger.verbose("Entering method joinOpenTeam()", {
+            class: this.className,
+        });
+
+        pool.getConnection(async (err: any, conn: any) => {
+            try {
+                if (err) throw err;
+
+                let addPlayerSql =
+                    "INSERT INTO team_roster (player_AUTH_ID, team_ID) VALUES (?,?)";
+
+                let addTeamSizeSql =
+                    "UPDATE team SET CURRENT_TEAM_SIZE = CURRENT_TEAM_SIZE + 1 WHERE ID = ?";
+
+                conn.beginTransaction(async (err: any) => {
+                    try {
+                        if (err) throw err;
+
+                        conn.query = promisify(conn.query);
+
+                        console.log("josh");
+
+                        let addPlayerResult = await conn.query(addPlayerSql, [
+                            playerId,
+                            teamId,
+                        ]);
+
+                        console.log("pig");
+
+                        let addTeamSizeResult = await conn.query(
+                            addTeamSizeSql,
+                            [teamId]
+                        );
+
+                        console.log("burh");
+
+                        conn.commit((err: any) => {
+                            if (err) {
+                                conn.rollback();
+                                console.log("there");
+
+                                throw err;
+                            }
+                        });
+                    } catch (error) {
+                        console.log("here");
+
+                        throw error;
+                    }
+                });
+            } catch (error) {
+                console.log("what about");
+
+                if (error instanceof Error)
+                    logger.error("Database Connection / Query Error", {
+                        type: error,
+                        class: this.className,
+                    });
+                conn.rollback();
+                return callback(null);
             }
         });
     }
 }
 
+// pool.getConnection(async (err: any, conn: any) => {
+//     try {
+//         if (err) throw err;
+//         console.log("Start Connection Id", conn.threadId);
+
+//         let sqlAuth =
+//             "SELECT ID, VISIBILITY, CURRENT_TEAM_SIZE, MAX_TEAM_SIZE FROM team WHERE ID = ?";
+
+//         let sqlRun =
+//             "INSERT INTO team_roster (player_AUTH_ID, team_ID) VALUES (?,?)";
+
+//         conn.query = promisify(conn.query);
+//         let authResult = await conn.query(sqlAuth, [id]);
+
+//         if (authResult.VISIBILITY === "PRIVATE") {
+//             console.log("DENIED REQUEST, TEAM IS PRIVATE");
+//             return;
+//         }
+
+//         let runResult = await conn.query(sqlRun, ["auth0|1234", 2]);
+//         console.log(runResult);
+
+//         console.log("End Connection Id", conn.threadId);
+//         callback(runResult);
+//         return;
+//     } catch (error) {
+//         if (error instanceof Error)
+//             logger.error("Database Connection / Query Error", {
+//                 type: error,
+//                 class: this.className,
+//             });
+//         callback(null);
+//         return;
+//     }
+// });
+
 let playerdao = new PlayerDAO();
-const test = async () => {
-    console.log("is this working");
 
-    let result = playerdao.createSecondaryPlayer();
+let dummyPlayer = Player.SecondaryPlayer(
+    1231325431,
+    "Noah",
+    "Roerig",
+    "ENGLISH",
+    "USER",
+    "MALE",
+    new Date(),
+    "PRIVATE",
+    "1,2023",
+    "NULL",
+    "VALID"
+);
 
-    logger.info("why not", {
-        type: "test",
-        class: "playerDAO",
-    });
-    console.log("why not");
-};
-test();
+playerdao.joinTeam("auth|786905", 3, (result: any) => {
+    console.log(result);
+});
+
+// playerdao.showAllPlayersTeams(
+//     "auth0|62756151cfc4810067c25882",
+//     (result: any) => {
+//         if (result.length === 0) console.log("empty");
+
+//         console.log(result);
+//     }
+// );
+// const test = async () => {
+//     try {
+//         playerdao.createSecondaryPlayer(dummyPlayer, (callback: any) => {
+//             console.log(callback);
+//         });
+//         // console.log(result);
+//     } catch (error) {
+//         console.log(error);
+//     }
+// };
+// test();
+
+// playerdao.createSecondaryPlayer().then((result) => {
+//     console.log(result);
+// });
 
 // const pool = mysql2.createPool({
 //     host: process.env.DB_HOST,

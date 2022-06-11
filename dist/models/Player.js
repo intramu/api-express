@@ -67,23 +67,22 @@ class Player extends User_1.User {
     //     result.teamRole = teamRole;
     //     return result;
     // }
-    static SecondaryPlayer($authId, $firstName, $lastName, 
-    // $role: string
-    $gender, $dob, $language, $profileVisibility, $graduationDate, $year, $image, $teamId, $status, $teamRole) {
+    static SecondaryPlayer($authId, $firstName, $lastName, $language, $role, $gender, $dob, $visibility, $graduationTerm, $image, $status
+    // $teamRole: string
+    //dateCreated -- in database
+    ) {
         var result = new Player();
         result.authId = $authId;
         result.firstName = $firstName;
         result.lastName = $lastName;
         result.gender = $gender;
+        result.role = $role;
         result.dob = $dob;
         result.language = $language;
-        result.profileVisibility = $profileVisibility;
-        result.graduationDate = $graduationDate;
-        result.year = $year;
+        result.visibility = $visibility;
+        result.graduationTerm = $graduationTerm;
         result.image = $image;
-        result.teamId = $teamId;
         result.status = $status;
-        result.teamRole = $teamRole;
         return result;
     }
     static Default() {
@@ -108,12 +107,12 @@ class Player extends User_1.User {
     set $lastName(value) {
         this.lastName = value;
     }
-    // public get $role(): string {
-    //     return this.role;
-    // }
-    // public set $role(value: string) {
-    //     this.role = value;
-    // }
+    get $role() {
+        return this.role;
+    }
+    set $role(value) {
+        this.role = value;
+    }
     // public get $universityId(): number {
     //     return this.universityId;
     // }
@@ -145,22 +144,15 @@ class Player extends User_1.User {
      * Getter $profileVisibility
      * @return {string}
      */
-    get $profileVisibility() {
-        return this.profileVisibility;
+    get $visibility() {
+        return this.visibility;
     }
     /**
      * Getter $graduationDate
      * @return {string}
      */
-    get $graduationDate() {
-        return this.graduationDate;
-    }
-    /**
-     * Getter $year
-     * @return {string}
-     */
-    get $year() {
-        return this.year;
+    get $graduationTerm() {
+        return this.graduationTerm;
     }
     /**
      * Getter $profilePicture
@@ -168,13 +160,6 @@ class Player extends User_1.User {
      */
     get $image() {
         return this.image;
-    }
-    /**
-     * Getter $teamId
-     * @return {string}
-     */
-    get $teamId() {
-        return this.teamId;
     }
     /**
      * Getter $status
@@ -215,22 +200,15 @@ class Player extends User_1.User {
      * Setter $profileVisibility
      * @param {string} value
      */
-    set $profileVisibility(value) {
-        this.profileVisibility = value;
+    set $visibility(value) {
+        this.visibility = value;
     }
     /**
      * Setter $graduationDate
      * @param {string} value
      */
-    set $graduationDate(value) {
-        this.graduationDate = value;
-    }
-    /**
-     * Setter $year
-     * @param {string} value
-     */
-    set $year(value) {
-        this.year = value;
+    set $graduationTerm(value) {
+        this.graduationTerm = value;
     }
     /**
      * Setter $profilePicture
@@ -238,13 +216,6 @@ class Player extends User_1.User {
      */
     set $image(value) {
         this.image = value;
-    }
-    /**
-     * Setter $teamId
-     * @param {string} value
-     */
-    set $teamId(value) {
-        this.teamId = value;
     }
     /**
      * Setter $status

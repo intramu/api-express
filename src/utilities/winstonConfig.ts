@@ -10,12 +10,11 @@ const logLevels = {
     http: 4,
     verbose: 5,
     debug: 6,
-    silly: 7,
 };
 
 let logger = winston.createLogger({
     levels: logLevels,
-    level: "info",
+    level: "verbose",
     format: combine(
         colorize({ all: true }),
         timestamp({ format: "YYYY-MM-DD hh:mm:ss.SSS A" }),
@@ -28,5 +27,4 @@ let logger = winston.createLogger({
     transports: [new winston.transports.Console()],
 });
 
-logger.warn("test");
 export default logger;

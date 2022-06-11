@@ -14,13 +14,11 @@ const logLevels = {
     http: 4,
     verbose: 5,
     debug: 6,
-    silly: 7,
 };
 let logger = winston_1.default.createLogger({
     levels: logLevels,
-    level: "info",
+    level: "verbose",
     format: combine(colorize({ all: true }), timestamp({ format: "YYYY-MM-DD hh:mm:ss.SSS A" }), align(), printf((info) => `[${info.timestamp}] ${info.level}: ${info.message}  type: ${info.type}  class: ${info.class}`)),
     transports: [new winston_1.default.transports.Console()],
 });
-logger.warn("test");
 exports.default = logger;

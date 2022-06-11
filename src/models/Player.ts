@@ -3,12 +3,9 @@ import { User } from "./User";
 export class Player extends User {
     protected gender!: string;
     protected dob!: Date;
-    protected language!: string;
-    protected profileVisibility!: string;
-    protected graduationDate!: string;
-    protected year!: string;
+    protected visibility!: string;
+    protected graduationTerm!: string;
     protected image!: string;
-    protected teamId!: string;
     protected status!: string;
     protected teamRole!: string;
 
@@ -85,17 +82,16 @@ export class Player extends User {
         $authId: number,
         $firstName: string,
         $lastName: string,
-        // $role: string
+        $language: string,
+        $role: string,
         $gender: string,
         $dob: Date,
-        $language: string,
-        $profileVisibility: string,
-        $graduationDate: string,
-        $year: string,
+        $visibility: string,
+        $graduationTerm: string,
         $image: string,
-        $teamId: string,
-        $status: string,
-        $teamRole: string
+        $status: string
+        // $teamRole: string
+        //dateCreated -- in database
     ) {
         var result = new Player();
 
@@ -103,15 +99,13 @@ export class Player extends User {
         result.firstName = $firstName;
         result.lastName = $lastName;
         result.gender = $gender;
+        result.role = $role;
         result.dob = $dob;
         result.language = $language;
-        result.profileVisibility = $profileVisibility;
-        result.graduationDate = $graduationDate;
-        result.year = $year;
+        result.visibility = $visibility;
+        result.graduationTerm = $graduationTerm;
         result.image = $image;
-        result.teamId = $teamId;
         result.status = $status;
-        result.teamRole = $teamRole;
 
         return result;
     }
@@ -142,12 +136,12 @@ export class Player extends User {
         this.lastName = value;
     }
 
-    // public get $role(): string {
-    //     return this.role;
-    // }
-    // public set $role(value: string) {
-    //     this.role = value;
-    // }
+    public get $role(): string {
+        return this.role;
+    }
+    public set $role(value: string) {
+        this.role = value;
+    }
 
     // public get $universityId(): number {
     //     return this.universityId;
@@ -184,24 +178,16 @@ export class Player extends User {
      * Getter $profileVisibility
      * @return {string}
      */
-    public get $profileVisibility(): string {
-        return this.profileVisibility;
+    public get $visibility(): string {
+        return this.visibility;
     }
 
     /**
      * Getter $graduationDate
      * @return {string}
      */
-    public get $graduationDate(): string {
-        return this.graduationDate;
-    }
-
-    /**
-     * Getter $year
-     * @return {string}
-     */
-    public get $year(): string {
-        return this.year;
+    public get $graduationTerm(): string {
+        return this.graduationTerm;
     }
 
     /**
@@ -210,14 +196,6 @@ export class Player extends User {
      */
     public get $image(): string {
         return this.image;
-    }
-
-    /**
-     * Getter $teamId
-     * @return {string}
-     */
-    public get $teamId(): string {
-        return this.teamId;
     }
 
     /**
@@ -264,24 +242,16 @@ export class Player extends User {
      * Setter $profileVisibility
      * @param {string} value
      */
-    public set $profileVisibility(value: string) {
-        this.profileVisibility = value;
+    public set $visibility(value: string) {
+        this.visibility = value;
     }
 
     /**
      * Setter $graduationDate
      * @param {string} value
      */
-    public set $graduationDate(value: string) {
-        this.graduationDate = value;
-    }
-
-    /**
-     * Setter $year
-     * @param {string} value
-     */
-    public set $year(value: string) {
-        this.year = value;
+    public set $graduationTerm(value: string) {
+        this.graduationTerm = value;
     }
 
     /**
@@ -290,14 +260,6 @@ export class Player extends User {
      */
     public set $image(value: string) {
         this.image = value;
-    }
-
-    /**
-     * Setter $teamId
-     * @param {string} value
-     */
-    public set $teamId(value: string) {
-        this.teamId = value;
     }
 
     /**
