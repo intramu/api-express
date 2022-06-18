@@ -86,42 +86,29 @@ class PlayerDAO {
      *
      * @param callback Passes back the result with all of the teams on network
      */
-    showAllTeams() {
+    showAllTeams(callback) {
         return __awaiter(this, void 0, void 0, function* () {
             winstonConfig_1.default.verbose("Entering method showAllTeams()", {
                 class: this.className,
             });
-            let sql = "SELECT team.ID as team_ID, team.NAME, team.WINS, team.TIES, team.LOSSES, team.IMAGE, team.VISIBILITY, team.SPORT, team.DATE_CREATED, team.CURRENT_TEAM_SIZE, team.MAX_TEAM_SIZE, tr.ROLE, player.AUTH_ID, player.FIRST_NAME, player.LAST_NAME, player.GENDER FROM team team JOIN team_roster tr on (team.ID = tr.team_ID) JOIN player player on (tr.player_AUTH_ID = player.AUTH_ID) ORDER BY team.ID ASC";
-            let conn = null;
-            try {
-                conn = yield river.getConnection();
-                const [result, fields] = yield conn.query(sql);
-                return result;
-            }
-            catch (error) {
-                winstonConfig_1.default.error("Database Connection / Query Error", {
-                    type: error,
-                    class: this.className,
-                });
-                // if (error instanceof Error)
-                //     logger.error("Database Connection / Query Error", {
-                //         type: error,
-                //         class: this.className,
-                //     });
-                return null;
-            }
-            finally {
-                if (conn)
-                    conn.release();
-            }
-            // catch (error) {
-            //     if (error instanceof Error)
-            //         logger.error("Database Connection / Query Error", {
-            //             type: error,
-            //             class: this.className,
-            //         });
-            //     return callback(null);
-            // }
+            pool.getConnection((err, conn) => __awaiter(this, void 0, void 0, function* () {
+                try {
+                    if (err)
+                        throw err;
+                    let sql = "SELECT team.ID as team_ID, team.NAME, team.WINS, team.TIES, team.LOSSES, team.IMAGE, team.VISIBILITY, team.DATE_CREATED, team.CURRENT_TEAM_SIZE, team.MAX_TEAM_SIZE, tr.ROLE, player.AUTH_ID, player.FIRST_NAME, player.LAST_NAME, player.GENDER FROM team team JOIN team_roster tr on (team.ID = tr.team_ID) JOIN player player on (tr.player_AUTH_ID = player.AUTH_ID) ORDER BY team.ID ASC";
+                    conn.query = (0, util_1.promisify)(conn.query);
+                    let result = yield conn.query(sql);
+                    return callback(result);
+                }
+                catch (error) {
+                    if (error instanceof Error)
+                        winstonConfig_1.default.error("Database Connection / Query Error", {
+                            type: error,
+                            class: this.className,
+                        });
+                    return callback(null);
+                }
+            }));
         });
     }
     /**
@@ -139,10 +126,9 @@ class PlayerDAO {
                 try {
                     if (err)
                         throw err;
-                    let sql = "SELECT team.ID as team_ID, team.NAME, team.WINS, team.TIES, team.LOSSES, team.IMAGE, team.VISIBILITY, team.SPORT, team.DATE_CREATED, team.CURRENT_TEAM_SIZE, team.MAX_TEAM_SIZE, tr.ROLE, tr.player_AUTH_ID, player.FIRST_NAME, player.LAST_NAME, player.GENDER FROM team team JOIN team_roster tr on(team.ID = tr.team_ID) JOIN player player on(tr.player_AUTH_ID = player.AUTH_ID) WHERE tr.team_ID IN (SELECT team_ID FROM team_roster WHERE player_AUTH_ID = ?) ORDER BY tr.team_ID ASC";
+                    let sql = "SELECT team.ID as team_ID, team.NAME, team.WINS, team.TIES, team.LOSSES, team.IMAGE, team.VISIBILITY, team.DATE_CREATED, team.CURRENT_TEAM_SIZE, team.MAX_TEAM_SIZE, tr.ROLE, player.FIRST_NAME, player.LAST_NAME, player.GENDER FROM team team JOIN team_roster tr on(team.ID = tr.team_ID) JOIN player player on(tr.player_AUTH_ID = player.AUTH_ID) WHERE tr.team_ID IN (SELECT team_ID FROM team_roster WHERE player_AUTH_ID = ?) ORDER BY tr.team_ID ASC";
                     conn.query = (0, util_1.promisify)(conn.query);
                     let result = yield conn.query(sql, [playerId]);
-                    conn.release();
                     return callback(result);
                 }
                 catch (error) {
@@ -183,14 +169,13 @@ class PlayerDAO {
             });
             pool.getConnection((err, conn) => __awaiter(this, void 0, void 0, function* () {
                 try {
-                    let sqlTeamInsert = "INSERT INTO team (ID, NAME, IMAGE, VISIBILITY, SPORT) values (?,?,?,?,?)";
+                    let sqlTeamInsert = "INSERT INTO team (ID, NAME, IMAGE, VISIBILITY) values (?,?,?,?)";
                     conn.query = (0, util_1.promisify)(conn.query);
                     let result = yield conn.query(sqlTeamInsert, [
                         team.$id,
                         team.$name,
                         team.$image,
                         team.$visibility,
-                        team.$sport,
                     ]);
                     conn.release();
                     return callback(result);
@@ -224,7 +209,7 @@ class PlayerDAO {
                         winstonConfig_1.default.error("Database Connection / Query Error", {
                             type: error,
                             class: this.className,
-                        }); //
+                        });
                     return callback(null);
                 }
             }));
@@ -281,37 +266,20 @@ class PlayerDAO {
             }));
         });
     }
-    removePlayerFromTeam(playerId, teamId) {
-        return __awaiter(this, void 0, void 0, function* () {
-            winstonConfig_1.default.verbose("Entering method removeFromTeam()", {
-                class: this.className,
-            });
-            let conn = null;
-            let deleteFromTeamSql = "DELETE FROM team_roster WHERE player_AUTH_ID = ? AND team_ID = ?";
-            let updateTeamSizeSql = "UPDATE team SET CURRENT_TEAM_SIZE = CURRENT_TEAM_SIZE - 1 WHERE ID = ?";
-            try {
-                conn = yield river.getConnection();
-                yield conn.query(deleteFromTeamSql, [playerId, teamId]);
-                const [updateResult, fields] = yield conn.query(updateTeamSizeSql, [
-                    teamId,
-                ]);
-                yield conn.commit();
-                return updateResult;
-            }
-            catch (error) {
-                if (conn)
-                    yield conn.rollback();
-                winstonConfig_1.default.crit("Database Connection / Query Error", {
-                    type: error,
-                    class: this.className,
-                });
-                return null;
-            }
-            finally {
-                if (conn)
-                    conn.release();
-            }
+    removePlayerFromTeam(playerId, teamId, callback) {
+        winstonConfig_1.default.verbose("Entering method removeFromTeam()", {
+            class: this.className,
         });
+        let deleteFromTeamSql = "DELETE FROM team_roster WHERE player_AUTH_ID = ? AND team_ID = ?";
+        let updateTeamSizeSql = "UPDATE team SET CURRENT_TEAM_SIZE = CURRENT_TEAM_SIZE - 1 WHERE ID = ?";
+        // try {
+        //     conn.query = promisify(conn.query);
+        //     let deleteResult = await conn.query(deleteFromTeamSql, [
+        //         playerId,
+        //         teamId,
+        //     ]);
+        //     let updateResult = await conn.query(updateTeamSizeSql, [teamId]);
+        // } catch (error) {}
     }
     testConnToCloud() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -347,11 +315,8 @@ class PlayerDAO {
             catch (error) {
                 if (conn)
                     yield conn.rollback();
-                winstonConfig_1.default.error("Database Connection / Query Error", {
-                    type: error,
-                    class: this.className,
-                });
-                return null;
+                console.log("wow");
+                throw error;
             }
             finally {
                 if (conn)
@@ -363,4 +328,3 @@ class PlayerDAO {
 exports.default = PlayerDAO;
 let playerdao = new PlayerDAO();
 let dummyPlayer = Player_1.Player.SecondaryPlayer(1231325431, "Noah", "Roerig", "ENGLISH", "USER", "MALE", new Date(), "PRIVATE", "1,2023", "NULL", "VALID");
-playerdao.test("fdsa", 5);

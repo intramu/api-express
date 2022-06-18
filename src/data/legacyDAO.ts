@@ -79,41 +79,31 @@ export default class PlayerDAO {
      *
      * @param callback Passes back the result with all of the teams on network
      */
-    async showAllTeams() {
+    async showAllTeams(callback: any) {
         logger.verbose("Entering method showAllTeams()", {
             class: this.className,
         });
 
-        let sql =
-            "SELECT team.ID as team_ID, team.NAME, team.WINS, team.TIES, team.LOSSES, team.IMAGE, team.VISIBILITY, team.SPORT, team.DATE_CREATED, team.CURRENT_TEAM_SIZE, team.MAX_TEAM_SIZE, tr.ROLE, player.AUTH_ID, player.FIRST_NAME, player.LAST_NAME, player.GENDER FROM team team JOIN team_roster tr on (team.ID = tr.team_ID) JOIN player player on (tr.player_AUTH_ID = player.AUTH_ID) ORDER BY team.ID ASC";
-        let conn = null;
+        pool.getConnection(async (err: any, conn: any) => {
+            try {
+                if (err) throw err;
 
-        try {
-            conn = await river.getConnection();
-            const [result, fields] = await conn.query(sql);
-            return result;
-        } catch (error) {
-            logger.error("Database Connection / Query Error", {
-                type: error,
-                class: this.className,
-            });
-            // if (error instanceof Error)
-            //     logger.error("Database Connection / Query Error", {
-            //         type: error,
-            //         class: this.className,
-            //     });
-            return null;
-        } finally {
-            if (conn) conn.release();
-        }
-        // catch (error) {
-        //     if (error instanceof Error)
-        //         logger.error("Database Connection / Query Error", {
-        //             type: error,
-        //             class: this.className,
-        //         });
-        //     return callback(null);
-        // }
+                let sql =
+                    "SELECT team.ID as team_ID, team.NAME, team.WINS, team.TIES, team.LOSSES, team.IMAGE, team.VISIBILITY, team.DATE_CREATED, team.CURRENT_TEAM_SIZE, team.MAX_TEAM_SIZE, tr.ROLE, player.AUTH_ID, player.FIRST_NAME, player.LAST_NAME, player.GENDER FROM team team JOIN team_roster tr on (team.ID = tr.team_ID) JOIN player player on (tr.player_AUTH_ID = player.AUTH_ID) ORDER BY team.ID ASC";
+
+                conn.query = promisify(conn.query);
+                let result = await conn.query(sql);
+
+                return callback(result);
+            } catch (error) {
+                if (error instanceof Error)
+                    logger.error("Database Connection / Query Error", {
+                        type: error,
+                        class: this.className,
+                    });
+                return callback(null);
+            }
+        });
     }
 
     /**
@@ -132,11 +122,10 @@ export default class PlayerDAO {
                 if (err) throw err;
 
                 let sql =
-                    "SELECT team.ID as team_ID, team.NAME, team.WINS, team.TIES, team.LOSSES, team.IMAGE, team.VISIBILITY, team.SPORT, team.DATE_CREATED, team.CURRENT_TEAM_SIZE, team.MAX_TEAM_SIZE, tr.ROLE, tr.player_AUTH_ID, player.FIRST_NAME, player.LAST_NAME, player.GENDER FROM team team JOIN team_roster tr on(team.ID = tr.team_ID) JOIN player player on(tr.player_AUTH_ID = player.AUTH_ID) WHERE tr.team_ID IN (SELECT team_ID FROM team_roster WHERE player_AUTH_ID = ?) ORDER BY tr.team_ID ASC";
+                    "SELECT team.ID as team_ID, team.NAME, team.WINS, team.TIES, team.LOSSES, team.IMAGE, team.VISIBILITY, team.DATE_CREATED, team.CURRENT_TEAM_SIZE, team.MAX_TEAM_SIZE, tr.ROLE, player.FIRST_NAME, player.LAST_NAME, player.GENDER FROM team team JOIN team_roster tr on(team.ID = tr.team_ID) JOIN player player on(tr.player_AUTH_ID = player.AUTH_ID) WHERE tr.team_ID IN (SELECT team_ID FROM team_roster WHERE player_AUTH_ID = ?) ORDER BY tr.team_ID ASC";
 
                 conn.query = promisify(conn.query);
                 let result = await conn.query(sql, [playerId]);
-                conn.release();
 
                 return callback(result);
             } catch (error) {
@@ -179,7 +168,7 @@ export default class PlayerDAO {
         pool.getConnection(async (err: any, conn: any) => {
             try {
                 let sqlTeamInsert =
-                    "INSERT INTO team (ID, NAME, IMAGE, VISIBILITY, SPORT) values (?,?,?,?,?)";
+                    "INSERT INTO team (ID, NAME, IMAGE, VISIBILITY) values (?,?,?,?)";
 
                 conn.query = promisify(conn.query);
                 let result = await conn.query(sqlTeamInsert, [
@@ -187,7 +176,6 @@ export default class PlayerDAO {
                     team.$name,
                     team.$image,
                     team.$visibility,
-                    team.$sport,
                 ]);
 
                 conn.release();
@@ -224,7 +212,7 @@ export default class PlayerDAO {
                     logger.error("Database Connection / Query Error", {
                         type: error,
                         class: this.className,
-                    }); //
+                    });
 
                 return callback(null);
             }
@@ -294,35 +282,30 @@ export default class PlayerDAO {
         });
     }
 
-    async removePlayerFromTeam(playerId: string, teamId: number) {
+    public removePlayerFromTeam(
+        playerId: string,
+        teamId: number,
+        callback: any
+    ) {
         logger.verbose("Entering method removeFromTeam()", {
             class: this.className,
         });
-        let conn = null;
+
         let deleteFromTeamSql =
             "DELETE FROM team_roster WHERE player_AUTH_ID = ? AND team_ID = ?";
 
         let updateTeamSizeSql =
             "UPDATE team SET CURRENT_TEAM_SIZE = CURRENT_TEAM_SIZE - 1 WHERE ID = ?";
 
-        try {
-            conn = await river.getConnection();
-            await conn.query(deleteFromTeamSql, [playerId, teamId]);
-            const [updateResult, fields] = await conn.query(updateTeamSizeSql, [
-                teamId,
-            ]);
-            await conn.commit();
-            return updateResult;
-        } catch (error) {
-            if (conn) await conn.rollback();
-            logger.crit("Database Connection / Query Error", {
-                type: error,
-                class: this.className,
-            });
-            return null;
-        } finally {
-            if (conn) conn.release();
-        }
+        // try {
+        //     conn.query = promisify(conn.query);
+        //     let deleteResult = await conn.query(deleteFromTeamSql, [
+        //         playerId,
+        //         teamId,
+        //     ]);
+
+        //     let updateResult = await conn.query(updateTeamSizeSql, [teamId]);
+        // } catch (error) {}
     }
 
     public async testConnToCloud() {
@@ -359,12 +342,9 @@ export default class PlayerDAO {
             return result;
         } catch (error) {
             if (conn) await conn.rollback();
+            console.log("wow");
 
-            logger.error("Database Connection / Query Error", {
-                type: error,
-                class: this.className,
-            });
-            return null;
+            throw error;
         } finally {
             if (conn) conn.release();
         }
@@ -386,5 +366,3 @@ let dummyPlayer = Player.SecondaryPlayer(
     "NULL",
     "VALID"
 );
-
-playerdao.test("fdsa", 5);

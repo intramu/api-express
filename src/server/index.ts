@@ -7,9 +7,10 @@ import axios from "axios";
 import expressWinston from "express-winston";
 import winston from "winston";
 import logger from "../utilities/winstonConfig";
-import PlayerDAO from "../data/playerDAO";
 import { Player } from "../models/Player";
 import { PlayerBusinessService } from "../business/PlayerBusinessService";
+import { Team } from "../models/Team";
+import PlayerDAO from "../data/playerDAO";
 
 const app = express();
 
@@ -81,14 +82,14 @@ app.get("/private", checkJwt, (req, res) => {
  * "profile_status" to finished. The user has completed their profile
  */
 
-app.get("/test", (req, res, next) => {
-    if (!req.body.testV) {
-        console.log("rejected");
-
-        return res.status(400).json({ message: "rejected" });
-    }
+app.delete("/test", checkJwt, (req, res, next) => {
+    let details = req.body;
+    let temp = new PlayerDAO();
+    // temp.test(details.playerId, details.teamId, "USER", (result: any) => {
+    //     console.log(result);
+    // });
 });
-
+//
 /**
  * Endpoint for a user's secondary profile to be created
  *
@@ -97,7 +98,7 @@ app.get("/test", (req, res, next) => {
  *
  * NEEDS FIX
  */
-app.post("/createsecprofile", (req, res) => {
+app.post("/createsecprofile", (req, res, next) => {
     //grab the body that passed through the request and assign it to a variable details
     let details = req.body;
 
@@ -210,16 +211,79 @@ app.post("/createsecprofile", (req, res) => {
     processRequest();
 });
 
-app.get("/team/showAllPlayersTeams", (req, res) => {});
+app.post("/team/showAllPlayersTeams", checkJwt, (req, res, next) => {
+    let details = req.body;
+    if (!details.playerId || typeof details.playerId !== "string") {
+        logger.error("Body structure invalid", {
+            class: "index",
+        });
+        return res
+            .status(400)
+            .json({ message: "Body Structure Invalid", code: 0 });
+    }
 
-app.post("/team/showAllTeams", checkJwt, (req, res, next) => {
-    playerBS.showAllTeams((result: any) => {
-        if (result.code <= 0) {
+    playerBS.showAllPlayersTeams(details.playerId, (result: any) => {
+        if (result.code === -1) {
+            logger.error(result.message, {
+                class: "index",
+            });
+            return res.status(500).json(result);
+        }
+
+        logger.verbose(result.message, {
+            class: "index",
+        });
+        return res.status(200).json(result);
+    });
+});
+
+app.post("/team/createTeam", checkJwt, (req, res, next) => {
+    let details = req.body;
+
+    let condition = [
+        details.name,
+        details.image,
+        details.visibility,
+        details.sport,
+        details.playerId,
+        typeof details.playerId === "string",
+    ];
+
+    //every condition in the list is checked to see if it was sent in the request
+    if (!condition.every((x) => x)) {
+        logger.error("Body structure invalid", {
+            class: "index",
+        });
+        return res
+            .status(400)
+            .json({ message: "Body Structure Invalid", code: 0 });
+    }
+
+    let createdTeam = Team.CreatedTeam(
+        details.name,
+        details.image,
+        details.visibility,
+        details.sport
+    );
+    //
+    playerBS.createTeam(createdTeam, details.playerId, (result: any) => {
+        if (result.code === -1) {
+            logger.error(result.message, {
+                class: "index",
+            });
             return res.status(500).json(result);
         }
 
         return res.status(200).json(result);
     });
+});
+
+app.get("/team/showAllTeams", async (req, res, next) => {
+    let result = await playerBS.showAllTeams();
+
+    setTimeout(() => {
+        res.json(result);
+    }, 5000);
 });
 
 app.get("/showTeam");
@@ -233,7 +297,7 @@ app.post("/team/joinOpenTeam", checkJwt, (req, res, next) => {
         typeof details.playerId !== "string" ||
         typeof details.teamId !== "number"
     ) {
-        logger.warn("Body structure invalid", {
+        logger.error("Body structure invalid", {
             class: "index",
         });
         return res
@@ -254,6 +318,34 @@ app.post("/team/joinOpenTeam", checkJwt, (req, res, next) => {
         });
         return res.status(200).json(result);
     });
+});
+
+app.delete("/team/leaveTeam", checkJwt, async (req, res, next) => {
+    let details = req.body;
+    console.log(details);
+
+    if (
+        !details.playerId ||
+        !details.teamId ||
+        typeof details.playerId !== "string" ||
+        typeof details.teamId !== "number"
+    ) {
+        logger.error("Body structure invalid", {
+            class: "index",
+        });
+        return res
+            .status(400)
+            .json({ message: "Body Structure Invalid", code: 0 });
+    }
+
+    let result = await playerBS.leaveTeam(details.playerId, details.teamId);
+    res.status(200).json(result);
+});
+
+app.put("/team/updateTeam", checkJwt, (req, res, next) => {
+    let details = req.body;
+
+    console.log(details);
 });
 
 app.get("*", (req, res) => {
