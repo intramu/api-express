@@ -25,6 +25,7 @@ const Player_1 = require("../models/Player");
 const PlayerBusinessService_1 = require("../business/PlayerBusinessService");
 const Team_1 = require("../models/Team");
 const playerDAO_1 = __importDefault(require("../data/playerDAO"));
+const admin_1 = __importDefault(require("./routes/admin"));
 const app = (0, express_1.default)();
 const tokenGenerator = new ManagementApiTokenGen_1.default();
 const playerBS = new PlayerBusinessService_1.PlayerBusinessService();
@@ -286,6 +287,14 @@ app.get("*", (req, res) => {
     console.log("404 Not Found | Request URL: ", req.url);
     res.status(404).send("404 Not Found");
 });
+app.use("/admin", admin_1.default);
 app.listen(process.env.EXPRESSPORT, () => {
     console.log(`App listening on port ${process.env.EXPRESSPORT}`);
 });
+// process.on("SIGTERM", () => {
+//     console.log("This shit shutting down");
+//     server.close(() => {
+//         console.log("Server off");
+//     });
+// });
+//

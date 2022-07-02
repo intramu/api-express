@@ -11,6 +11,7 @@ import { Player } from "../models/Player";
 import { PlayerBusinessService } from "../business/PlayerBusinessService";
 import { Team } from "../models/Team";
 import PlayerDAO from "../data/playerDAO";
+import admin from "./routes/admin";
 
 const app = express();
 
@@ -89,6 +90,7 @@ app.delete("/test", checkJwt, (req, res, next) => {
     //     console.log(result);
     // });
 });
+
 //
 /**
  * Endpoint for a user's secondary profile to be created
@@ -353,6 +355,16 @@ app.get("*", (req, res) => {
     res.status(404).send("404 Not Found");
 });
 
+app.use("/admin", admin);
+
 app.listen(process.env.EXPRESSPORT, () => {
     console.log(`App listening on port ${process.env.EXPRESSPORT}`);
 });
+
+// process.on("SIGTERM", () => {
+//     console.log("This shit shutting down");
+//     server.close(() => {
+//         console.log("Server off");
+//     });
+// });
+//
