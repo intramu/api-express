@@ -13,26 +13,71 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const promise_1 = __importDefault(require("mysql2/promise"));
-const Bracket_1 = require("../models/Bracket");
-const Division_1 = require("../models/Division");
-const League_1 = require("../models/League");
-const LeagueCompetition_1 = require("../models/LeagueCompetition");
+require("dotenv/config");
 const winstonConfig_1 = __importDefault(require("../utilities/winstonConfig"));
 const pool = promise_1.default.createPool({
+    connectionLimit: 10,
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
 });
-class organizationDAO {
+class CompetitionDAO {
     constructor() {
         this.className = this.constructor.name;
-        /**
-         * Creating a competition will create all the associated leagues, divisions,
-         * brackets within one method. There will be separate methods to update,
-         * delete, and create new leagues, divisions, and brackets after the intial
-         * creation of the competition.
-         */
+    }
+    /**
+    async() {
+        logger.verbose("Entering method removeFromTeam()", {
+            class: this.className,
+        });
+        let conn = null;
+        let sql = "";
+
+        try {
+            conn = await pool.getConnection();
+
+            await conn.commit();
+            // return updateResult;
+        } catch (error) {
+            if (conn) await conn.rollback();
+            logger.crit("Database Connection / Query Error", {
+                type: error,
+                class: this.className,
+            });
+            return null;
+        } finally {
+            if (conn) conn.release();
+        }
+    }
+    
+    */
+    showCompetition_league() {
+        return __awaiter(this, void 0, void 0, function* () {
+            winstonConfig_1.default.verbose("Entering method removeFromTeam()", {
+                class: this.className,
+            });
+            let conn = null;
+            let sql = "";
+            try {
+                conn = yield pool.getConnection();
+                yield conn.commit();
+                // return updateResult;
+            }
+            catch (error) {
+                if (conn)
+                    yield conn.rollback();
+                winstonConfig_1.default.crit("Database Connection / Query Error", {
+                    type: error,
+                    class: this.className,
+                });
+                return null;
+            }
+            finally {
+                if (conn)
+                    conn.release();
+            }
+        });
     }
     createCompetition_league(competition, organizationId) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -115,57 +160,4 @@ class organizationDAO {
         });
     }
 }
-exports.default = organizationDAO;
-let test = new organizationDAO();
-let comp = {
-    competitionName: "Main Intramural",
-    competitionVisibility: "public",
-    competitionStatus: "run",
-    competitionType: "league",
-    leagueTournamentType: "",
-    leagues: [
-        {
-            leagueName: "",
-            leagueSport: "Soccer",
-            leagueStartDate: new Date(),
-            leagueEndDate: new Date(),
-            leagueDetails: "who knows what will go here",
-            leagueLinks: "http;no",
-            leagueSetsDates: false,
-            divisions: [
-                {
-                    divisionName: "",
-                    divisionType: "Mens",
-                    divisionLevel: "A",
-                    divisionStartDate: new Date(),
-                    divisionEndDate: new Date(),
-                    brackets: [
-                        {
-                            bracketDayChoices: ["Monday, Tuesday"],
-                            bracketTimeSlots: [
-                                { startTime: "2:00", endTime: "3:00" },
-                            ],
-                            bracketMaxSize: 8,
-                        },
-                    ],
-                },
-            ],
-        },
-    ],
-};
-// let leagues: LeagueModel[] = [];
-// let brackets: BracketModel[] =[];
-// let divisions: DivisionModel[]=[];
-let leagues = comp.leagues.map((league) => {
-    let divisions = league.divisions.map((division) => {
-        let brackets = division.brackets.map((bracket) => {
-            return new Bracket_1.BracketModel(bracket.bracketDayChoices, bracket.bracketTimeSlots, bracket.bracketMaxSize);
-        });
-        return new Division_1.DivisionModel(division.divisionName, division.divisionType, division.divisionLevel, division.divisionStartDate, division.divisionEndDate, brackets);
-    });
-    return new League_1.LeagueModel(league.leagueName, league.leagueSport, league.leagueStartDate, league.leagueEndDate, league.leagueDetails, league.leagueSetsDates, divisions);
-});
-console.log(leagues);
-let competition = new LeagueCompetition_1.LeagueCompetitionModel(comp.competitionName, comp.competitionVisibility, comp.competitionStatus, comp.competitionType, new Date(), leagues);
-// console.log(competition.getLeagues()[0]);
-test.createCompetition_league(competition, "c34430c203c9469c9052287f61a94866");
+exports.default = CompetitionDAO;

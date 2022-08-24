@@ -6,11 +6,11 @@ export class Team {
     protected losses!: number;
     protected image!: string;
     protected visibility!: string;
-    protected sport!: string;
-    protected currentTeamSize!: number;
-    protected maxTeamSize!: number;
+    // protected sport!: string;
     protected dateCreated!: Date;
     protected dateLastUpdated!: Date;
+    protected wCount!: number;
+    protected mCount!: number;
 
     /** Constructor */
     public static CreatedTeam(
@@ -24,88 +24,104 @@ export class Team {
         result.name = name;
         result.image = image;
         result.visibility = visibility;
-        result.sport = sport;
+        // result.sport = sport;
 
         return result;
     }
 
-    /** Getters and Setters */
-    public get $id(): number {
+    public getId(): number {
         return this.id;
     }
-    public set $id(value: number) {
-        this.id = value;
+
+    public setId(id: number): void {
+        this.id = id;
     }
-    public get $name(): string {
+
+    public getName(): string {
         return this.name;
     }
-    public set $name(value: string) {
-        this.name = value;
+
+    public setName(name: string): void {
+        this.name = name;
     }
-    public get $wins(): number {
+
+    public getWins(): number {
         return this.wins;
     }
-    public set $wins(value: number) {
-        this.wins = value;
+
+    public setWins(wins: number): void {
+        this.wins = wins;
     }
-    public get $ties(): number {
+
+    public getTies(): number {
         return this.ties;
     }
-    public set $ties(value: number) {
-        this.ties = value;
+
+    public setTies(ties: number): void {
+        this.ties = ties;
     }
-    public get $losses(): number {
+
+    public getLosses(): number {
         return this.losses;
     }
-    public set $losses(value: number) {
-        this.losses = value;
+
+    public setLosses(losses: number): void {
+        this.losses = losses;
     }
-    public get $image(): string {
+
+    public getImage(): string {
         return this.image;
     }
-    public set $image(value: string) {
-        this.image = value;
+
+    public setImage(image: string): void {
+        this.image = image;
     }
-    public get $visibility(): string {
+
+    public getVisibility(): string {
         return this.visibility;
     }
-    public set $visibility(value: string) {
-        this.visibility = value;
+
+    public setVisibility(visibility: string): void {
+        this.visibility = visibility;
     }
-    public get $sport(): string {
-        return this.sport;
-    }
-    public set $sport(value: string) {
-        this.sport = value;
-    }
-    public get $currentTeamSize(): number {
-        return this.currentTeamSize;
-    }
-    public set $currentTeamSize(value: number) {
-        this.currentTeamSize = value;
-    }
-    public get $maxTeamSize(): number {
-        return this.maxTeamSize;
-    }
-    public set $maxTeamSize(value: number) {
-        this.maxTeamSize = value;
-    }
-    public get $dateCreated(): Date {
+
+    // public getSport(): string {
+    //     return this.sport;
+    // }
+
+    // public setSport(sport: string): void {
+    //     this.sport = sport;
+    // }
+
+    public getDateCreated(): Date {
         return this.dateCreated;
     }
-    public set $dateCreated(value: Date) {
-        this.dateCreated = value;
+
+    public setDateCreated(dateCreated: Date): void {
+        this.dateCreated = dateCreated;
     }
-    public get $dateLastUpdated(): Date {
+
+    public getDateLastUpdated(): Date {
         return this.dateLastUpdated;
     }
-    public set $dateLastUpdated(value: Date) {
-        this.dateLastUpdated = value;
+
+    public setDateLastUpdated(dateLastUpdated: Date): void {
+        this.dateLastUpdated = dateLastUpdated;
     }
-    // public get $captainId(): string {
-    //     return this.captainId;
-    // }
-    // public set $captainId(value: string) {
-    //     this.captainId = value;
-    // }
+
+    public getWCount(): number {
+        return this.wCount;
+    }
+
+    public setWCount(wCount: number): void {
+        this.wCount = wCount;
+    }
+
+    public getMCount(): number {
+        return this.mCount;
+    }
+
+    public setMCount(mCount: number): void {
+        this.mCount = mCount;
+    }
 }

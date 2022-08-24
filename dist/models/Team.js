@@ -8,81 +8,80 @@ class Team {
         result.name = name;
         result.image = image;
         result.visibility = visibility;
-        result.sport = sport;
+        // result.sport = sport;
         return result;
     }
-    /** Getters and Setters */
-    get $id() {
+    getId() {
         return this.id;
     }
-    set $id(value) {
-        this.id = value;
+    setId(id) {
+        this.id = id;
     }
-    get $name() {
+    getName() {
         return this.name;
     }
-    set $name(value) {
-        this.name = value;
+    setName(name) {
+        this.name = name;
     }
-    get $wins() {
+    getWins() {
         return this.wins;
     }
-    set $wins(value) {
-        this.wins = value;
+    setWins(wins) {
+        this.wins = wins;
     }
-    get $ties() {
+    getTies() {
         return this.ties;
     }
-    set $ties(value) {
-        this.ties = value;
+    setTies(ties) {
+        this.ties = ties;
     }
-    get $losses() {
+    getLosses() {
         return this.losses;
     }
-    set $losses(value) {
-        this.losses = value;
+    setLosses(losses) {
+        this.losses = losses;
     }
-    get $image() {
+    getImage() {
         return this.image;
     }
-    set $image(value) {
-        this.image = value;
+    setImage(image) {
+        this.image = image;
     }
-    get $visibility() {
+    getVisibility() {
         return this.visibility;
     }
-    set $visibility(value) {
-        this.visibility = value;
+    setVisibility(visibility) {
+        this.visibility = visibility;
     }
-    get $sport() {
-        return this.sport;
-    }
-    set $sport(value) {
-        this.sport = value;
-    }
-    get $currentTeamSize() {
-        return this.currentTeamSize;
-    }
-    set $currentTeamSize(value) {
-        this.currentTeamSize = value;
-    }
-    get $maxTeamSize() {
-        return this.maxTeamSize;
-    }
-    set $maxTeamSize(value) {
-        this.maxTeamSize = value;
-    }
-    get $dateCreated() {
+    // public getSport(): string {
+    //     return this.sport;
+    // }
+    // public setSport(sport: string): void {
+    //     this.sport = sport;
+    // }
+    getDateCreated() {
         return this.dateCreated;
     }
-    set $dateCreated(value) {
-        this.dateCreated = value;
+    setDateCreated(dateCreated) {
+        this.dateCreated = dateCreated;
     }
-    get $dateLastUpdated() {
+    getDateLastUpdated() {
         return this.dateLastUpdated;
     }
-    set $dateLastUpdated(value) {
-        this.dateLastUpdated = value;
+    setDateLastUpdated(dateLastUpdated) {
+        this.dateLastUpdated = dateLastUpdated;
+    }
+    getWCount() {
+        return this.wCount;
+    }
+    setWCount(wCount) {
+        this.wCount = wCount;
+    }
+    getMCount() {
+        return this.mCount;
+    }
+    setMCount(mCount) {
+        this.mCount = mCount;
     }
 }
 exports.Team = Team;

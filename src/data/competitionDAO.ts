@@ -1,20 +1,68 @@
 import mysql2 from "mysql2/promise";
-import { BracketModel } from "../models/Bracket";
-import { DivisionModel } from "../models/Division";
-import { LeagueModel } from "../models/League";
-import { LeagueCompetitionModel } from "../models/LeagueCompetition";
-import { TournamentCompetitionModel } from "../models/TournamentCompetition";
+import "dotenv/config";
 import logger from "../utilities/winstonConfig";
+import { LeagueCompetitionModel } from "../models/LeagueCompetition";
 
 const pool = mysql2.createPool({
+    connectionLimit: 10,
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
 });
 
-export default class organizationDAO {
+export default class CompetitionDAO {
     className = this.constructor.name;
+    /**
+    async() {
+        logger.verbose("Entering method removeFromTeam()", {
+            class: this.className,
+        });
+        let conn = null;
+        let sql = "";
+
+        try {
+            conn = await pool.getConnection();
+
+            await conn.commit();
+            // return updateResult;
+        } catch (error) {
+            if (conn) await conn.rollback();
+            logger.crit("Database Connection / Query Error", {
+                type: error,
+                class: this.className,
+            });
+            return null;
+        } finally {
+            if (conn) conn.release();
+        }
+    }
+    
+    */
+
+    async showCompetition_league() {
+        logger.verbose("Entering method removeFromTeam()", {
+            class: this.className,
+        });
+        let conn = null;
+        let sql = "";
+
+        try {
+            conn = await pool.getConnection();
+
+            await conn.commit();
+            // return updateResult;
+        } catch (error) {
+            if (conn) await conn.rollback();
+            logger.crit("Database Connection / Query Error", {
+                type: error,
+                class: this.className,
+            });
+            return null;
+        } finally {
+            if (conn) conn.release();
+        }
+    }
 
     async createCompetition_league(
         competition: LeagueCompetitionModel,
@@ -130,101 +178,4 @@ export default class organizationDAO {
             if (conn) conn.release();
         }
     }
-
-    async;
-
-    /**
-     * Creating a competition will create all the associated leagues, divisions,
-     * brackets within one method. There will be separate methods to update,
-     * delete, and create new leagues, divisions, and brackets after the intial
-     * creation of the competition.
-     */
 }
-
-let test = new organizationDAO();
-
-let comp = {
-    competitionName: "Main Intramural",
-    competitionVisibility: "public",
-    competitionStatus: "run",
-    competitionType: "league",
-    leagueTournamentType: "",
-    leagues: [
-        {
-            leagueName: "",
-            leagueSport: "Soccer",
-            leagueStartDate: new Date(),
-            leagueEndDate: new Date(),
-            leagueDetails: "who knows what will go here",
-            leagueLinks: "http;no",
-            leagueSetsDates: false,
-            divisions: [
-                {
-                    divisionName: "",
-                    divisionType: "Mens",
-                    divisionLevel: "A",
-                    divisionStartDate: new Date(),
-                    divisionEndDate: new Date(),
-                    brackets: [
-                        {
-                            bracketDayChoices: ["Monday, Tuesday"],
-                            bracketTimeSlots: [
-                                { startTime: "2:00", endTime: "3:00" },
-                            ],
-                            bracketMaxSize: 8,
-                        },
-                    ],
-                },
-            ],
-        },
-    ],
-};
-
-// let leagues: LeagueModel[] = [];
-// let brackets: BracketModel[] =[];
-// let divisions: DivisionModel[]=[];
-let leagues = comp.leagues.map((league) => {
-    let divisions = league.divisions.map((division) => {
-        let brackets = division.brackets.map((bracket) => {
-            return new BracketModel(
-                bracket.bracketDayChoices,
-                bracket.bracketTimeSlots,
-                bracket.bracketMaxSize
-            );
-        });
-
-        return new DivisionModel(
-            division.divisionName,
-            division.divisionType,
-            division.divisionLevel,
-            division.divisionStartDate,
-            division.divisionEndDate,
-            brackets
-        );
-    });
-
-    return new LeagueModel(
-        league.leagueName,
-        league.leagueSport,
-        league.leagueStartDate,
-        league.leagueEndDate,
-        league.leagueDetails,
-        league.leagueSetsDates,
-        divisions
-    );
-});
-
-console.log(leagues);
-
-let competition = new LeagueCompetitionModel(
-    comp.competitionName,
-    comp.competitionVisibility,
-    comp.competitionStatus,
-    comp.competitionType,
-    new Date(),
-    leagues
-);
-
-// console.log(competition.getLeagues()[0]);
-
-test.createCompetition_league(competition, "c34430c203c9469c9052287f61a94866");

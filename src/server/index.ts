@@ -350,6 +350,11 @@ app.put("/team/updateTeam", checkJwt, (req, res, next) => {
     console.log(details);
 });
 
+app.get("/discover/:competitionId", (req, res, next) => {
+    console.log(req.params);
+    res.json("Nice");
+});
+
 app.get("*", (req, res) => {
     console.log("404 Not Found | Request URL: ", req.url);
     res.status(404).send("404 Not Found");
