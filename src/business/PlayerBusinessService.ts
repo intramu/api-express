@@ -69,7 +69,7 @@ export class PlayerBusinessService {
                 return callback({ message: "No Teams Found", code: 0 });
             }
 
-            let teamAmount = result.length;
+            const teamAmount = result.length;
             logger.info(`${teamAmount} teams found with id: ${playerId}`, {
                 class: this.className,
             });
@@ -91,8 +91,8 @@ export class PlayerBusinessService {
             class: this.className,
         });
 
-        //result from the data layer
-        let result = await database.showAllTeams();
+        // result from the data layer
+        const result = await database.showAllTeams();
 
         // if the result came back null it was as caught error in the data layer
         // check logs
@@ -106,7 +106,7 @@ export class PlayerBusinessService {
         // the .length property on result will not work if the result is not
         // first checked to be an array
         if (Array.isArray(result)) {
-            //check if list returned empty
+            // check if list returned empty
             if (result.length === 0) {
                 logger.info("No teams found in network", {
                     class: this.className,
@@ -114,8 +114,8 @@ export class PlayerBusinessService {
                 return { message: "No Teams Found", code: 0 };
             }
 
-            //find team amount for logger
-            let teamAmount = result.length;
+            // find team amount for logger
+            const teamAmount = result.length;
 
             // if code got to there than a list of teams were found and are returned
             logger.info(`${teamAmount} teams found in network`, {
@@ -151,8 +151,7 @@ export class PlayerBusinessService {
             if (
                 visibilityResult[0].VISIBILITY === "PRIVATE" ||
                 visibilityResult[0].VISIBILITY === "CLOSED" ||
-                visibilityResult[0].CURRENT_TEAM_SIZE ===
-                    visibilityResult[0].MAX_TEAM_SIZE
+                visibilityResult[0].CURRENT_TEAM_SIZE === visibilityResult[0].MAX_TEAM_SIZE
             ) {
                 logger.info("Team is not open OR team is at max size", {
                     class: this.className,
@@ -164,7 +163,7 @@ export class PlayerBusinessService {
             }
 
             // BR - when joining an open team the default role is a player
-            let role = "PLAYER";
+            const role = "PLAYER";
             database.joinTeam(playerId, teamId, role, (joinResult: any) => {
                 if (joinResult === null || joinResult === 0) {
                     logger.error("Bad request to Data Layer", {
@@ -176,12 +175,9 @@ export class PlayerBusinessService {
                     });
                 }
 
-                logger.info(
-                    `Player with id: ${playerId} joined team with id: ${teamId}`,
-                    {
-                        class: this.className,
-                    }
-                );
+                logger.info(`Player with id: ${playerId} joined team with id: ${teamId}`, {
+                    class: this.className,
+                });
 
                 return callback({
                     message: "Player joined team",
@@ -197,10 +193,7 @@ export class PlayerBusinessService {
         });
 
         database.createTeam(team, (createTeamResult: any) => {
-            if (
-                createTeamResult === null ||
-                createTeamResult.affectedRows === 0
-            ) {
+            if (createTeamResult === null || createTeamResult.affectedRows === 0) {
                 logger.crit("Bad request to Data Layer", {
                     type: createTeamResult,
                     class: this.className,
@@ -208,9 +201,9 @@ export class PlayerBusinessService {
                 return callback({ message: "Database Error", code: -1 });
             }
 
-            let teamId = createTeamResult.insertId;
+            const teamId = createTeamResult.insertId;
             // BR - Role is set to captain because this is a createTeam method. We want the user who is currently creating the team to be set as the captain.
-            let role = "CAPTAIN";
+            const role = "CAPTAIN";
             database.joinTeam(playerId, teamId, role, (joinTeamResult: any) => {
                 if (joinTeamResult === null || joinTeamResult === 0) {
                     logger.crit("Bad request to Data Layer", {
@@ -219,12 +212,9 @@ export class PlayerBusinessService {
                     });
                 }
 
-                logger.info(
-                    `Team successfully created with captain id: ${playerId}`,
-                    {
-                        class: this.className,
-                    }
-                );
+                logger.info(`Team successfully created with captain id: ${playerId}`, {
+                    class: this.className,
+                });
                 return callback({
                     message: "Team successfully created",
                     code: 1,
@@ -238,21 +228,15 @@ export class PlayerBusinessService {
             class: this.className,
         });
 
-        let result = await database.removePlayerFromTeam(playerId, teamId);
-        if (
-            result === null ||
-            Array.isArray(result) ||
-            result.affectedRows === 0
-        ) {
+        const result = await database.removePlayerFromTeam(playerId, teamId);
+        if (result === null || Array.isArray(result) || result.affectedRows === 0) {
             logger.crit("Database Error", {
                 class: this.className,
             });
             return { message: "Database Error", code: -1 };
         }
 
-        logger.info(
-            `Player with id: ${playerId} removed from team with id: ${teamId}`
-        );
+        logger.info(`Player with id: ${playerId} removed from team with id: ${teamId}`);
         return { message: "Player removed from team", code: 1 };
     }
 }
@@ -343,7 +327,7 @@ export class PlayerBusinessService {
 
 // console.log("bruh");
 
-let business = new PlayerBusinessService();
+const business = new PlayerBusinessService();
 // business.showAllTeams((result: any) => {});
 // business.joinOpenTeam("1", 2, (result: any) => {
 //     // console.log(result);

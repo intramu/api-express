@@ -1,10 +1,16 @@
 export class Organization {
     private id: string;
+
     private name: string;
+
     private image: string;
+
     private info: string;
+
     private mainColor: string;
+
     private approvalStatus: string;
+
     private dateCreated: Date;
 
     constructor(

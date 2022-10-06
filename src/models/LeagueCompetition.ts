@@ -2,10 +2,15 @@ import { LeagueModel } from "./League";
 
 export class LeagueCompetitionModel {
     protected name: string;
+
     protected visibility: string;
+
     protected status: string;
+
     protected type: string;
+
     protected dateCreated: Date;
+
     protected leagues: LeagueModel[];
 
     constructor(

@@ -1,5 +1,6 @@
 import "dotenv/config";
 import winston, { type level } from "winston";
+
 const { combine, timestamp, printf, colorize, align } = winston.format;
 
 const logLevels = {
@@ -12,7 +13,7 @@ const logLevels = {
     debug: 6,
 };
 
-let logger = winston.createLogger({
+const logger = winston.createLogger({
     levels: logLevels,
     level: "verbose",
     format: combine(

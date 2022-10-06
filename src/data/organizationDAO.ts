@@ -16,28 +16,25 @@ const pool = mysql2.createPool({
 export default class organizationDAO {
     className = this.constructor.name;
 
-    async createCompetition_league(
-        competition: LeagueCompetitionModel,
-        organizationId: string
-    ) {
+    async createCompetition_league(competition: LeagueCompetitionModel, organizationId: string) {
         logger.verbose("Entering method createCompetition_league", {
             class: this.className,
         });
 
         let conn = null;
-        let sqlComp =
+        const sqlComp =
             "INSERT INTO league_competition (NAME, VISIBILITY, STATUS, TYPE_OF_LEAGUE, organization_ID) VALUES(?,?,?,?,UNHEX(?))";
 
-        let sqlLeague =
+        const sqlLeague =
             "INSERT INTO league (NAME, SPORT, LEAGUE_START_DATE, LEAGUE_END_DATE, LEAGUE_DETAILS, LEAGUE_SETS_DATES, league_competition_ID) VALUES (?,?,?,?,?,?,?)";
 
-        let sqlDivision =
+        const sqlDivision =
             "INSERT INTO division (NAME, DIVISION_START_DATE, DIVISION_END_DATE, TYPE, LEVEL, league_ID, tournament_competition_ID) VALUES(?,?,?,?,?,?,?)";
 
-        let sqlBracket =
+        const sqlBracket =
             "INSERT INTO bracket (DAY_CHOICES, MAX_BRACKET_SIZE, division_ID) VALUES(?,?,?)";
 
-        let sqlTimeslot =
+        const sqlTimeslot =
             "INSERT INTO time_slots (START_TIME, END_TIME, bracket_ID) VALUES(?,?,?)";
 
         try {
@@ -52,13 +49,9 @@ export default class organizationDAO {
                 organizationId,
             ]);
 
-            let compId: any = comp_r;
+            const compId: any = comp_r;
 
-            for (
-                let index = 0;
-                index < competition.getLeagues().length;
-                index++
-            ) {
+            for (let index = 0; index < competition.getLeagues().length; index++) {
                 const league = competition.getLeagues()[index];
                 const [league_r, fields2] = await conn.query(sqlLeague, [
                     league.getLeagueName(),
@@ -70,13 +63,9 @@ export default class organizationDAO {
                     compId.insertId,
                 ]);
 
-                let leagueId: any = league_r;
+                const leagueId: any = league_r;
 
-                for (
-                    let index = 0;
-                    index < league.getDivisions().length;
-                    index++
-                ) {
+                for (let index = 0; index < league.getDivisions().length; index++) {
                     const division = league.getDivisions()[index];
                     const [division_r] = await conn.query(sqlDivision, [
                         division.getDivisionName(),
@@ -88,12 +77,8 @@ export default class organizationDAO {
                         null,
                     ]);
 
-                    let divisionId: any = division_r;
-                    for (
-                        let index = 0;
-                        index < division.getBrackets().length;
-                        index++
-                    ) {
+                    const divisionId: any = division_r;
+                    for (let index = 0; index < division.getBrackets().length; index++) {
                         const bracket = division.getBrackets()[index];
                         const [bracket_r] = await conn.query(sqlBracket, [
                             bracket.getBracketDayChoices(),
@@ -101,16 +86,11 @@ export default class organizationDAO {
                             divisionId.insertId,
                         ]);
 
-                        let bracketId: any = bracket_r;
-                        for (
-                            let index = 0;
-                            index < bracket.getBracketTimeSlots().length;
-                            index++
-                        ) {
-                            const timeSlot =
-                                bracket.getBracketTimeSlots()[index];
+                        const bracketId: any = bracket_r;
+                        for (let index = 0; index < bracket.getBracketTimeSlots().length; index++) {
+                            const timeSlot = bracket.getBracketTimeSlots()[index];
 
-                            let timeslot: any = timeSlot;
+                            const timeslot: any = timeSlot;
                             await conn.query(sqlTimeslot, [
                                 timeslot.startTime,
                                 timeslot.endTime,
@@ -141,9 +121,9 @@ export default class organizationDAO {
      */
 }
 
-let test = new organizationDAO();
+const test = new organizationDAO();
 
-let comp = {
+const comp = {
     competitionName: "Main Intramural",
     competitionVisibility: "public",
     competitionStatus: "run",
@@ -168,9 +148,7 @@ let comp = {
                     brackets: [
                         {
                             bracketDayChoices: ["Monday, Tuesday"],
-                            bracketTimeSlots: [
-                                { startTime: "2:00", endTime: "3:00" },
-                            ],
+                            bracketTimeSlots: [{ startTime: "2:00", endTime: "3:00" }],
                             bracketMaxSize: 8,
                         },
                     ],
@@ -183,9 +161,9 @@ let comp = {
 // let leagues: LeagueModel[] = [];
 // let brackets: BracketModel[] =[];
 // let divisions: DivisionModel[]=[];
-let leagues = comp.leagues.map((league) => {
-    let divisions = league.divisions.map((division) => {
-        let brackets = division.brackets.map((bracket) => {
+const leagues = comp.leagues.map((league) => {
+    const divisions = league.divisions.map((division) => {
+        const brackets = division.brackets.map((bracket) => {
             return new BracketModel(
                 bracket.bracketDayChoices,
                 bracket.bracketTimeSlots,
@@ -216,7 +194,7 @@ let leagues = comp.leagues.map((league) => {
 
 console.log(leagues);
 
-let competition = new LeagueCompetitionModel(
+const competition = new LeagueCompetitionModel(
     comp.competitionName,
     comp.competitionVisibility,
     comp.competitionStatus,

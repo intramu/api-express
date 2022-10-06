@@ -2,11 +2,17 @@ import { DivisionModel } from "./Division";
 
 export class LeagueModel {
     protected leagueName: string;
+
     protected leagueSport: string;
+
     protected leagueStartDate: Date;
+
     protected leagueEndDate: Date;
+
     protected leagueDetails: string;
+
     protected leagueSetsDates: boolean;
+
     protected divisions: DivisionModel[];
 
     constructor(

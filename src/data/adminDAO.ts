@@ -21,8 +21,8 @@ export default class adminDAO {
             class: this.className,
         });
 
-        let conn = null;
-        let sql = "";
+        const conn = null;
+        const sql = "";
     }
 
     /**
@@ -38,15 +38,15 @@ export default class adminDAO {
         });
 
         let conn = null;
-        let sqlCreateOrg =
+        const sqlCreateOrg =
             "INSERT INTO organization (ID, NAME, INFO, IMAGE, MAIN_COLOR, APPROVAL_STATUS, DATE_CREATED) VALUES (UNHEX(REPLACE('8418a13e-2bb1-42cf-8736-a3e6d82a4eef','-',''))),?,?,?,?,?,?)";
 
-        let sqlCreateMasterAdmin =
+        const sqlCreateMasterAdmin =
             "INSERT INTO admin (AUTH_ID, FIRST_NAME, LAST_NAME, LANGUAGE, ROLE, DATE_CREATED, organization_ID) VALUES (?,?,?,?,?,?,?) ";
 
         try {
             conn = await pool.getConnection();
-            let [resultCreateOrg, fields] = await conn.query(sqlCreateOrg, [
+            const [resultCreateOrg, fields] = await conn.query(sqlCreateOrg, [
                 org.getName(),
                 org.getInfo(),
                 org.getImage(),

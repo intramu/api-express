@@ -2,14 +2,20 @@ import { User } from "./User";
 
 export class Player extends User {
     protected gender!: string;
+
     protected dob!: Date;
+
     protected visibility!: string;
+
     protected graduationTerm!: string;
+
     protected image!: string;
+
     protected status!: string;
+
     protected teamRole!: string;
 
-    //Constructors
+    // Constructors
     // public static test($id: number, $firstName: string): Player {
     //     var result = new Player();
 
@@ -91,9 +97,9 @@ export class Player extends User {
         $image: string,
         $status: string
         // $teamRole: string
-        //dateCreated -- in database
+        // dateCreated -- in database
     ) {
-        var result = new Player();
+        const result = new Player();
 
         result.authId = $authId;
         result.firstName = $firstName;
@@ -111,13 +117,14 @@ export class Player extends User {
     }
 
     public static Default() {
-        var result = new Player();
+        const result = new Player();
         return result;
     }
 
     public get $authId(): number {
         return this.authId;
     }
+
     public set $authId(value: number) {
         this.authId = value;
     }
@@ -125,6 +132,7 @@ export class Player extends User {
     public get $firstName(): string {
         return this.firstName;
     }
+
     public set $firstName(value: string) {
         this.firstName = value;
     }
@@ -132,6 +140,7 @@ export class Player extends User {
     public get $lastName(): string {
         return this.lastName;
     }
+
     public set $lastName(value: string) {
         this.lastName = value;
     }
@@ -139,6 +148,7 @@ export class Player extends User {
     public get $role(): string {
         return this.role;
     }
+
     public set $role(value: string) {
         this.role = value;
     }

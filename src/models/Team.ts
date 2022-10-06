@@ -1,25 +1,30 @@
 export class Team {
     protected id!: number;
+
     protected name!: string;
+
     protected wins!: number;
+
     protected ties!: number;
+
     protected losses!: number;
+
     protected image!: string;
+
     protected visibility!: string;
+
     // protected sport!: string;
     protected dateCreated!: Date;
+
     protected dateLastUpdated!: Date;
+
     protected wCount!: number;
+
     protected mCount!: number;
 
     /** Constructor */
-    public static CreatedTeam(
-        name: string,
-        image: string,
-        visibility: string,
-        sport: string
-    ) {
-        var result = new Team();
+    public static CreatedTeam(name: string, image: string, visibility: string, sport: string) {
+        const result = new Team();
 
         result.name = name;
         result.image = image;

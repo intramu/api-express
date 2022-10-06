@@ -45,7 +45,7 @@ export default class CompetitionDAO {
             class: this.className,
         });
         let conn = null;
-        let sql = "";
+        const sql = "";
 
         try {
             conn = await pool.getConnection();
@@ -64,28 +64,25 @@ export default class CompetitionDAO {
         }
     }
 
-    async createCompetition_league(
-        competition: LeagueCompetitionModel,
-        organizationId: string
-    ) {
+    async createCompetition_league(competition: LeagueCompetitionModel, organizationId: string) {
         logger.verbose("Entering method createCompetition_league", {
             class: this.className,
         });
 
         let conn = null;
-        let sqlComp =
+        const sqlComp =
             "INSERT INTO league_competition (NAME, VISIBILITY, STATUS, TYPE_OF_LEAGUE, organization_ID) VALUES(?,?,?,?,UNHEX(?))";
 
-        let sqlLeague =
+        const sqlLeague =
             "INSERT INTO league (NAME, SPORT, LEAGUE_START_DATE, LEAGUE_END_DATE, LEAGUE_DETAILS, LEAGUE_SETS_DATES, league_competition_ID) VALUES (?,?,?,?,?,?,?)";
 
-        let sqlDivision =
+        const sqlDivision =
             "INSERT INTO division (NAME, DIVISION_START_DATE, DIVISION_END_DATE, TYPE, LEVEL, league_ID, tournament_competition_ID) VALUES(?,?,?,?,?,?,?)";
 
-        let sqlBracket =
+        const sqlBracket =
             "INSERT INTO bracket (DAY_CHOICES, MAX_BRACKET_SIZE, division_ID) VALUES(?,?,?)";
 
-        let sqlTimeslot =
+        const sqlTimeslot =
             "INSERT INTO time_slots (START_TIME, END_TIME, bracket_ID) VALUES(?,?,?)";
 
         try {
@@ -100,13 +97,9 @@ export default class CompetitionDAO {
                 organizationId,
             ]);
 
-            let compId: any = comp_r;
+            const compId: any = comp_r;
 
-            for (
-                let index = 0;
-                index < competition.getLeagues().length;
-                index++
-            ) {
+            for (let index = 0; index < competition.getLeagues().length; index++) {
                 const league = competition.getLeagues()[index];
                 const [league_r, fields2] = await conn.query(sqlLeague, [
                     league.getLeagueName(),
@@ -118,13 +111,9 @@ export default class CompetitionDAO {
                     compId.insertId,
                 ]);
 
-                let leagueId: any = league_r;
+                const leagueId: any = league_r;
 
-                for (
-                    let index = 0;
-                    index < league.getDivisions().length;
-                    index++
-                ) {
+                for (let index = 0; index < league.getDivisions().length; index++) {
                     const division = league.getDivisions()[index];
                     const [division_r] = await conn.query(sqlDivision, [
                         division.getDivisionName(),
@@ -136,12 +125,8 @@ export default class CompetitionDAO {
                         null,
                     ]);
 
-                    let divisionId: any = division_r;
-                    for (
-                        let index = 0;
-                        index < division.getBrackets().length;
-                        index++
-                    ) {
+                    const divisionId: any = division_r;
+                    for (let index = 0; index < division.getBrackets().length; index++) {
                         const bracket = division.getBrackets()[index];
                         const [bracket_r] = await conn.query(sqlBracket, [
                             bracket.getBracketDayChoices(),
@@ -149,16 +134,11 @@ export default class CompetitionDAO {
                             divisionId.insertId,
                         ]);
 
-                        let bracketId: any = bracket_r;
-                        for (
-                            let index = 0;
-                            index < bracket.getBracketTimeSlots().length;
-                            index++
-                        ) {
-                            const timeSlot =
-                                bracket.getBracketTimeSlots()[index];
+                        const bracketId: any = bracket_r;
+                        for (let index = 0; index < bracket.getBracketTimeSlots().length; index++) {
+                            const timeSlot = bracket.getBracketTimeSlots()[index];
 
-                            let timeslot: any = timeSlot;
+                            const timeslot: any = timeSlot;
                             await conn.query(sqlTimeslot, [
                                 timeslot.startTime,
                                 timeslot.endTime,
