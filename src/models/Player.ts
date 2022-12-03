@@ -1,13 +1,113 @@
 import { User } from "./User";
 
-export class Player extends User {
-    protected gender!: string;
-    protected dob!: Date;
-    protected visibility!: string;
-    protected graduationTerm!: string;
-    protected image!: string;
-    protected status!: string;
-    protected teamRole!: string;
+export class Player extends User 
+{
+    protected dateCreated: Date;
+    protected authId: string;
+    protected firstName: string;
+    protected lastName: string;
+    protected language: string;
+    protected emailAddress: string;
+    protected role: string;
+    protected gender: string;
+    protected dob: Date;
+    protected visibility: string;
+    protected graduationTerm: string;
+    protected image: string;
+    protected status: string;
+    protected teamRole: string;
+
+    constructor(
+        authId: string,
+        firstName: string,
+        lastName: string,
+        language: string,
+        emailAddress: string,
+        role: string,
+        gender: string,
+        dob: Date,
+        visibility: string,
+        graduationTerm: string,
+        image: string,
+        status: string,
+        teamRole: string,
+        dateCreated: Date
+    ) {
+        // super(authId, firstName, lastName, language, emailAddress, role)
+        super();
+        this.authId = authId
+        this.firstName = firstName
+        this.lastName = lastName
+        this.language = language
+        this.emailAddress = emailAddress
+        this.role = role
+        this.gender = gender
+        this.dob = dob
+        this.visibility = visibility
+        this.graduationTerm = graduationTerm
+        this.image = image
+        this.status = status
+        this.teamRole = teamRole
+        this.dateCreated = dateCreated
+    }
+
+
+    public getGender(): string {
+        return this.gender;
+    }
+
+    public setGender(gender: string): void {
+        this.gender = gender;
+    }
+
+    public getDob(): Date {
+        return this.dob;
+    }
+
+    public setDob(dob: Date): void {
+        this.dob = dob;
+    }
+
+    public getVisibility(): string {
+        return this.visibility;
+    }
+
+    public setVisibility(visibility: string): void {
+        this.visibility = visibility;
+    }
+
+    public getGraduationTerm(): string {
+        return this.graduationTerm;
+    }
+
+    public setGraduationTerm(graduationTerm: string): void {
+        this.graduationTerm = graduationTerm;
+    }
+
+    public getImage(): string {
+        return this.image;
+    }
+
+    public setImage(image: string): void {
+        this.image = image;
+    }
+
+    public getStatus(): string {
+        return this.status;
+    }
+
+    public setStatus(status: string): void {
+        this.status = status;
+    }
+
+    public getTeamRole(): string {
+        return this.teamRole;
+    }
+
+    public setTeamRole(teamRole: string): void {
+        this.teamRole = teamRole;
+    }
+
 
     //Constructors
     // public static test($id: number, $firstName: string): Player {
@@ -78,203 +178,41 @@ export class Player extends User {
     //     return result;
     // }
 
-    public static SecondaryPlayer(
-        $authId: number,
-        $firstName: string,
-        $lastName: string,
-        $language: string,
-        $role: string,
-        $gender: string,
-        $dob: Date,
-        $visibility: string,
-        $graduationTerm: string,
-        $image: string,
-        $status: string
-        // $teamRole: string
-        //dateCreated -- in database
-    ) {
-        var result = new Player();
+    // public static SecondaryPlayer(
+    //     $authId: number,
+    //     $firstName: string,
+    //     $lastName: string,
+    //     $language: string,
+    //     $role: string,
+    //     $gender: string,
+    //     $dob: Date,
+    //     $visibility: string,
+    //     $graduationTerm: string,
+    //     $image: string,
+    //     $status: string
+    //     // $teamRole: string
+    //     //dateCreated -- in database
+    // ) {
+    //     var result = new Player();
 
-        result.authId = $authId;
-        result.firstName = $firstName;
-        result.lastName = $lastName;
-        result.gender = $gender;
-        result.role = $role;
-        result.dob = $dob;
-        result.language = $language;
-        result.visibility = $visibility;
-        result.graduationTerm = $graduationTerm;
-        result.image = $image;
-        result.status = $status;
+    //     result.authId = $authId;
+    //     result.firstName = $firstName;
+    //     result.lastName = $lastName;
+    //     result.gender = $gender;
+    //     result.role = $role;
+    //     result.dob = $dob;
+    //     result.language = $language;
+    //     result.visibility = $visibility;
+    //     result.graduationTerm = $graduationTerm;
+    //     result.image = $image;
+    //     result.status = $status;
 
-        return result;
-    }
-
-    public static Default() {
-        var result = new Player();
-        return result;
-    }
-
-    public get $authId(): number {
-        return this.authId;
-    }
-    public set $authId(value: number) {
-        this.authId = value;
-    }
-
-    public get $firstName(): string {
-        return this.firstName;
-    }
-    public set $firstName(value: string) {
-        this.firstName = value;
-    }
-
-    public get $lastName(): string {
-        return this.lastName;
-    }
-    public set $lastName(value: string) {
-        this.lastName = value;
-    }
-
-    public get $role(): string {
-        return this.role;
-    }
-    public set $role(value: string) {
-        this.role = value;
-    }
-
-    // public get $universityId(): number {
-    //     return this.universityId;
-    // }
-    // public set $universityId(value: number) {
-    //     this.universityId = value;
+    //     return result;
     // }
 
-    /**
-     * Getter $gender
-     * @return {string}
-     */
-    public get $gender(): string {
-        return this.gender;
-    }
+    // public static Default() {
+    //     var result = new Player();
+    //     return result;
+    // }
 
-    /**
-     * Getter $dob
-     * @return {Date}
-     */
-    public get $dob(): Date {
-        return this.dob;
-    }
-
-    /**
-     * Getter $language
-     * @return {string}
-     */
-    public get $language(): string {
-        return this.language;
-    }
-
-    /**
-     * Getter $profileVisibility
-     * @return {string}
-     */
-    public get $visibility(): string {
-        return this.visibility;
-    }
-
-    /**
-     * Getter $graduationDate
-     * @return {string}
-     */
-    public get $graduationTerm(): string {
-        return this.graduationTerm;
-    }
-
-    /**
-     * Getter $profilePicture
-     * @return {string}
-     */
-    public get $image(): string {
-        return this.image;
-    }
-
-    /**
-     * Getter $status
-     * @return {number}
-     */
-    public get $status(): string {
-        return this.status;
-    }
-
-    /**
-     * Getter $teamRole
-     * @return {string}
-     */
-    public get $teamRole(): string {
-        return this.teamRole;
-    }
-
-    /**
-     * Setter $gender
-     * @param {string} value
-     */
-    public set $gender(value: string) {
-        this.gender = value;
-    }
-
-    /**
-     * Setter $dob
-     * @param {Date} value
-     */
-    public set $dob(value: Date) {
-        this.dob = value;
-    }
-
-    /**
-     * Setter $language
-     * @param {string} value
-     */
-    public set $language(value: string) {
-        this.language = value;
-    }
-
-    /**
-     * Setter $profileVisibility
-     * @param {string} value
-     */
-    public set $visibility(value: string) {
-        this.visibility = value;
-    }
-
-    /**
-     * Setter $graduationDate
-     * @param {string} value
-     */
-    public set $graduationTerm(value: string) {
-        this.graduationTerm = value;
-    }
-
-    /**
-     * Setter $profilePicture
-     * @param {string} value
-     */
-    public set $image(value: string) {
-        this.image = value;
-    }
-
-    /**
-     * Setter $status
-     * @param {number} value
-     */
-    public set $status(value: string) {
-        this.status = value;
-    }
-
-    /**
-     * Setter $teamRole
-     * @param {string} value
-     */
-    public set $teamRole(value: string) {
-        this.teamRole = value;
-    }
 }

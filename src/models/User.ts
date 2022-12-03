@@ -1,30 +1,78 @@
-export abstract class User {
-    protected authId!: number;
-    protected firstName!: string;
-    protected lastName!: string;
-    protected language!: string;
-    // protected emailAddress!: string;
-    protected role!: string;
+export abstract class User 
+{
+    protected abstract authId: string;
+    protected abstract firstName: string;
+    protected abstract lastName: string;
+    protected abstract language: string;
+    protected abstract emailAddress: string;
+    protected abstract role: string;
+    protected abstract dateCreated: Date
+    protected abstract status: string;
+    
+
+    public getAuthId(): string {
+        return this.authId;
+    }
+
+    public setAuthId(authId: string): void {
+        this.authId = authId;
+    }
+    public getFirstName(): string {
+        return this.firstName;
+    }
+
+    public setFirstName(firstName: string): void {
+        this.firstName = firstName;
+    }
+
+    public getLastName(): string {
+        return this.lastName;
+    }
+
+    public setLastName(lastName: string): void {
+        this.lastName = lastName;
+    }
+
+    public getLanguage(): string {
+        return this.language;
+    }
+
+    public setLanguage(language: string): void {
+        this.language = language;
+    }
+
+    public getEmailAddress(): string {
+        return this.emailAddress;
+    }
+
+    public setEmailAddress(emailAddress: string): void {
+        this.emailAddress = emailAddress;
+    }
+
+    public getRole(): string {
+        return this.role;
+    }
+
+    public setRole(role: string): void {
+        this.role = role;
+    }
+
+    public getDateCreated(): Date {
+        return this.dateCreated;
+    }
+
+    public setDateCreated(dateCreated: Date): void {
+        this.dateCreated = dateCreated;
+    }
+
+    public getStatus(): String {
+        return this.status;
+    }
+
+    public setStatus(status: string){
+        this.status = status;
+    }
+
     // protected universityId!: number;
 
-    public abstract get $authId(): number;
-    public abstract set $authId(value: number);
-
-    abstract get $firstName(): string;
-    abstract set $firstName(value: string);
-
-    public abstract get $lastName(): string;
-    abstract set $lastName(value: string);
-
-    abstract get $language(): string;
-    abstract set $language(value: string);
-
-    // abstract get $emailAddress(): string;
-    // abstract set $emailAddress(value: string);
-
-    abstract get $role(): string;
-    abstract set $role(value: string);
-
-    // abstract get $universityId(): number;
-    // abstract set $universityId(value: number);
 }

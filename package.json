@@ -19,15 +19,16 @@
     "express": "^4.18.1",
     "express-oauth2-jwt-bearer": "^1.1.0",
     "express-winston": "^4.2.0",
-    "mysql": "^2.18.1",
-    "mysql2": "^2.3.3",
     "nodemon": "^2.0.16",
+    "pg": "^8.8.0",
     "winston": "^3.8.1"
   },
   "keywords": [],
   "devDependencies": {
     "@types/auth0": "^2.34.19",
     "@types/cors": "^2.8.12",
-    "@types/mysql": "^2.15.21"
+    "@types/mysql": "^2.15.21",
+    "@types/pg": "^8.6.5",
+    "typescript": "^4.9.3"
   }
 }
