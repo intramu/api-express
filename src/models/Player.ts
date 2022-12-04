@@ -2,20 +2,11 @@ import { User } from "./User";
 
 export class Player extends User 
 {
-    protected dateCreated: Date;
-    protected authId: string;
-    protected firstName: string;
-    protected lastName: string;
-    protected language: string;
-    protected emailAddress: string;
-    protected role: string;
     protected gender: string;
     protected dob: Date;
     protected visibility: string;
     protected graduationTerm: string;
-    protected image: string;
-    protected status: string;
-    protected teamRole: string;
+    protected image: string|null;
 
     constructor(
         authId: string,
@@ -23,32 +14,22 @@ export class Player extends User
         lastName: string,
         language: string,
         emailAddress: string,
-        role: string,
+        role: string|null,
         gender: string,
         dob: Date,
         visibility: string,
         graduationTerm: string,
-        image: string,
+        image: string|null,
         status: string,
-        teamRole: string,
-        dateCreated: Date
+        dateCreated: Date,
     ) {
-        // super(authId, firstName, lastName, language, emailAddress, role)
-        super();
-        this.authId = authId
-        this.firstName = firstName
-        this.lastName = lastName
-        this.language = language
-        this.emailAddress = emailAddress
-        this.role = role
+        super(authId, firstName, lastName, language, emailAddress, role, dateCreated, status);
+
         this.gender = gender
         this.dob = dob
         this.visibility = visibility
         this.graduationTerm = graduationTerm
         this.image = image
-        this.status = status
-        this.teamRole = teamRole
-        this.dateCreated = dateCreated
     }
 
 
@@ -84,11 +65,11 @@ export class Player extends User
         this.graduationTerm = graduationTerm;
     }
 
-    public getImage(): string {
+    public getImage(): string|null {
         return this.image;
     }
 
-    public setImage(image: string): void {
+    public setImage(image: string|null): void {
         this.image = image;
     }
 
@@ -99,15 +80,6 @@ export class Player extends User
     public setStatus(status: string): void {
         this.status = status;
     }
-
-    public getTeamRole(): string {
-        return this.teamRole;
-    }
-
-    public setTeamRole(teamRole: string): void {
-        this.teamRole = teamRole;
-    }
-
 
     //Constructors
     // public static test($id: number, $firstName: string): Player {

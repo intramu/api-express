@@ -135,7 +135,7 @@ export default class adminDAO {
     }
 
     async deleteOrganizationById(orgId: string) {
-        logger.verbose('Entering method ...()', {
+        logger.verbose('Entering method deleteOrganizationById()', {
             class: this.className,
         });
         
@@ -145,7 +145,7 @@ export default class adminDAO {
 
         try {
             client = await db.connect()
-            let response = await client.query(sqlDelete,[
+            let response = await client.query(sqlDelete, [
                 orgId
             ])
 
@@ -368,8 +368,6 @@ export default class adminDAO {
 
 
 let test = new adminDAO();
-
-console.log("hello");
 
 // test.createOrganization(new Organization('','Grand Canyon University', '', 'The coolest University', 'purple', '', new Date()))
 // test.findAllAdmins();
