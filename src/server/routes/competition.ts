@@ -1,10 +1,10 @@
 import express from "express";
-import adminDAO from "../../data/adminDAO";
+import AdminDAO from "../../data/adminDAO";
 import { Organization } from "../../models/Organization";
 
 const router = express.Router();
 
-const adminService = new adminDAO();
+const adminService = new AdminDAO();
 
 router.post("/organization", (req, res) => {
     const { body } = req;

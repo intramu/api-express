@@ -1,6 +1,6 @@
 import { Pool } from "pg";
 
-const pool = new Pool({
+export default new Pool({
     user: "noahr",
     host: "localhost",
     database: "noahr",
@@ -8,5 +8,3 @@ const pool = new Pool({
     port: 5432,
     max: 20,
 });
-
-module.exports = pool;

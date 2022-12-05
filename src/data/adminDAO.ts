@@ -2,9 +2,9 @@ import { Admin } from "../models/Admin";
 import { Organization } from "../models/Organization";
 import logger from "../utilities/winstonConfig";
 
-const db = require("./database.js");
+import db from "./database";
 
-export default class adminDAO {
+export default class AdminDAO {
     className = this.constructor.name;
 
     async createCompetition_Tournament(
@@ -356,7 +356,7 @@ export default class adminDAO {
 
 // }
 
-const test = new adminDAO();
+const test = new AdminDAO();
 
 // test.createOrganization(new Organization('','Grand Canyon University', '', 'The coolest University', 'purple', '', new Date()))
 // test.findAllAdmins();

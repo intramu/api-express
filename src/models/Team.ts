@@ -29,7 +29,7 @@ export class Team {
 
     protected menCount: number;
 
-    protected players: Player[] | null;
+    protected players: Player[];
 
     protected organizationId: string;
 
@@ -48,7 +48,7 @@ export class Team {
         maxTeamSize: number | null,
         womenCount: number,
         menCount: number,
-        players: Player[] | null,
+        players: Player[],
         organizationId: string
     ) {
         this.id = id;
@@ -201,11 +201,11 @@ export class Team {
         this.maxTeamSize = maxTeamSize;
     }
 
-    public getPlayers(): Player[] | null {
+    public getPlayers(): Player[] {
         return this.players;
     }
 
-    public setPlayers(players: Player[] | null): void {
+    public setPlayers(players: Player[]): void {
         this.players = players;
     }
 

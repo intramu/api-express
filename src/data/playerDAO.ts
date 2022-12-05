@@ -2,7 +2,7 @@ import { Player } from "../models/Player";
 import { Team } from "../models/Team";
 import logger from "../utilities/winstonConfig";
 
-const db = require("./database.js");
+import db from "./database";
 
 // todo: Return types?
 export default class playerDAO {
@@ -324,12 +324,20 @@ export default class playerDAO {
 
             await client.query(sqlAddPlayer, [playerId, teamId]);
 
-            const responseGender = await client.query(sqlSearch, [playerId]);
+            const response = await client.query(sqlSearch, [playerId]);
+            const results = response.rows;
+            const [user] = results;
 
-            if (responseGender === "MALE") {
+            if (user.gender === Gender.MALE) {
                 await client.query(sqlTeamSizeMen, [teamId]);
             }
             await client.query(sqlTeamSizeWomen, [teamId]);
+
+            const team: Team = { players: [] } as any;
+            // ! Note for Noah
+            // const menCount = team
+            //     .getPlayers()
+            //     .filter((player) => player.getGender() === "male").length;
 
             await client.query("COMMIT");
 
@@ -341,7 +349,7 @@ export default class playerDAO {
                 type: error,
                 class: this.className,
             });
-            await client.query("ROLLBACK");
+            await client?.query("ROLLBACK");
 
             return null;
         } finally {
@@ -445,7 +453,7 @@ const team = new Team(
     null,
     0,
     0,
-    null,
+    [],
     "ea9dc7a5-5e40-4715-b8d9-4b7acf4a2291"
 );
 // test.createTeam(team)
