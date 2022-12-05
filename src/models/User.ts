@@ -1,16 +1,30 @@
-export abstract class User 
-{
+export abstract class User {
     protected authId: string;
+
     protected firstName: string;
+
     protected lastName: string;
+
     protected language: string;
+
     protected emailAddress: string;
-    protected role: string|null;
-    protected dateCreated: Date
+
+    protected role: string | null;
+
+    protected dateCreated: Date;
+
     protected status: string;
-    
-    constructor(authId: string, firstName: string, lastName: string, language: string, emailAddress: string, role: string|null, dateCreated: Date, status: string)
-    {
+
+    constructor(
+        authId: string,
+        firstName: string,
+        lastName: string,
+        language: string,
+        emailAddress: string,
+        role: string | null,
+        dateCreated: Date,
+        status: string
+    ) {
         this.authId = authId;
         this.firstName = firstName;
         this.lastName = lastName;
@@ -28,6 +42,7 @@ export abstract class User
     public setAuthId(authId: string): void {
         this.authId = authId;
     }
+
     public getFirstName(): string {
         return this.firstName;
     }
@@ -60,11 +75,11 @@ export abstract class User
         this.emailAddress = emailAddress;
     }
 
-    public getRole(): string|null {
+    public getRole(): string | null {
         return this.role;
     }
 
-    public setRole(role: string|null): void {
+    public setRole(role: string | null): void {
         this.role = role;
     }
 
@@ -76,14 +91,13 @@ export abstract class User
         this.dateCreated = dateCreated;
     }
 
-    public getStatus(): String {
+    public getStatus(): string {
         return this.status;
     }
 
-    public setStatus(status: string){
+    public setStatus(status: string) {
         this.status = status;
     }
 
     // protected universityId!: number;
-
 }

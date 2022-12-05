@@ -1,12 +1,15 @@
 import { User } from "./User";
 
-export class Player extends User 
-{
+export class Player extends User {
     protected gender: string;
+
     protected dob: Date;
+
     protected visibility: string;
+
     protected graduationTerm: string;
-    protected image: string|null;
+
+    protected image: string | null;
 
     constructor(
         authId: string,
@@ -14,24 +17,23 @@ export class Player extends User
         lastName: string,
         language: string,
         emailAddress: string,
-        role: string|null,
+        role: string | null,
         gender: string,
         dob: Date,
         visibility: string,
         graduationTerm: string,
-        image: string|null,
+        image: string | null,
         status: string,
-        dateCreated: Date,
+        dateCreated: Date
     ) {
         super(authId, firstName, lastName, language, emailAddress, role, dateCreated, status);
 
-        this.gender = gender
-        this.dob = dob
-        this.visibility = visibility
-        this.graduationTerm = graduationTerm
-        this.image = image
+        this.gender = gender;
+        this.dob = dob;
+        this.visibility = visibility;
+        this.graduationTerm = graduationTerm;
+        this.image = image;
     }
-
 
     public getGender(): string {
         return this.gender;
@@ -65,11 +67,11 @@ export class Player extends User
         this.graduationTerm = graduationTerm;
     }
 
-    public getImage(): string|null {
+    public getImage(): string | null {
         return this.image;
     }
 
-    public setImage(image: string|null): void {
+    public setImage(image: string | null): void {
         this.image = image;
     }
 
@@ -81,7 +83,7 @@ export class Player extends User
         this.status = status;
     }
 
-    //Constructors
+    // Constructors
     // public static test($id: number, $firstName: string): Player {
     //     var result = new Player();
 
@@ -186,5 +188,4 @@ export class Player extends User
     //     var result = new Player();
     //     return result;
     // }
-
 }

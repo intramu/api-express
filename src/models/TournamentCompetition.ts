@@ -2,11 +2,17 @@ import { DivisionModel } from "./Division";
 
 export class TournamentCompetitionModel {
     protected name: string;
+
     protected visibility: string;
+
     protected status: string;
+
     protected sport: string;
+
     protected type: string;
+
     protected dateCreated: Date;
+
     protected divisions: DivisionModel[];
 
     constructor(

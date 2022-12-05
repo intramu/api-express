@@ -1,13 +1,11 @@
 export class BracketModel {
     protected bracketDayChoices: string[];
+
     protected bracketTimeSlots: Object[];
+
     protected bracketMaxSize: number;
 
-    constructor(
-        bracketDayChoices: string[],
-        bracketTimeSlots: Object[],
-        bracketMaxSize: number
-    ) {
+    constructor(bracketDayChoices: string[], bracketTimeSlots: Object[], bracketMaxSize: number) {
         this.bracketDayChoices = bracketDayChoices;
         this.bracketTimeSlots = bracketTimeSlots;
         this.bracketMaxSize = bracketMaxSize;

@@ -2,13 +2,21 @@ import { BracketModel } from "./Bracket";
 
 export class DivisionModel {
     protected divisionName: string;
+
     protected divisionType: string;
+
     protected divisionLevel: string;
+
     protected divisionStartDate: Date;
+
     protected divisionEndDate: Date;
+
     protected maxTeamSize: number;
+
     protected minWCount: number;
+
     protected minMCount: number;
+
     protected brackets: BracketModel[];
 
     constructor(

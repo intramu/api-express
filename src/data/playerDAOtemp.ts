@@ -44,13 +44,13 @@ export default class PlayerDAO {
             try {
                 if (err) throw err;
 
-                let sql =
+                const sql =
                     "INSERT INTO player (AUTH_ID, FIRST_NAME, LAST_NAME, GENDER) VALUES (?,?,?,?)";
 
                 // console.log("bruh");
 
                 conn.query = promisify(conn.query);
-                let result = await conn.query(sql, [
+                const result = await conn.query(sql, [
                     player.$authId,
                     player.$firstName,
                     player.$lastName,
@@ -66,13 +66,12 @@ export default class PlayerDAO {
                         class: this.className,
                     });
                 callback(null);
-                return;
             }
         });
     }
 
     /** Methods to be written */
-    //showTeam() -- show only one team based on passed id or name?
+    // showTeam() -- show only one team based on passed id or name?
 
     /**
      * Will fetch all the teams that are currently on the network and return them to user. No protection or further authentication needed to see all teams
@@ -84,7 +83,7 @@ export default class PlayerDAO {
             class: this.className,
         });
 
-        let sql =
+        const sql =
             "SELECT team.ID as team_ID, team.NAME, team.WINS, team.TIES, team.LOSSES, team.IMAGE, team.VISIBILITY, team.SPORT, team.DATE_CREATED, team.CURRENT_TEAM_SIZE, team.MAX_TEAM_SIZE, tr.ROLE, player.AUTH_ID, player.FIRST_NAME, player.LAST_NAME, player.GENDER FROM team team JOIN team_roster tr on (team.ID = tr.team_ID) JOIN player player on (tr.player_AUTH_ID = player.AUTH_ID) ORDER BY team.ID ASC";
         let conn = null;
 
@@ -131,11 +130,11 @@ export default class PlayerDAO {
             try {
                 if (err) throw err;
 
-                let sql =
+                const sql =
                     "SELECT team.ID as team_ID, team.NAME, team.WINS, team.TIES, team.LOSSES, team.IMAGE, team.VISIBILITY, team.SPORT, team.DATE_CREATED, team.CURRENT_TEAM_SIZE, team.MAX_TEAM_SIZE, tr.ROLE, tr.player_AUTH_ID, player.FIRST_NAME, player.LAST_NAME, player.GENDER FROM team team JOIN team_roster tr on(team.ID = tr.team_ID) JOIN player player on(tr.player_AUTH_ID = player.AUTH_ID) WHERE tr.team_ID IN (SELECT team_ID FROM team_roster WHERE player_AUTH_ID = ?) ORDER BY tr.team_ID ASC";
 
                 conn.query = promisify(conn.query);
-                let result = await conn.query(sql, [playerId]);
+                const result = await conn.query(sql, [playerId]);
                 conn.release();
 
                 return callback(result);
@@ -178,11 +177,11 @@ export default class PlayerDAO {
 
         pool.getConnection(async (err: any, conn: any) => {
             try {
-                let sqlTeamInsert =
+                const sqlTeamInsert =
                     "INSERT INTO team (ID, NAME, IMAGE, VISIBILITY, SPORT) values (?,?,?,?,?)";
 
                 conn.query = promisify(conn.query);
-                let result = await conn.query(sqlTeamInsert, [
+                const result = await conn.query(sqlTeamInsert, [
                     team.$id,
                     team.$name,
                     team.$image,
@@ -211,11 +210,11 @@ export default class PlayerDAO {
 
         pool.getConnection(async (err: any, conn: any) => {
             try {
-                let sql =
+                const sql =
                     "SELECT ID, VISIBILITY, CURRENT_TEAM_SIZE, MAX_TEAM_SIZE FROM team WHERE ID = ?";
 
                 conn.query = promisify(conn.query);
-                let authResult = await conn.query(sql, [teamId]);
+                const authResult = await conn.query(sql, [teamId]);
 
                 conn.release();
                 return callback(authResult);
@@ -231,12 +230,7 @@ export default class PlayerDAO {
         });
     }
 
-    async joinTeam(
-        playerId: string,
-        teamId: number,
-        role: string,
-        callback: any
-    ) {
+    async joinTeam(playerId: string, teamId: number, role: string, callback: any) {
         logger.verbose("Entering method joinTeam()", {
             class: this.className,
         });
@@ -245,10 +239,10 @@ export default class PlayerDAO {
             try {
                 if (err) throw err;
 
-                let addPlayerSql =
+                const addPlayerSql =
                     "INSERT INTO team_roster (player_AUTH_ID, team_ID, ROLE) VALUES (?,?,?)";
 
-                let addTeamSizeSql =
+                const addTeamSizeSql =
                     "UPDATE team SET CURRENT_TEAM_SIZE = CURRENT_TEAM_SIZE + 1 WHERE ID = ?";
 
                 conn.beginTransaction(async (err: any) => {
@@ -256,16 +250,13 @@ export default class PlayerDAO {
                         if (err) throw err;
 
                         conn.query = promisify(conn.query);
-                        let addPlayerResult = await conn.query(addPlayerSql, [
+                        const addPlayerResult = await conn.query(addPlayerSql, [
                             playerId,
                             teamId,
                             role,
                         ]);
 
-                        let addTeamSizeResult = await conn.query(
-                            addTeamSizeSql,
-                            [teamId]
-                        );
+                        const addTeamSizeResult = await conn.query(addTeamSizeSql, [teamId]);
 
                         conn.commit((err: any) => {
                             if (err) throw err;
@@ -299,18 +290,16 @@ export default class PlayerDAO {
             class: this.className,
         });
         let conn = null;
-        let deleteFromTeamSql =
+        const deleteFromTeamSql =
             "DELETE FROM team_roster WHERE player_AUTH_ID = ? AND team_ID = ?";
 
-        let updateTeamSizeSql =
+        const updateTeamSizeSql =
             "UPDATE team SET CURRENT_TEAM_SIZE = CURRENT_TEAM_SIZE - 1 WHERE ID = ?";
 
         try {
             conn = await river.getConnection();
             await conn.query(deleteFromTeamSql, [playerId, teamId]);
-            const [updateResult, fields] = await conn.query(updateTeamSizeSql, [
-                teamId,
-            ]);
+            const [updateResult, fields] = await conn.query(updateTeamSizeSql, [teamId]);
             await conn.commit();
             return updateResult;
         } catch (error) {
@@ -342,18 +331,18 @@ export default class PlayerDAO {
 
     async test(playerId: string, teamId: number) {
         let conn = null;
-        let deleteFromTeamSql =
+        const deleteFromTeamSql =
             "DELETE FROM team_roster WHERE player_AUTH_ID = ? AND team_ID = ?";
 
-        let updateTeamSizeSql =
+        const updateTeamSizeSql =
             "UPDATE team SET CURRENT_TEAM_SIZE = CURRENT_TEAM_SIZE - 1 WHERE ID = ?";
 
-        let tesSql = "SELECT * FROM team";
+        const tesSql = "SELECT * FROM team";
         try {
             conn = await river.getConnection();
             await conn.beginTransaction();
             // await conn.query(deleteFromTeamSql, [playerId, teamId]);
-            let [result, fields] = await conn.query(tesSql);
+            const [result, fields] = await conn.query(tesSql);
             await conn.commit();
             // console.log(result);
             return result;
@@ -371,9 +360,9 @@ export default class PlayerDAO {
     }
 }
 
-let playerdao = new PlayerDAO();
+const playerdao = new PlayerDAO();
 
-let dummyPlayer = Player.SecondaryPlayer(
+const dummyPlayer = Player.SecondaryPlayer(
     1231325431,
     "Noah",
     "Roerig",

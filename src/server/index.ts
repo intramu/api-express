@@ -1,5 +1,4 @@
 // require("dotenv").config({ path: require("find-config")(".env") });
-require("dotenv").config();
 // import * as dotenv from "dotenv";
 // dotenv.config();
 import express from "express";
@@ -16,6 +15,8 @@ import cors from "cors";
 // import PlayerDAO from "../data/playerDAO";
 // import admin from "./routes/admin";
 import competition from "./routes/competition";
+
+require("dotenv").config();
 
 const app = express();
 

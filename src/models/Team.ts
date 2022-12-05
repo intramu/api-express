@@ -2,59 +2,74 @@ import { Player } from "./Player";
 
 export class Team {
     protected id: number;
+
     protected name: string;
-    protected wins: number|null;
-    protected ties: number|null;
-    protected losses: number|null;
-    protected image: string|null;
+
+    protected wins: number | null;
+
+    protected ties: number | null;
+
+    protected losses: number | null;
+
+    protected image: string | null;
+
     protected visibility: string;
-    protected sport: string|null;
-    protected dateCreated: Date|null;
-    protected sportsmanshipScore: number
-    protected status: string|null;
-    protected maxTeamSize: number|null;
+
+    protected sport: string | null;
+
+    protected dateCreated: Date | null;
+
+    protected sportsmanshipScore: number;
+
+    protected status: string | null;
+
+    protected maxTeamSize: number | null;
+
     protected womenCount: number;
+
     protected menCount: number;
-    protected players: Player[]|null;
+
+    protected players: Player[] | null;
+
     protected organizationId: string;
 
     constructor(
         id: number,
         name: string,
-        wins: number|null,
-        ties: number|null,
-        losses: number|null,
-        image: string|null,
+        wins: number | null,
+        ties: number | null,
+        losses: number | null,
+        image: string | null,
         visibility: string,
-        sport: string|null,
-        dateCreated: Date|null,
+        sport: string | null,
+        dateCreated: Date | null,
         sportsmanshipScore: number,
-        status: string|null,
-        maxTeamSize: number|null,
+        status: string | null,
+        maxTeamSize: number | null,
         womenCount: number,
         menCount: number,
-        players: Player[]|null,
+        players: Player[] | null,
         organizationId: string
     ) {
-        this.id = id
-        this.name = name
-        this.wins = wins
-        this.ties = ties
-        this.losses = losses
-        this.image = image
-        this.visibility = visibility
-        this.sport = sport
-        this.dateCreated = dateCreated
-        this.womenCount = womenCount
-        this.menCount = menCount
-        this.name = name
-        this.image = image
-        this.visibility = visibility
-        this.sportsmanshipScore = sportsmanshipScore
-        this.status = status
-        this.maxTeamSize = maxTeamSize
-        this.players = players
-        this.organizationId = organizationId
+        this.id = id;
+        this.name = name;
+        this.wins = wins;
+        this.ties = ties;
+        this.losses = losses;
+        this.image = image;
+        this.visibility = visibility;
+        this.sport = sport;
+        this.dateCreated = dateCreated;
+        this.womenCount = womenCount;
+        this.menCount = menCount;
+        this.name = name;
+        this.image = image;
+        this.visibility = visibility;
+        this.sportsmanshipScore = sportsmanshipScore;
+        this.status = status;
+        this.maxTeamSize = maxTeamSize;
+        this.players = players;
+        this.organizationId = organizationId;
     }
 
     /** Constructor */
@@ -90,35 +105,35 @@ export class Team {
         this.name = name;
     }
 
-    public getWins(): number|null {
+    public getWins(): number | null {
         return this.wins;
     }
 
-    public setWins(wins: number|null): void {
+    public setWins(wins: number | null): void {
         this.wins = wins;
     }
 
-    public getTies(): number|null {
+    public getTies(): number | null {
         return this.ties;
     }
 
-    public setTies(ties: number|null): void {
+    public setTies(ties: number | null): void {
         this.ties = ties;
     }
 
-    public getLosses(): number|null {
+    public getLosses(): number | null {
         return this.losses;
     }
 
-    public setLosses(losses: number|null): void {
+    public setLosses(losses: number | null): void {
         this.losses = losses;
     }
 
-    public getImage(): string|null {
+    public getImage(): string | null {
         return this.image;
     }
 
-    public setImage(image: string|null): void {
+    public setImage(image: string | null): void {
         this.image = image;
     }
 
@@ -130,19 +145,19 @@ export class Team {
         this.visibility = visibility;
     }
 
-    public getSport(): string|null {
+    public getSport(): string | null {
         return this.sport;
     }
 
-    public setSport(sport: string|null): void {
+    public setSport(sport: string | null): void {
         this.sport = sport;
     }
 
-    public getDateCreated(): Date|null {
+    public getDateCreated(): Date | null {
         return this.dateCreated;
     }
 
-    public setDateCreated(dateCreated: Date|null): void {
+    public setDateCreated(dateCreated: Date | null): void {
         this.dateCreated = dateCreated;
     }
 
@@ -151,7 +166,7 @@ export class Team {
     }
 
     public setWomenCount(womenCount: number): void {
-        this.womenCount= womenCount;
+        this.womenCount = womenCount;
     }
 
     public getMenCount(): number {
@@ -170,27 +185,27 @@ export class Team {
         this.sportsmanshipScore = sportsmanshipScore;
     }
 
-    public getStatus(): string|null {
+    public getStatus(): string | null {
         return this.status;
     }
 
-    public setStatus(status: string|null): void {
+    public setStatus(status: string | null): void {
         this.status = status;
     }
 
-    public getMaxTeamSize(): number|null {
+    public getMaxTeamSize(): number | null {
         return this.maxTeamSize;
     }
 
-    public setMaxTeamSize(maxTeamSize: number|null): void {
+    public setMaxTeamSize(maxTeamSize: number | null): void {
         this.maxTeamSize = maxTeamSize;
     }
 
-    public getPlayers(): Player[]|null {
+    public getPlayers(): Player[] | null {
         return this.players;
     }
 
-    public setPlayers(players: Player[]|null): void {
+    public setPlayers(players: Player[] | null): void {
         this.players = players;
     }
 

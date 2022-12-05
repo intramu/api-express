@@ -1,3 +1,1 @@
-enum returnTypes {
-    
-}
+enum returnTypes {}
