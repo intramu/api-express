@@ -2,21 +2,20 @@ import { Admin } from "../models/Admin";
 import { Organization } from "../models/Organization";
 import logger from "../utilities/winstonConfig";
 
-import db from "./database";
+import { rollbackWithErrors, useClient as withClient } from "./database";
 
 export default class AdminDAO {
-    className = this.constructor.name;
+    readonly className = this.constructor.name;
 
-    async createCompetition_Tournament(
-        organizationId: string
+    async createCompetitionTournament() {
         // competition: Competition
-    ) {
+        // organizationId: string
         logger.verbose("Entering method createCompetition_Tournament()", {
             class: this.className,
         });
 
-        const conn = null;
-        const sql = "";
+        // const conn = null;
+        // const sql = "";
     }
 
     /**
@@ -31,80 +30,41 @@ export default class AdminDAO {
             class: this.className,
         });
 
-        let client = null;
+        const rowCount = withClient(async (_, client) => {
+            // todo: adjust default values plugged in
+            const sqlCreateOrg =
+                "INSERT INTO organization (NAME, INFO, IMAGE, MAIN_COLOR) VALUES ($1, $2, $3, $4) RETURNING id";
+            const sqlCreateMasterAdmin =
+                "INSERT INTO admin (auth_id, first_name, last_name, language, role, status, organization_ID) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING auth_id";
 
-        // todo: adjust default values plugged in
-        const sqlCreateOrg =
-            "INSERT INTO organization (NAME, INFO, IMAGE, MAIN_COLOR) VALUES ($1, $2, $3, $4) RETURNING id";
-        const sqlCreateMasterAdmin =
-            "INSERT INTO admin (auth_id, first_name, last_name, language, role, status, organization_ID) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING auth_id";
+            return rollbackWithErrors(client, async (querier) => {
+                const orgResponse = await querier(sqlCreateOrg, [
+                    org.getName(),
+                    org.getInfo(),
+                    org.getImage(),
+                    org.getMainColor(),
+                ]);
 
-        try {
-            client = await db.connect();
-            await client.query("BEGIN");
+                const { id } = orgResponse.rows[0];
 
-            const orgResponse = await client.query(sqlCreateOrg, [
-                org.getName(),
-                org.getInfo(),
-                org.getImage(),
-                org.getMainColor(),
-            ]);
+                // todo: make call to auth0 management api to create admin account. Then use this authId
+                const adminResponse = await querier(sqlCreateMasterAdmin, [
+                    "test1",
+                    `${org.getName()} master admin`,
+                    null,
+                    "ENGLISH",
+                    "MASTER",
+                    "VALID",
+                    id,
+                ]);
 
-            const { id } = orgResponse.rows[0];
+                console.log({ adminResponse });
 
-            // todo: make call to auth0 management api to create admin account. Then use this authId
-            const adminResponse = await client.query(sqlCreateMasterAdmin, [
-                "test1",
-                `${org.getName()} master admin`,
-                null,
-                "ENGLISH",
-                "MASTER",
-                "VALID",
-                id,
-            ]);
-            console.log(adminResponse);
-
-            await client.query("COMMIT");
-            return adminResponse.rowCount;
-        } catch (error) {
-            // todo: improve error handling
-            logger.error("Database Connection / Query Error", {
-                type: error,
-                class: this.className,
+                return adminResponse.rowCount;
             });
+        });
 
-            await client.query("ROLLBACK");
-
-            // todo: return enum
-            return null;
-        } finally {
-            client?.release();
-        }
-        // try {
-        //     conn = await pool.getConnection();
-        //     let [resultCreateOrg, fields]  = await conn.query(sqlCreateOrg, [
-        //         org.getName(),
-        //         org.getInfo(),
-        //         org.getImage(),
-        //         org.getMainColor(),
-        //         org.getApprovalStatus(),
-        //         new Date(),
-        //     ]);
-
-        //     console.log(resultCreateOrg);
-        //     await conn.commit()
-        // } catch (error) {
-        //     if (conn) await conn.rollback();
-
-        // logger.error("Database Connection / Query Error", {
-        //     type: error,
-        //     class: this.className,
-        // });
-
-        //     return null;
-        // } finally {
-        //     if (conn) conn.release();
-        // }
+        console.log({ rowCount });
     }
 
     async findAllOrganizations() {
@@ -112,53 +72,33 @@ export default class AdminDAO {
             class: this.className,
         });
 
-        let client = null;
         const sqlAll = "SELECT * FROM organization";
 
-        try {
-            client = await db.connect();
-            const response = await client.query(sqlAll);
+        return withClient(async (querier) => {
+            const response = await querier(sqlAll);
 
             const results = response.rows;
             // console.log(response.rows);
 
             return results;
-        } catch (error: any) {
-            logger.error("Database Connection / Query Error", {
-                type: error,
-                class: this.className,
-            });
-            return null;
-        } finally {
-            client?.release();
-        }
+        });
     }
 
+    // eslint-disable-next-line consistent-return
     async deleteOrganizationById(orgId: string) {
         logger.verbose("Entering method deleteOrganizationById()", {
             class: this.className,
         });
 
-        let client = null;
+        return withClient(async (querier) => {
+            const sqlDelete = "DELETE FROM organization WHERE id=$1";
 
-        const sqlDelete = "DELETE FROM organization WHERE id=$1";
-
-        try {
-            client = await db.connect();
-            const response = await client.query(sqlDelete, [orgId]);
+            const response = await querier(sqlDelete, [orgId]);
 
             // todo: Finish delete method when database is updated with cascade operation on delete
             console.log(response);
             // return results
-        } catch (error: any) {
-            logger.error("Database Connection / Query Error", {
-                type: error,
-                class: this.className,
-            });
-            return null;
-        } finally {
-            client?.release();
-        }
+        });
     }
 
     async updateOrganization(org: Organization) {
@@ -166,13 +106,10 @@ export default class AdminDAO {
             class: this.className,
         });
 
-        let client = null;
-
-        const sqlUpdate =
-            "UPDATE organization SET name=$1, image=$2, info=$3, main_color=$4, approval_status=$5 WHERE id = $6 RETURNING *";
-        try {
-            client = await db.connect();
-            const response = await client.query(sqlUpdate, [
+        return withClient(async (querier) => {
+            const sqlUpdate =
+                "UPDATE organization SET name=$1, image=$2, info=$3, main_color=$4, approval_status=$5 WHERE id = $6 RETURNING *";
+            const response = await querier(sqlUpdate, [
                 org.getName(),
                 org.getImage(),
                 org.getInfo(),
@@ -185,26 +122,16 @@ export default class AdminDAO {
 
             // console.log();
             return results;
-        } catch (error: any) {
-            logger.error("Database Connection / Query Error", {
-                type: error,
-                class: this.className,
-            });
-            return null;
-        } finally {
-            client?.release();
-        }
+        });
     }
 
+    // eslint-disable-next-line class-methods-use-this, consistent-return
     async createAdmin(admin: Admin, organizationId: string) {
-        let client = null;
+        return withClient(async (querier) => {
+            const sqlCreate =
+                "INSERT INTO admin (auth_id, first_name, last_name, language, role, status, organization_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *";
 
-        const sqlCreate =
-            "INSERT INTO admin (auth_id, first_name, last_name, language, role, status, organization_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *";
-
-        try {
-            client = await db.connect();
-            const results = await client.query(sqlCreate, [
+            const results = await querier(sqlCreate, [
                 admin.getAuthId(),
                 admin.getFirstName(),
                 admin.getLastName(),
@@ -216,27 +143,19 @@ export default class AdminDAO {
 
             console.log(results);
             // return results
-        } catch (error: any) {
-            console.log("TRACE: ", error);
-            console.log("MESSAGE: ", (<Error>error).message);
-            return null;
-        } finally {
-            client?.release();
-        }
+        });
     }
 
+    // eslint-disable-next-line consistent-return
     async updateAdmin(admin: Admin) {
         logger.verbose("Entering method ...()", {
             class: this.className,
         });
 
-        let client = null;
-
-        const sqlUpdate =
-            "UPDATE admin SET first_name=$1, last_name=$2, language=$3, role=$4, status=$5 WHERE auth_id = $6 RETURNING *";
-        try {
-            client = await db.connect();
-            const response = await client.query(sqlUpdate, [
+        return withClient(async (querier) => {
+            const sqlUpdate =
+                "UPDATE admin SET first_name=$1, last_name=$2, language=$3, role=$4, status=$5 WHERE auth_id = $6 RETURNING *";
+            const response = await querier(sqlUpdate, [
                 admin.getFirstName(),
                 admin.getLastName(),
                 admin.getLanguage(),
@@ -247,40 +166,20 @@ export default class AdminDAO {
 
             console.log(response);
             // return results
-        } catch (error: any) {
-            logger.error("Database Connection / Query Error", {
-                type: error,
-                class: this.className,
-            });
-            return null;
-        } finally {
-            client?.release();
-        }
+        });
     }
 
-    async deleteAdminById(adminId: string) {
+    async deleteAdminById(adminId: string): Promise<void> {
         logger.verbose("Entering method deleteAdminById()", {
             class: this.className,
         });
 
-        let client = null;
-
-        const sqlDelete = "DELETE FROM admin WHERE id=$1";
-        try {
-            client = await db.connect();
-            const response = await client.query(sqlDelete, [adminId]);
+        return withClient(async (querier) => {
+            const sqlDelete = "DELETE FROM admin WHERE id=$1";
+            const response = await querier(sqlDelete, [adminId]);
 
             console.log(response);
-            // return results
-        } catch (error: any) {
-            logger.error("Database Connection / Query Error", {
-                type: error,
-                class: this.className,
-            });
-            return null;
-        } finally {
-            client?.release();
-        }
+        });
     }
 
     async findAdminById(adminId: string) {
@@ -288,53 +187,31 @@ export default class AdminDAO {
             class: this.className,
         });
 
-        let client = null;
-
-        const sql = "SELECT * FROM admin WHERE auth_id=$1";
-        try {
-            client = await db.connect();
-            const response = await client.query(sql, [adminId]);
+        return withClient(async (querier) => {
+            const sql = "SELECT * FROM admin WHERE auth_id=$1";
+            const response = await querier(sql, [adminId]);
             const results = response.rows[0];
 
             console.log(results);
-
-            // return results
-        } catch (error: any) {
-            logger.error("Database Connection / Query Error", {
-                type: error,
-                class: this.className,
-            });
-            return null;
-        } finally {
-            client?.release();
-        }
+            return results;
+        });
     }
 
-    async findAllAdminsInOrganization(orgId: string) {
+    async findAllAdminsInOrganization(orgId: string): Promise<Admin[]> {
         logger.verbose("Entering method findAllAdmins()", {
             class: this.className,
         });
 
-        let client = null;
+        return withClient(async (querier) => {
+            const sqlAll = "SELECT * FROM admin WHERE organization_id=$1";
 
-        const sqlAll = "SELECT * FROM admin WHERE organization_id=$1";
-        try {
-            client = await db.connect();
-            const response = await client.query(sqlAll, [orgId]);
-            const results = response.rows[0];
+            const response = await querier(sqlAll, [orgId]);
+            const results = response.rows;
 
             console.log(results);
 
-            // return results
-        } catch (error: any) {
-            logger.error("Database Connection / Query Error", {
-                type: error,
-                class: this.className,
-            });
-            return null;
-        } finally {
-            client?.release();
-        }
+            throw new Error("Method not implemented.");
+        });
     }
 }
 
@@ -356,7 +233,7 @@ export default class AdminDAO {
 
 // }
 
-const test = new AdminDAO();
+// const test = new AdminDAO();
 
 // test.createOrganization(new Organization('','Grand Canyon University', '', 'The coolest University', 'purple', '', new Date()))
 // test.findAllAdmins();
@@ -364,21 +241,21 @@ const test = new AdminDAO();
 // test.updateOrganization(new Organization("a5fe0074-2e47-492f-9aed-01748d856a93", "University of Arizona","", "Some more info on UOA", "Blue", "UNAPPROVED", new Date()))
 // test.deleteOrganizationById("a5fe0074-2e47-492f-9aed-01748d856a93")
 
-const admin = new Admin(
-    "test1",
-    "Noah",
-    "Roerig",
-    "ENGLISH",
-    "noahr1936@gmail.com",
-    "MASTER",
-    new Date(),
-    "VALID"
-);
+// const admin = new Admin(
+//     "test1",
+//     "Noah",
+//     "Roerig",
+//     "ENGLISH",
+//     "noahr1936@gmail.com",
+//     "MASTER",
+//     new Date(),
+//     "VALID"
+// );
 
 // test.updateAdmin(admin)
 // test.findAllAdminsInOrganization("92181711-98ed-48c7-9cc6-75afaf2ba728")
 // test.createAdmin(admin)
-test.findAdminById("test");
+// test.findAdminById("test");
 
 // test.createOrganization(new Organization("2", "GCU", "none", "Christian", "Purple", "UNAPPROVED", new Date()))
 // test.findAllOrganizations()
