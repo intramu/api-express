@@ -2,7 +2,7 @@ import { Admin } from "../models/Admin";
 import { Organization } from "../models/Organization";
 import logger from "../utilities/winstonConfig";
 
-import { rollbackWithErrors, useClient as withClient } from "./database";
+import { IsRollback, withClient, withClientRollback } from "./database";
 
 export default class AdminDAO {
     readonly className = this.constructor.name;
@@ -30,41 +30,43 @@ export default class AdminDAO {
             class: this.className,
         });
 
-        const rowCount = withClient(async (_, client) => {
+        const rowCount = await withClientRollback(async (querier) => {
             // todo: adjust default values plugged in
             const sqlCreateOrg =
                 "INSERT INTO organization (NAME, INFO, IMAGE, MAIN_COLOR) VALUES ($1, $2, $3, $4) RETURNING id";
             const sqlCreateMasterAdmin =
                 "INSERT INTO admin (auth_id, first_name, last_name, language, role, status, organization_ID) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING auth_id";
 
-            return rollbackWithErrors(client, async (querier) => {
-                const orgResponse = await querier(sqlCreateOrg, [
-                    org.getName(),
-                    org.getInfo(),
-                    org.getImage(),
-                    org.getMainColor(),
-                ]);
+            const orgResponse = await querier(sqlCreateOrg, [
+                org.getName(),
+                org.getInfo(),
+                org.getImage(),
+                org.getMainColor(),
+            ]);
 
-                const { id } = orgResponse.rows[0];
+            const { id } = orgResponse.rows[0];
 
-                // todo: make call to auth0 management api to create admin account. Then use this authId
-                const adminResponse = await querier(sqlCreateMasterAdmin, [
-                    "test1",
-                    `${org.getName()} master admin`,
-                    null,
-                    "ENGLISH",
-                    "MASTER",
-                    "VALID",
-                    id,
-                ]);
+            // todo: make call to auth0 management api to create admin account. Then use this authId
+            const adminResponse = await querier(sqlCreateMasterAdmin, [
+                "test1",
+                `${org.getName()} master admin`,
+                null,
+                "ENGLISH",
+                "MASTER",
+                "VALID",
+                id,
+            ]);
 
-                console.log({ adminResponse });
+            console.log({ adminResponse });
 
-                return adminResponse.rowCount;
-            });
+            return adminResponse.rowCount;
         });
 
+        if (rowCount === IsRollback) {
+            return 0;
+        }
         console.log({ rowCount });
+        return rowCount;
     }
 
     async findAllOrganizations() {

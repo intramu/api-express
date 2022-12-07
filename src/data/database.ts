@@ -10,6 +10,9 @@ export const db = new Pool({
     max: 20,
 });
 
+export type IsRollback = typeof IsRollback;
+export const IsRollback = Symbol("IsRollback");
+
 export async function getClient(): Promise<PoolClient> {
     try {
         return await db.connect();
@@ -21,20 +24,37 @@ export async function getClient(): Promise<PoolClient> {
     }
 }
 
-type Querier<T extends QueryResultRow> = (
+type Querier = <T extends QueryResultRow>(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     queryTextOrConfig: string | QueryConfig<any[]>,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     values?: any[] | undefined
 ) => Promise<QueryResult<T>>;
 
-export async function useClient<T, U extends QueryResultRow>(
-    runner: (querier: Querier<U>, client: PoolClient) => T
+export async function rollback(client: PoolClient): Promise<void> {
+    await client.query("ROLLBACK");
+}
+
+export async function withClient<T>(
+    runner: (querier: Querier, client: PoolClient) => T
 ): Promise<T> {
     const client = await getClient();
     const result = await runner(createQuerier(client), client);
     client.release();
     return result;
+}
+
+/**
+ * If you return in the runner with IsRollback or throw an exception, the transaction will be rolled back.
+ * @param runner
+ * @returns
+ */
+export async function withClientRollback<T>(
+    runner: (querier: Querier, client: PoolClient) => Promise<T | typeof IsRollback>
+): Promise<T | IsRollback> {
+    return withClient(async (_, client) =>
+        rollbackWithErrors(client, (querier) => runner(querier, client))
+    );
 }
 
 export async function query<T extends QueryResultRow>(
@@ -56,7 +76,12 @@ export async function query<T extends QueryResultRow>(
     }
 }
 
-export function createQuerier(client: PoolClient) {
+export function createQuerier(client: PoolClient): <T extends QueryResultRow>(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    queryTextOrConfig: string | QueryConfig<any[]>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    values?: any[] | undefined
+) => Promise<QueryResult<T>> {
     async function querier<T extends QueryResultRow>(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         queryTextOrConfig: string | QueryConfig<any[]>,
@@ -69,38 +94,32 @@ export function createQuerier(client: PoolClient) {
     return querier;
 }
 
+/**
+ * If you return in the runner with IsRollback or throw an exception, the transaction will be rolled back.
+ * @param client
+ * @param runner
+ * @returns
+ */
 export async function rollbackWithErrors<T>(
     client: PoolClient,
-    runner: <U extends QueryResultRow>(
-        querier: Querier<U>,
-        rollback: () => Promise<void>,
-        client: PoolClient
-    ) => Promise<T | undefined>
-): Promise<T | undefined> {
-    let ranRollback = false;
-    async function runRollback() {
-        ranRollback = true;
-        await query(client, "ROLLBACK");
-    }
-
+    runner: (querier: Querier, client: PoolClient) => Promise<T | typeof IsRollback>
+): Promise<T | typeof IsRollback> {
     const querier = createQuerier(client);
-
-    let result: T | undefined;
 
     try {
         await querier("BEGIN");
-        result = await runner(querier, runRollback, client);
-        if (!ranRollback) {
+        const result = await runner(querier, client);
+        if (result === IsRollback) {
+            await rollback(client);
+        } else {
             await querier("COMMIT");
-            return result;
         }
+        return result;
     } catch (error) {
         logger.error("Database Query Error with rollback", {
             type: error,
         });
-        await runRollback();
+        await rollback(client);
         throw error;
     }
-
-    return undefined;
 }
