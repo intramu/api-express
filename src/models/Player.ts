@@ -35,56 +35,56 @@ export class Player extends User {
         this.image = image;
     }
 
-    public getGender(): string {
+    getGender(): string {
         return this.gender;
     }
 
-    public setGender(gender: string): void {
+    setGender(gender: string): void {
         this.gender = gender;
     }
 
-    public getDob(): Date {
+    getDob(): Date {
         return this.dob;
     }
 
-    public setDob(dob: Date): void {
+    setDob(dob: Date): void {
         this.dob = dob;
     }
 
-    public getVisibility(): string {
+    getVisibility(): string {
         return this.visibility;
     }
 
-    public setVisibility(visibility: string): void {
+    setVisibility(visibility: string): void {
         this.visibility = visibility;
     }
 
-    public getGraduationTerm(): string {
+    getGraduationTerm(): string {
         return this.graduationTerm;
     }
 
-    public setGraduationTerm(graduationTerm: string): void {
+    setGraduationTerm(graduationTerm: string): void {
         this.graduationTerm = graduationTerm;
     }
 
-    public getImage(): string | null {
+    getImage(): string | null {
         return this.image;
     }
 
-    public setImage(image: string | null): void {
+    setImage(image: string | null): void {
         this.image = image;
     }
 
-    public getStatus(): string {
+    getStatus(): string {
         return this.status;
     }
 
-    public setStatus(status: string): void {
+    setStatus(status: string): void {
         this.status = status;
     }
 
     // Constructors
-    // public static test($id: number, $firstName: string): Player {
+    // static test($id: number, $firstName: string): Player {
     //     var result = new Player();
 
     //     result.id = $id;
@@ -92,7 +92,7 @@ export class Player extends User {
     //     return result;
     // }
 
-    // public static fromProps({
+    // static fromProps({
     //     id,
     //     firstName,
     //     lastName,
@@ -152,7 +152,7 @@ export class Player extends User {
     //     return result;
     // }
 
-    // public static SecondaryPlayer(
+    // static SecondaryPlayer(
     //     $authId: number,
     //     $firstName: string,
     //     $lastName: string,
@@ -184,7 +184,7 @@ export class Player extends User {
     //     return result;
     // }
 
-    // public static Default() {
+    // static Default() {
     //     var result = new Player();
     //     return result;
     // }

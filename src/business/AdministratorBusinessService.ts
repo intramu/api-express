@@ -4,7 +4,7 @@
 // const database = new adminDAO();
 
 // export class AdministratorBusinessService {
-//     public createAdmin(admin: Administrator, callback: any) {
+//     createAdmin(admin: Administrator, callback: any) {
 //         database.createAdmin(admin, (result: any) => {
 //             if (result == null) {
 //                 console.log("Database Error");
@@ -15,7 +15,7 @@
 //         });
 //     }
 
-//     public login(emailAddress: string, password: string, callback: any) {
+//     login(emailAddress: string, password: string, callback: any) {
 //         database.login(emailAddress, password, (result: any) => {
 //             if (result === null) {
 //                 console.log("Database Error");
@@ -40,7 +40,7 @@
 //         });
 //     }
 
-//     public findAllTeams(callback: any) {
+//     findAllTeams(callback: any) {
 //         console.log("In business");
 
 //         database.findAllTeams((result: any) => {
@@ -56,7 +56,7 @@
 //         });
 //     }
 
-//     public findTeamById(id: number, callback: any) {
+//     findTeamById(id: number, callback: any) {
 //         database.findTeamById(id, (result: any) => {
 //             if (result === null) {
 //                 console.log("Database Error");
@@ -70,7 +70,7 @@
 //         });
 //     }
 
-//     public createTeam(name: string, callback: any) {
+//     createTeam(name: string, callback: any) {
 //         database.createTeam(name, (result: any) => {
 //             if (result == null) {
 //                 console.log("Database Error");
@@ -79,7 +79,7 @@
 //         });
 //     }
 
-//     public joinTeam(playerId: number, teamId: number, callback: any) {
+//     joinTeam(playerId: number, teamId: number, callback: any) {
 //         database.findTeamRestrictions(teamId, (result: any) => {
 //             if (result === null) {
 //                 console.log("Database Error");
@@ -100,7 +100,7 @@
 //             }
 //         });
 //     }
-//     // public createAdmin(
+//     // createAdmin(
 //     //     masterId: number,
 //     //     masterPassword: string,
 //     //     admin: Administrator,
@@ -144,13 +144,13 @@
 //     //         }
 //     //     );
 //     // }
-//     // public findAllAdmins(callback: any) {
+//     // findAllAdmins(callback: any) {
 //     //     administratorDAO.findAllAdmins((result: any) => {
 //     //         if (result == "error") callback({ message: "null" });
 //     //         else callback(result);
 //     //     });
 //     // }
-//     // public removeAdmin(
+//     // removeAdmin(
 //     //     masterId: number,
 //     //     masterPassword: string,
 //     //     id: number,
@@ -185,7 +185,7 @@
 //     //         }
 //     //     );
 //     // }
-//     // public removeAdmin(currentId: number, password: string, otherId: number, callback: any){
+//     // removeAdmin(currentId: number, password: string, otherId: number, callback: any){
 //     //     administratorDAO.getAdminRole(currentId, password, (err:any, result: any) => {
 //     //         if(err){
 //     //             // console.log(err);
@@ -222,7 +222,7 @@
 //     //         }
 //     //     })
 //     // }
-//     // public findAdmin(id: number, callback: any) {
+//     // findAdmin(id: number, callback: any) {
 //     //     administratorDAO.findAdmin(id, (result: any) => {
 //     //         switch (result) {
 //     //             case Object:

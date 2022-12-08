@@ -41,75 +41,75 @@ export class DivisionModel {
         this.brackets = brackets;
     }
 
-    public getDivisionName(): string {
+    getDivisionName(): string {
         return this.divisionName;
     }
 
-    public setDivisionName(divisionName: string): void {
+    setDivisionName(divisionName: string): void {
         this.divisionName = divisionName;
     }
 
-    public getDivisionType(): string {
+    getDivisionType(): string {
         return this.divisionType;
     }
 
-    public setDivisionType(divisionType: string): void {
+    setDivisionType(divisionType: string): void {
         this.divisionType = divisionType;
     }
 
-    public getDivisionLevel(): string {
+    getDivisionLevel(): string {
         return this.divisionLevel;
     }
 
-    public setDivisionLevel(divisionLevel: string): void {
+    setDivisionLevel(divisionLevel: string): void {
         this.divisionLevel = divisionLevel;
     }
 
-    public getDivisionStartDate(): Date {
+    getDivisionStartDate(): Date {
         return this.divisionStartDate;
     }
 
-    public setDivisionStartDate(divisionStartDate: Date): void {
+    setDivisionStartDate(divisionStartDate: Date): void {
         this.divisionStartDate = divisionStartDate;
     }
 
-    public getDivisionEndDate(): Date {
+    getDivisionEndDate(): Date {
         return this.divisionEndDate;
     }
 
-    public setDivisionEndDate(divisionEndDate: Date): void {
+    setDivisionEndDate(divisionEndDate: Date): void {
         this.divisionEndDate = divisionEndDate;
     }
 
-    public getMaxTeamSize(): number {
+    getMaxTeamSize(): number {
         return this.maxTeamSize;
     }
 
-    public setMaxTeamSize(maxTeamSize: number): void {
+    setMaxTeamSize(maxTeamSize: number): void {
         this.maxTeamSize = maxTeamSize;
     }
 
-    public getMinWCount(): number {
+    getMinWCount(): number {
         return this.minWCount;
     }
 
-    public setMinWCount(minWCount: number): void {
+    setMinWCount(minWCount: number): void {
         this.minWCount = minWCount;
     }
 
-    public getMinMCount(): number {
+    getMinMCount(): number {
         return this.minMCount;
     }
 
-    public setMinMCount(minMCount: number): void {
+    setMinMCount(minMCount: number): void {
         this.minMCount = minMCount;
     }
 
-    public getBrackets(): BracketModel[] {
+    getBrackets(): BracketModel[] {
         return this.brackets;
     }
 
-    public setBrackets(brackets: BracketModel[]): void {
+    setBrackets(brackets: BracketModel[]): void {
         this.brackets = brackets;
     }
 }

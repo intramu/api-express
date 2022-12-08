@@ -10,7 +10,7 @@
 //      * @param admin Master admin object created with the organization
 //      * @param callback returns result from database
 //      */
-//     public createOrganization(
+//     createOrganization(
 //         organization: Organization,
 //         admin: Administrator,
 //         callback: any

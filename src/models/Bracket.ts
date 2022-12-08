@@ -12,27 +12,27 @@ export class BracketModel {
         this.bracketMaxSize = bracketMaxSize;
     }
 
-    public getBracketDayChoices(): string[] {
+    getBracketDayChoices(): string[] {
         return this.bracketDayChoices;
     }
 
-    public setBracketDayChoices(bracketDayChoices: string[]): void {
+    setBracketDayChoices(bracketDayChoices: string[]): void {
         this.bracketDayChoices = bracketDayChoices;
     }
 
-    public getBracketTimeSlots(): Object[] {
+    getBracketTimeSlots(): Object[] {
         return this.bracketTimeSlots;
     }
 
-    public setBracketTimeSlots(bracketTimeSlots: Object[]): void {
+    setBracketTimeSlots(bracketTimeSlots: Object[]): void {
         this.bracketTimeSlots = bracketTimeSlots;
     }
 
-    public getBracketMaxSize(): number {
+    getBracketMaxSize(): number {
         return this.bracketMaxSize;
     }
 
-    public setBracketMaxSize(bracketMaxSize: number): void {
+    setBracketMaxSize(bracketMaxSize: number): void {
         this.bracketMaxSize = bracketMaxSize;
     }
 }

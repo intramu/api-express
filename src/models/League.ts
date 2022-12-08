@@ -33,59 +33,59 @@ export class LeagueModel {
         this.divisions = divisions;
     }
 
-    public getLeagueName(): string {
+    getLeagueName(): string {
         return this.leagueName;
     }
 
-    public setLeagueName(leagueName: string): void {
+    setLeagueName(leagueName: string): void {
         this.leagueName = leagueName;
     }
 
-    public getLeagueSport(): string {
+    getLeagueSport(): string {
         return this.leagueSport;
     }
 
-    public setLeagueSport(leagueSport: string): void {
+    setLeagueSport(leagueSport: string): void {
         this.leagueSport = leagueSport;
     }
 
-    public getLeagueStartDate(): Date {
+    getLeagueStartDate(): Date {
         return this.leagueStartDate;
     }
 
-    public setLeagueStartDate(leagueStartDate: Date): void {
+    setLeagueStartDate(leagueStartDate: Date): void {
         this.leagueStartDate = leagueStartDate;
     }
 
-    public getLeagueEndDate(): Date {
+    getLeagueEndDate(): Date {
         return this.leagueEndDate;
     }
 
-    public setLeagueEndDate(leagueEndDate: Date): void {
+    setLeagueEndDate(leagueEndDate: Date): void {
         this.leagueEndDate = leagueEndDate;
     }
 
-    public getLeagueDetails(): string {
+    getLeagueDetails(): string {
         return this.leagueDetails;
     }
 
-    public setLeagueDetails(leagueDetails: string): void {
+    setLeagueDetails(leagueDetails: string): void {
         this.leagueDetails = leagueDetails;
     }
 
-    public getLeagueSetsDates(): boolean {
+    getLeagueSetsDates(): boolean {
         return this.leagueSetsDates;
     }
 
-    public setLeagueSetsDates(leagueSetsDates: boolean): void {
+    setLeagueSetsDates(leagueSetsDates: boolean): void {
         this.leagueSetsDates = leagueSetsDates;
     }
 
-    public getDivisions(): DivisionModel[] {
+    getDivisions(): DivisionModel[] {
         return this.divisions;
     }
 
-    public setDivisions(divisions: DivisionModel[]): void {
+    setDivisions(divisions: DivisionModel[]): void {
         this.divisions = divisions;
     }
 }

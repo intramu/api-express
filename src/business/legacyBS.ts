@@ -23,7 +23,7 @@
 //      * @param player player object passed to data layer
 //      * @param callback callback that returns the result from the database
 //      */
-//     public createSecondaryPlayer(player: Player, callback: any) {
+//     createSecondaryPlayer(player: Player, callback: any) {
 //         logger.verbose("Entering method createSecondaryPlayer", {
 //             class: this.className,
 //         });
@@ -49,7 +49,7 @@
 //         });
 //     }
 
-//     public showAllPlayersTeams(playerId: string, callback: any) {
+//     showAllPlayersTeams(playerId: string, callback: any) {
 //         logger.verbose("Entering method showAllPlayersTeams", {
 //             class: this.className,
 //         });
@@ -81,7 +81,7 @@
 //         });
 //     }
 
-//     public showAllTeams(callback: any) {
+//     showAllTeams(callback: any) {
 //         logger.verbose("Entering method showAllTeams()", {
 //             class: this.className,
 //         });
@@ -175,7 +175,7 @@
 //         });
 //     }
 
-//     public createTeam(team: Team, playerId: string, callback: any) {
+//     createTeam(team: Team, playerId: string, callback: any) {
 //         logger.verbose("Entering method createTeam()", {
 //             class: this.className,
 //         });
@@ -217,7 +217,7 @@
 //         });
 //     }
 
-//     public leaveTeam(playerId: string, teamId: number, callback: any) {
+//     leaveTeam(playerId: string, teamId: number, callback: any) {
 //         logger.verbose("Entering method leaveTeam()", {
 //             class: this.className,
 //         });
@@ -307,7 +307,7 @@
 //     //     );
 //     // });
 
-//     //     public createPrimary(player: Player, callback: any){
+//     //     createPrimary(player: Player, callback: any){
 //     //         databasePlayer.createPrimary(player, (result:any)=>{
 //     //             if(result === null){
 //     //                 console.log('Database Error');

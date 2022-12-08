@@ -31,59 +31,59 @@ export class Organization {
         this.dateCreated = $dateCreated;
     }
 
-    public getId(): string {
+    getId(): string {
         return this.id;
     }
 
-    public setId(id: string): void {
+    setId(id: string): void {
         this.id = id;
     }
 
-    public getName(): string {
+    getName(): string {
         return this.name;
     }
 
-    public setName(name: string): void {
+    setName(name: string): void {
         this.name = name;
     }
 
-    public getImage(): string {
+    getImage(): string {
         return this.image;
     }
 
-    public setImage(image: string): void {
+    setImage(image: string): void {
         this.image = image;
     }
 
-    public getInfo(): string {
+    getInfo(): string {
         return this.info;
     }
 
-    public setInfo(info: string): void {
+    setInfo(info: string): void {
         this.info = info;
     }
 
-    public getMainColor(): string {
+    getMainColor(): string {
         return this.mainColor;
     }
 
-    public setMainColor(mainColor: string): void {
+    setMainColor(mainColor: string): void {
         this.mainColor = mainColor;
     }
 
-    public getApprovalStatus(): string {
+    getApprovalStatus(): string {
         return this.approvalStatus;
     }
 
-    public setApprovalStatus(approvalStatus: string): void {
+    setApprovalStatus(approvalStatus: string): void {
         this.approvalStatus = approvalStatus;
     }
 
-    public getDateCreated(): Date {
+    getDateCreated(): Date {
         return this.dateCreated;
     }
 
-    public setDateCreated(dateCreated: Date): void {
+    setDateCreated(dateCreated: Date): void {
         this.dateCreated = dateCreated;
     }
 }

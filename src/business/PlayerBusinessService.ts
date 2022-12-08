@@ -17,7 +17,7 @@ export class PlayerBusinessService {
      * @param callback callback that returns the result from the database
      */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    public createSecondaryPlayer(player: Player | any, callback: any) {
+    createSecondaryPlayer(player: Player | any, callback: any) {
         logger.verbose("Entering method createSecondaryPlayer", {
             class: this.className,
         });
@@ -47,7 +47,7 @@ export class PlayerBusinessService {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    public showAllPlayersTeams(playerId: string, callback: any) {
+    showAllPlayersTeams(playerId: string, callback: any) {
         logger.verbose("Entering method showAllPlayersTeams", {
             class: this.className,
         });
@@ -196,7 +196,7 @@ export class PlayerBusinessService {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    public createTeam(team: Team, playerId: string, callback: any) {
+    createTeam(team: Team, playerId: string, callback: any) {
         logger.verbose("Entering method createTeam()", {
             class: this.className,
         });
@@ -234,7 +234,7 @@ export class PlayerBusinessService {
         });
     }
 
-    public async leaveTeam(playerId: string, teamId: number) {
+    async leaveTeam(playerId: string, teamId: number) {
         logger.verbose("Entering method leaveTeam()", {
             class: this.className,
         });
@@ -322,7 +322,7 @@ export class PlayerBusinessService {
 //     );
 // });
 
-//     public createPrimary(player: Player, callback: any){
+//     createPrimary(player: Player, callback: any){
 //         databasePlayer.createPrimary(player, (result:any)=>{
 //             if(result === null){
 //                 console.log('Database Error');

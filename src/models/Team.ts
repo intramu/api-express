@@ -73,7 +73,7 @@ export class Team {
     }
 
     /** Constructor */
-    // public static CreatedTeam(
+    // static CreatedTeam(
     //     name: string,
     //     image: string,
     //     visibility: string,
@@ -89,131 +89,131 @@ export class Team {
     //     return result;
     // }
 
-    public getId(): number {
+    getId(): number {
         return this.id;
     }
 
-    public setId(id: number): void {
+    setId(id: number): void {
         this.id = id;
     }
 
-    public getName(): string {
+    getName(): string {
         return this.name;
     }
 
-    public setName(name: string): void {
+    setName(name: string): void {
         this.name = name;
     }
 
-    public getWins(): number | null {
+    getWins(): number | null {
         return this.wins;
     }
 
-    public setWins(wins: number | null): void {
+    setWins(wins: number | null): void {
         this.wins = wins;
     }
 
-    public getTies(): number | null {
+    getTies(): number | null {
         return this.ties;
     }
 
-    public setTies(ties: number | null): void {
+    setTies(ties: number | null): void {
         this.ties = ties;
     }
 
-    public getLosses(): number | null {
+    getLosses(): number | null {
         return this.losses;
     }
 
-    public setLosses(losses: number | null): void {
+    setLosses(losses: number | null): void {
         this.losses = losses;
     }
 
-    public getImage(): string | null {
+    getImage(): string | null {
         return this.image;
     }
 
-    public setImage(image: string | null): void {
+    setImage(image: string | null): void {
         this.image = image;
     }
 
-    public getVisibility(): string {
+    getVisibility(): string {
         return this.visibility;
     }
 
-    public setVisibility(visibility: string): void {
+    setVisibility(visibility: string): void {
         this.visibility = visibility;
     }
 
-    public getSport(): string | null {
+    getSport(): string | null {
         return this.sport;
     }
 
-    public setSport(sport: string | null): void {
+    setSport(sport: string | null): void {
         this.sport = sport;
     }
 
-    public getDateCreated(): Date | null {
+    getDateCreated(): Date | null {
         return this.dateCreated;
     }
 
-    public setDateCreated(dateCreated: Date | null): void {
+    setDateCreated(dateCreated: Date | null): void {
         this.dateCreated = dateCreated;
     }
 
-    public getWomenCount(): number {
+    getWomenCount(): number {
         return this.womenCount;
     }
 
-    public setWomenCount(womenCount: number): void {
+    setWomenCount(womenCount: number): void {
         this.womenCount = womenCount;
     }
 
-    public getMenCount(): number {
+    getMenCount(): number {
         return this.menCount;
     }
 
-    public setMenCount(menCount: number): void {
+    setMenCount(menCount: number): void {
         this.menCount = menCount;
     }
 
-    public getSportsmanshipScore(): number {
+    getSportsmanshipScore(): number {
         return this.sportsmanshipScore;
     }
 
-    public setSportsmanshipScore(sportsmanshipScore: number): void {
+    setSportsmanshipScore(sportsmanshipScore: number): void {
         this.sportsmanshipScore = sportsmanshipScore;
     }
 
-    public getStatus(): string | null {
+    getStatus(): string | null {
         return this.status;
     }
 
-    public setStatus(status: string | null): void {
+    setStatus(status: string | null): void {
         this.status = status;
     }
 
-    public getMaxTeamSize(): number | null {
+    getMaxTeamSize(): number | null {
         return this.maxTeamSize;
     }
 
-    public setMaxTeamSize(maxTeamSize: number | null): void {
+    setMaxTeamSize(maxTeamSize: number | null): void {
         this.maxTeamSize = maxTeamSize;
     }
 
-    public getPlayers(): Player[] {
+    getPlayers(): Player[] {
         return this.players;
     }
 
-    public setPlayers(players: Player[]): void {
+    setPlayers(players: Player[]): void {
         this.players = players;
     }
 
-    public getOrganizationId(): string {
+    getOrganizationId(): string {
         return this.organizationId;
     }
 
-    public setOrganizationId(organizationId: string): void {
+    setOrganizationId(organizationId: string): void {
         this.organizationId = organizationId;
     }
 }

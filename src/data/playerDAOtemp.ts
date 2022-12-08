@@ -166,7 +166,7 @@ export default class PlayerDAO {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    public getConnectionFromPool(callback: any) {
+    getConnectionFromPool(callback: any) {
         logger.verbose("Entering method getConnectionFromPool", {
             class: this.className,
         });
@@ -346,7 +346,7 @@ export default class PlayerDAO {
     }
 
     // eslint-disable-next-line class-methods-use-this
-    public async testConnToCloud() {
+    async testConnToCloud() {
         let conn = null;
         try {
             conn = await lake.getConnection();

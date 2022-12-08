@@ -35,67 +35,67 @@ export abstract class User {
         this.status = status;
     }
 
-    public getAuthId(): string {
+    getAuthId(): string {
         return this.authId;
     }
 
-    public setAuthId(authId: string): void {
+    setAuthId(authId: string): void {
         this.authId = authId;
     }
 
-    public getFirstName(): string {
+    getFirstName(): string {
         return this.firstName;
     }
 
-    public setFirstName(firstName: string): void {
+    setFirstName(firstName: string): void {
         this.firstName = firstName;
     }
 
-    public getLastName(): string {
+    getLastName(): string {
         return this.lastName;
     }
 
-    public setLastName(lastName: string): void {
+    setLastName(lastName: string): void {
         this.lastName = lastName;
     }
 
-    public getLanguage(): string {
+    getLanguage(): string {
         return this.language;
     }
 
-    public setLanguage(language: string): void {
+    setLanguage(language: string): void {
         this.language = language;
     }
 
-    public getEmailAddress(): string {
+    getEmailAddress(): string {
         return this.emailAddress;
     }
 
-    public setEmailAddress(emailAddress: string): void {
+    setEmailAddress(emailAddress: string): void {
         this.emailAddress = emailAddress;
     }
 
-    public getRole(): string | null {
+    getRole(): string | null {
         return this.role;
     }
 
-    public setRole(role: string | null): void {
+    setRole(role: string | null): void {
         this.role = role;
     }
 
-    public getDateCreated(): Date {
+    getDateCreated(): Date {
         return this.dateCreated;
     }
 
-    public setDateCreated(dateCreated: Date): void {
+    setDateCreated(dateCreated: Date): void {
         this.dateCreated = dateCreated;
     }
 
-    public getStatus(): string {
+    getStatus(): string {
         return this.status;
     }
 
-    public setStatus(status: string) {
+    setStatus(status: string) {
         this.status = status;
     }
 
