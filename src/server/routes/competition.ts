@@ -24,6 +24,9 @@ router.post("/organization", (req, res) => {
 });
 
 // check admins organization id to show correct admin list
-router.get("/admins", (req, res) => {});
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+router.get("/admins", (req, res) => {
+    throw new Error("Unimplemented function");
+});
 
 export default router;

@@ -1,14 +1,7 @@
-import winston from "winston";
 import PlayerDAO from "../data/playerDAOtemp";
 import { Player } from "../models/Player";
 import { Team } from "../models/Team";
 import logger from "../utilities/winstonConfig";
-
-const tempLogger = winston.createLogger({
-    level: "info",
-    format: winston.format.json(),
-    transports: [new winston.transports.Console()],
-});
 
 const database = new PlayerDAO();
 
@@ -23,15 +16,19 @@ export class PlayerBusinessService {
      * @param player player object passed to data layer
      * @param callback callback that returns the result from the database
      */
-    public createSecondaryPlayer(player: Player, callback: any) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    public createSecondaryPlayer(player: Player | any, callback: any) {
         logger.verbose("Entering method createSecondaryPlayer", {
             class: this.className,
         });
 
         // BR - $status is set to valid when passing the player object to the data layer
 
+        // ! REVISIT - this might be bad
+        // eslint-disable-next-line no-param-reassign
         player.$status = "VALID";
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         database.createSecondaryPlayer(player, (result: any) => {
             if (result === null || result.affectedRows === 0) {
                 logger.error("Bad request to Data Layer", {
@@ -49,11 +46,13 @@ export class PlayerBusinessService {
         });
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public showAllPlayersTeams(playerId: string, callback: any) {
         logger.verbose("Entering method showAllPlayersTeams", {
             class: this.className,
         });
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         database.showAllPlayersTeams(playerId, (result: any) => {
             if (result === null) {
                 logger.error("Bad request to Data Layer", {
@@ -86,7 +85,13 @@ export class PlayerBusinessService {
      *
      * @returns Returns a formatted json response with a potential list of teams attached
      */
-    async showAllTeams() {
+    // eslint-disable-next-line consistent-return
+    async showAllTeams(): Promise<
+        | { message: string; code: number; dataPackage?: undefined }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        | { message: string; code: number; dataPackage: any[] }
+        | undefined
+    > {
         logger.verbose("Entering method showAllTeams()", {
             class: this.className,
         });
@@ -129,12 +134,14 @@ export class PlayerBusinessService {
         }
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async joinOpenTeam(playerId: string, teamId: number, callback: any) {
         logger.verbose("Entering method joinOpenTeam()", {
             class: this.className,
         });
 
-        database.findTeamVisibility(teamId, (visibilityResult: any) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, consistent-return
+        database.findTeamVisibility(teamId, (visibilityResult: any): any => {
             if (visibilityResult === null) {
                 logger.error("Bad request to data layer", {
                     class: this.className,
@@ -164,6 +171,7 @@ export class PlayerBusinessService {
 
             // BR - when joining an open team the default role is a player
             const role = "PLAYER";
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             database.joinTeam(playerId, teamId, role, (joinResult: any) => {
                 if (joinResult === null || joinResult === 0) {
                     logger.error("Bad request to Data Layer", {
@@ -187,11 +195,13 @@ export class PlayerBusinessService {
         });
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public createTeam(team: Team, playerId: string, callback: any) {
         logger.verbose("Entering method createTeam()", {
             class: this.className,
         });
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, consistent-return
         database.createTeam(team, (createTeamResult: any) => {
             if (createTeamResult === null || createTeamResult.affectedRows === 0) {
                 logger.crit("Bad request to Data Layer", {
@@ -204,6 +214,7 @@ export class PlayerBusinessService {
             const teamId = createTeamResult.insertId;
             // BR - Role is set to captain because this is a createTeam method. We want the user who is currently creating the team to be set as the captain.
             const role = "CAPTAIN";
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             database.joinTeam(playerId, teamId, role, (joinTeamResult: any) => {
                 if (joinTeamResult === null || joinTeamResult === 0) {
                     logger.crit("Bad request to Data Layer", {
@@ -327,7 +338,6 @@ export class PlayerBusinessService {
 
 // console.log("bruh");
 
-const business = new PlayerBusinessService();
 // business.showAllTeams((result: any) => {});
 // business.joinOpenTeam("1", 2, (result: any) => {
 //     // console.log(result);

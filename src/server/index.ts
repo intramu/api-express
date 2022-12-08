@@ -16,6 +16,7 @@ import cors from "cors";
 // import admin from "./routes/admin";
 import competition from "./routes/competition";
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 require("dotenv").config();
 
 const app = express();

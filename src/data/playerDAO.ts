@@ -1,8 +1,10 @@
+/* eslint-disable consistent-return */
 import { Player } from "../models/Player";
 import { Team } from "../models/Team";
+import { Gender } from "../utilities/enums";
 import logger from "../utilities/winstonConfig";
 
-import db from "./database";
+import { db } from "./database";
 
 // todo: Return types?
 export default class playerDAO {
@@ -23,7 +25,7 @@ export default class playerDAO {
 
             console.log(results);
             // return results
-        } catch (error: any) {
+        } catch (error) {
             logger.error("Database Connection / Query Error", {
                 type: error,
                 class: this.className,
@@ -48,7 +50,8 @@ export default class playerDAO {
             const results = response.rows;
             console.log(results);
             // return results
-        } catch (error: any) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } catch (error) {
             logger.error("Database Connection / Query Error", {
                 type: error,
                 class: this.className,
@@ -74,7 +77,7 @@ export default class playerDAO {
             const results = response.rows;
             console.log(results);
             // return results
-        } catch (error: any) {
+        } catch (error) {
             logger.error("Database Connection / Query Error", {
                 type: error,
                 class: this.className,
@@ -116,7 +119,7 @@ export default class playerDAO {
             console.log(results);
 
             // return results
-        } catch (error: any) {
+        } catch (error) {
             logger.error("Database Connection / Query Error", {
                 type: error,
                 class: this.className,
@@ -155,7 +158,7 @@ export default class playerDAO {
             const results = response.rows;
             console.log(results);
             // return results
-        } catch (error: any) {
+        } catch (error) {
             logger.error("Database Connection / Query Error", {
                 type: error,
                 class: this.className,
@@ -193,7 +196,7 @@ export default class playerDAO {
             const results = response.rows;
             console.log(results);
             // return results
-        } catch (error: any) {
+        } catch (error) {
             logger.error("Database Connection / Query Error", {
                 type: error,
                 class: this.className,
@@ -218,7 +221,7 @@ export default class playerDAO {
             const results = response.rows;
             console.log(results);
             // return results
-        } catch (error: any) {
+        } catch (error) {
             logger.error("Database Connection / Query Error", {
                 type: error,
                 class: this.className,
@@ -243,7 +246,7 @@ export default class playerDAO {
             const results = response.rows;
             console.log(results);
             // return results
-        } catch (error: any) {
+        } catch (error) {
             logger.error("Database Connection / Query Error", {
                 type: error,
                 class: this.className,
@@ -268,7 +271,7 @@ export default class playerDAO {
             const results = response.rows;
             console.log(results);
             // return results
-        } catch (error: any) {
+        } catch (error) {
             logger.error("Database Connection / Query Error", {
                 type: error,
                 class: this.className,
@@ -293,7 +296,7 @@ export default class playerDAO {
             const results = response.rows;
             console.log(results);
             // return results
-        } catch (error: any) {
+        } catch (error) {
             logger.error("Database Connection / Query Error", {
                 type: error,
                 class: this.className,
@@ -333,7 +336,7 @@ export default class playerDAO {
             }
             await client.query(sqlTeamSizeWomen, [teamId]);
 
-            const team: Team = { players: [] } as any;
+            // const team: Team = { players: [] } as any;
             // ! Note for Noah
             // const menCount = team
             //     .getPlayers()
@@ -344,7 +347,7 @@ export default class playerDAO {
             console.log("FINISHED");
 
             return 1;
-        } catch (error: any) {
+        } catch (error) {
             logger.error("Database Connection / Query Error", {
                 type: error,
                 class: this.className,
@@ -372,7 +375,7 @@ export default class playerDAO {
             const results = response;
             console.log(results);
             // return results
-        } catch (error: any) {
+        } catch (error) {
             logger.error("Database Connection / Query Error", {
                 type: error,
                 class: this.className,
@@ -398,7 +401,7 @@ export default class playerDAO {
             const results = response.rows;
             console.log(results);
             // return results
-        } catch (error: any) {
+        } catch (error) {
             logger.error("Database Connection / Query Error", {
                 type: error,
                 class: this.className,
@@ -424,7 +427,7 @@ export default class playerDAO {
             const results = response.rows;
             console.log(results);
             // return results
-        } catch (error: any) {
+        } catch (error) {
             logger.error("Database Connection / Query Error", {
                 type: error,
                 class: this.className,
@@ -436,47 +439,47 @@ export default class playerDAO {
     }
 }
 
-const test = new playerDAO();
+// const test = new playerDAO();
 
-const team = new Team(
-    0,
-    "Team Anderson",
-    null,
-    0,
-    0,
-    null,
-    "",
-    "SOCCER",
-    null,
-    0,
-    "",
-    null,
-    0,
-    0,
-    [],
-    "ea9dc7a5-5e40-4715-b8d9-4b7acf4a2291"
-);
-// test.createTeam(team)
-// test.findAllTeams()
-// test.findAllTeamsByOrganizationId("ea9dc7a5-5e40-4715-b8d9-4b7acf4a2291")
-const player = new Player(
-    "test4935",
-    "Jacob",
-    "Hropoff",
-    "",
-    "noahr1936@gmail.com",
-    null,
-    "MALE",
-    new Date(),
-    "",
-    "SPRING_2023",
-    null,
-    "",
-    new Date()
-);
-// test.createPlayerByOrganizationId(player, "ea9dc7a5-5e40-4715-b8d9-4b7acf4a2291")
-// test.deletePlayerById("test4934")
-// test.findPlayersByOrganizationId("ea9dc7a5-5e40-4715-b8d9-4b7acf4a2291")
-// test.findPlayers()
-// test.addToTeamRoster(1, "test4935")
-test.findPlayersByTeamId(1);
+// const team = new Team(
+//     0,
+//     "Team Anderson",
+//     null,
+//     0,
+//     0,
+//     null,
+//     "",
+//     "SOCCER",
+//     null,
+//     0,
+//     "",
+//     null,
+//     0,
+//     0,
+//     [],
+//     "ea9dc7a5-5e40-4715-b8d9-4b7acf4a2291"
+// );
+// // test.createTeam(team)
+// // test.findAllTeams()
+// // test.findAllTeamsByOrganizationId("ea9dc7a5-5e40-4715-b8d9-4b7acf4a2291")
+// const player = new Player(
+//     "test4935",
+//     "Jacob",
+//     "Hropoff",
+//     "",
+//     "noahr1936@gmail.com",
+//     null,
+//     "MALE",
+//     new Date(),
+//     "",
+//     "SPRING_2023",
+//     null,
+//     "",
+//     new Date()
+// );
+// // test.createPlayerByOrganizationId(player, "ea9dc7a5-5e40-4715-b8d9-4b7acf4a2291")
+// // test.deletePlayerById("test4934")
+// // test.findPlayersByOrganizationId("ea9dc7a5-5e40-4715-b8d9-4b7acf4a2291")
+// // test.findPlayers()
+// // test.addToTeamRoster(1, "test4935")
+// test.findPlayersByTeamId(1);

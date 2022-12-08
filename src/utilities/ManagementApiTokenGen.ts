@@ -8,6 +8,7 @@ const auth0 = new ManagementClient({
 });
 
 class MATokenGenerator {
+    // eslint-disable-next-line class-methods-use-this
     public async getToken() {
         try {
             const token = await auth0.getAccessToken();

@@ -1,5 +1,5 @@
 import "dotenv/config";
-import winston, { type level } from "winston";
+import winston from "winston";
 
 const { combine, timestamp, printf, colorize, align } = winston.format;
 

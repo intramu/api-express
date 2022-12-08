@@ -1,6 +1,7 @@
 import { User } from "./User";
 
 export class Admin extends User {
+    // eslint-disable-next-line no-useless-constructor
     constructor(
         authId: string,
         firstName: string,
