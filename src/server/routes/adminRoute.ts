@@ -1,5 +1,5 @@
 import express from "express";
-import { auth } from "express-oauth2-jwt-bearer";
+import { body, validationResult } from "express-validator";
 const router = express.Router();
 
 const checkJwt = auth({

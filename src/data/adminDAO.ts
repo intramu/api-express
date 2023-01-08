@@ -3,20 +3,11 @@ import { Organization } from "../models/Organization";
 import logger from "../utilities/winstonConfig";
 
 import { IsRollback, withClient, withClientRollback } from "./database";
+import { randomUUID } from "crypto";
+import { Gender } from "../utilities/enums";
 
 export default class AdminDAO {
     readonly className = this.constructor.name;
-
-    async createCompetitionTournament() {
-        // competition: Competition
-        // organizationId: string
-        logger.verbose("Entering method createCompetition_Tournament()", {
-            class: this.className,
-        });
-
-        // const conn = null;
-        // const sql = "";
-    }
 
     /**
      * Will create the organization and the master admin for the organization.
@@ -30,10 +21,10 @@ export default class AdminDAO {
             class: this.className,
         });
 
-        const rowCount = await withClientRollback(async (querier) => {
+        const response = await withClientRollback(async (querier) => {
             // todo: adjust default values plugged in
             const sqlCreateOrg =
-                "INSERT INTO organization (NAME, INFO, IMAGE, MAIN_COLOR) VALUES ($1, $2, $3, $4) RETURNING id";
+                "INSERT INTO organization (NAME, INFO, IMAGE, MAIN_COLOR) VALUES ($1, $2, $3, $4) RETURNING *";
             const sqlCreateMasterAdmin =
                 "INSERT INTO admin (auth_id, first_name, last_name, language, role, status, organization_ID) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING auth_id";
 
@@ -48,7 +39,7 @@ export default class AdminDAO {
 
             // todo: make call to auth0 management api to create admin account. Then use this authId
             const adminResponse = await querier(sqlCreateMasterAdmin, [
-                "test1",
+                randomUUID().substring(20),
                 `${org.getName()} master admin`,
                 null,
                 "ENGLISH",
@@ -62,14 +53,14 @@ export default class AdminDAO {
             return adminResponse.rowCount;
         });
 
-        if (rowCount === IsRollback) {
+        if (response === IsRollback) {
             return 0;
         }
-        console.log({ rowCount });
-        return rowCount;
+        console.log({ response });
+        return response;
     }
 
-    async findAllOrganizations() {
+    async findAllOrganizations(): Promise<Organization[]> {
         logger.verbose("Entering method findAllOrganizations()", {
             class: this.className,
         });
@@ -77,10 +68,30 @@ export default class AdminDAO {
         const sqlAll = "SELECT * FROM organization";
 
         return withClient(async (querier) => {
-            const response = await querier(sqlAll);
+            const response = await querier<Organization>(sqlAll);
 
             const results = response.rows;
             // console.log(response.rows);
+            logger.verbose("Result", {
+                class: this.className,
+                values: results
+            })
+            return results;
+        });
+    }
+
+    async findOrganizationById(id: string){
+        logger.verbose("Entering method findOrganizationById()", {
+            class: this.className,
+        });
+
+        const sqlSelect = "SELECT * FROM organization WHERE id = $1";
+
+        return withClient(async (querier) => {
+            const response = await querier(sqlSelect, [id]);
+
+            const [results] = response.rows;
+            console.log(results);
 
             return results;
         });
@@ -111,6 +122,17 @@ export default class AdminDAO {
         return withClient(async (querier) => {
             const sqlUpdate =
                 "UPDATE organization SET name=$1, image=$2, info=$3, main_color=$4, approval_status=$5 WHERE id = $6 RETURNING *";
+
+            const sqlSelect = 
+                "SELECT id FROM organization WHERE id=$1"
+
+            const idCheck = await querier(sqlSelect, [org.getId()])
+            const [idResponse] = idCheck.rows
+            
+            if(idResponse === undefined){                
+                return undefined
+            }
+            
             const response = await querier(sqlUpdate, [
                 org.getName(),
                 org.getImage(),
@@ -122,18 +144,19 @@ export default class AdminDAO {
 
             const results = response.rows;
 
-            // console.log();
+            console.log(results);
             return results;
+            // return idCheck
         });
     }
 
     // eslint-disable-next-line class-methods-use-this, consistent-return
-    async createAdmin(admin: Admin, organizationId: string) {
+    async createAdminByOrganizationId(admin: Admin, organizationId: string) {
         return withClient(async (querier) => {
             const sqlCreate =
                 "INSERT INTO admin (auth_id, first_name, last_name, language, role, status, organization_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *";
 
-            const results = await querier(sqlCreate, [
+            const response = await querier(sqlCreate, [
                 admin.getAuthId(),
                 admin.getFirstName(),
                 admin.getLastName(),
@@ -142,15 +165,15 @@ export default class AdminDAO {
                 admin.getStatus(),
                 organizationId,
             ]);
-
+            const [results] = response.rows
             console.log(results);
-            // return results
+            return results
         });
     }
 
     // eslint-disable-next-line consistent-return
     async updateAdmin(admin: Admin) {
-        logger.verbose("Entering method ...()", {
+        logger.verbose("Entering method updateAdmin()", {
             class: this.className,
         });
 
@@ -167,7 +190,7 @@ export default class AdminDAO {
             ]);
 
             console.log(response);
-            // return results
+            return 
         });
     }
 
@@ -215,7 +238,13 @@ export default class AdminDAO {
             throw new Error("Method not implemented.");
         });
     }
+
+    async findAllPlayersInOrganization(){}
+
+    async findAllTeams
 }
+
+
 
 // possible error handling
 // if(error.errno === -4078)
@@ -235,7 +264,8 @@ export default class AdminDAO {
 
 // }
 
-// const test = new AdminDAO();
+const test = new AdminDAO();
+test.testFunction()
 
 // test.createOrganization(new Organization('','Grand Canyon University', '', 'The coolest University', 'purple', '', new Date()))
 // test.findAllAdmins();
