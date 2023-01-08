@@ -72,7 +72,7 @@ export async function query<T extends QueryResultRow>(
             query: queryTextOrConfig,
             values,
         });
-        throw error;
+        return Promise.reject("Database Query Error")
     }
 }
 

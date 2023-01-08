@@ -11,7 +11,7 @@ export class Organization {
 
     private approvalStatus: string;
 
-    private dateCreated: Date;
+    private dateCreated: Date|null;
 
     constructor(
         $id: string,
@@ -20,7 +20,7 @@ export class Organization {
         $info: string,
         $mainColor: string,
         $approvalStatus: string,
-        $dateCreated: Date
+        $dateCreated: Date|null
     ) {
         this.id = $id;
         this.name = $name;
@@ -79,11 +79,11 @@ export class Organization {
         this.approvalStatus = approvalStatus;
     }
 
-    getDateCreated(): Date {
+    getDateCreated(): Date|null {
         return this.dateCreated;
     }
 
-    setDateCreated(dateCreated: Date): void {
+    setDateCreated(dateCreated: Date|null): void {
         this.dateCreated = dateCreated;
     }
 }
