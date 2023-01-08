@@ -4,7 +4,7 @@ import { Team } from "../models/Team";
 import { Gender } from "../utilities/enums";
 import logger from "../utilities/winstonConfig";
 
-import { db } from "./database";
+import { db, withClient } from "./database";
 
 // todo: Return types?
 export default class playerDAO {
@@ -130,18 +130,16 @@ export default class playerDAO {
         }
     }
 
-    async createPlayerByOrganizationId(player: Player, orgId: string) {
+    async createPlayerByOrganizationId(player: Player, orgId: string): Promise<Player|null> {
         logger.verbose("Entering method createPlayerByOrganizationId()", {
             class: this.className,
         });
 
-        let client = null;
+        return withClient(async (querier) => {
+            const sqlInsert =
+            "INSERT INTO player (AUTH_ID, FIRST_NAME, LAST_NAME, LANGUAGE, STATUS, GENDER, EMAIL_ADDRESS, DOB, VISIBILITY, GRADUATION_TERM, IMAGE, organization_ID) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *";
 
-        const sqlInsert =
-            "INSERT INTO player (AUTH_ID, FIRST_NAME, LAST_NAME, LANGUAGE, STATUS, GENDER, EMAIL_ADDRESS, DOB, VISIBILITY, GRADUATION_TERM, IMAGE, organization_ID) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING AUTH_ID";
-        try {
-            client = await db.connect();
-            const response = await client.query(sqlInsert, [
+            const response = await querier(sqlInsert, [
                 player.getAuthId(),
                 player.getFirstName(),
                 player.getLastName(),
@@ -154,19 +152,19 @@ export default class playerDAO {
                 player.getGraduationTerm(),
                 player.getImage(),
                 orgId,
-            ]);
-            const results = response.rows;
-            console.log(results);
-            // return results
-        } catch (error) {
-            logger.error("Database Connection / Query Error", {
-                type: error,
-                class: this.className,
-            });
-            return null;
-        } finally {
-            client?.release();
-        }
+            ])
+
+            const result = response.rows
+
+            if(result.length === 0){
+                return null;
+            }
+            
+            console.log(result);
+            
+            return null
+            // return new Player(result.)
+        })
     }
 
     async updatePlayer(player: Player) {
@@ -439,7 +437,7 @@ export default class playerDAO {
     }
 }
 
-// const test = new playerDAO();
+const test = new playerDAO();
 
 // const team = new Team(
 //     0,
@@ -462,22 +460,22 @@ export default class playerDAO {
 // // test.createTeam(team)
 // // test.findAllTeams()
 // // test.findAllTeamsByOrganizationId("ea9dc7a5-5e40-4715-b8d9-4b7acf4a2291")
-// const player = new Player(
-//     "test4935",
-//     "Jacob",
-//     "Hropoff",
-//     "",
-//     "noahr1936@gmail.com",
-//     null,
-//     "MALE",
-//     new Date(),
-//     "",
-//     "SPRING_2023",
-//     null,
-//     "",
-//     new Date()
-// );
-// // test.createPlayerByOrganizationId(player, "ea9dc7a5-5e40-4715-b8d9-4b7acf4a2291")
+const player = new Player(
+    "test4935",
+    "Jacob",
+    "Hropoff",
+    "",
+    "noahr1936@gmail.com",
+    null,
+    "MALE",
+    new Date(),
+    "",
+    "SPRING_2023",
+    null,
+    "",
+    new Date()
+);
+test.createPlayerByOrganizationId(player, "ea9dc7a5-5e40-4715-b8d9-4b7acf4a2291")
 // // test.deletePlayerById("test4934")
 // // test.findPlayersByOrganizationId("ea9dc7a5-5e40-4715-b8d9-4b7acf4a2291")
 // // test.findPlayers()

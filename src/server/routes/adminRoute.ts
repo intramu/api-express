@@ -7,10 +7,14 @@ const checkJwt = auth({
     issuerBaseURL: "https://dev-5p-an07k.us.auth0.com",
 });
 
-router.post("/", (req, res) => {
+router.post("/organization", (req, res) => {
     let body = req.body;
 
-    console.log(body);
+    // const condition = [{
+    //     id,
+    //     name,
+    //     image,
+    // }]
 
     res.status(200).json({ message: "nice!" });
 });
