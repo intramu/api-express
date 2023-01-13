@@ -10,8 +10,9 @@ export class Admin extends User {
         emailAddress: string,
         role: string,
         dateCreated: Date,
-        status: string
+        status: string,
+        organizationId: string
     ) {
-        super(authId, firstName, lastName, language, emailAddress, role, dateCreated, status);
+        super(authId, firstName, lastName, language, emailAddress, role, dateCreated, status, organizationId);
     }
 }

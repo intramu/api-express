@@ -22,7 +22,7 @@ const logger = winston.createLogger({
         align(),
         printf(
             (info) =>
-                `[${info.timestamp}] ${info.level}: ${info.message}  type: ${info.type}  class: ${!info.class ? "[N/A]" : info.class}\nvalues: ${!info.values ? "[N/A]": info.values}`
+                `[${info.timestamp}] ${info.level}: ${info.message}  type: ${info.type}  class: ${!info.class ? "[N/A]" : info.class}\n\tvalues: ${!info.values ? "[N/A]": info.values}\n\ttrace: ${!info.trace ? "[N/A]": info.trace}`
         )
     ),
     transports: [new winston.transports.Console()],

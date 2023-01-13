@@ -1,3 +1,4 @@
+import { Role, Status, Visibility } from "../utilities/enums";
 import { User } from "./User";
 
 export class Player extends User {
@@ -5,34 +6,47 @@ export class Player extends User {
 
     protected dob: Date;
 
-    protected visibility: string;
+    protected visibility: Visibility;
 
     protected graduationTerm: string;
 
     protected image: string | null;
 
+    protected phoneNumber: string;
+
     constructor(
-        authId: string,
+        authId: string|null,
         firstName: string,
         lastName: string,
         language: string,
         emailAddress: string,
-        role: string | null,
+        phoneNumber: string,
+        role: Role | null,
         gender: string,
         dob: Date,
-        visibility: string,
+        visibility: Visibility,
         graduationTerm: string,
         image: string | null,
-        status: string,
-        dateCreated: Date
+        status: Status,
+        dateCreated: Date,
+        organizationId: string
     ) {
-        super(authId, firstName, lastName, language, emailAddress, role, dateCreated, status);
+        super(authId, firstName, lastName, language, emailAddress, role, dateCreated, status, organizationId);
 
+        this.phoneNumber = phoneNumber;
         this.gender = gender;
         this.dob = dob;
         this.visibility = visibility;
         this.graduationTerm = graduationTerm;
         this.image = image;
+    }
+
+    getPhoneNumber(): string{
+        return this.phoneNumber
+    }
+
+    setPhoneNumber(phoneNumber: string): void {
+        this.phoneNumber = phoneNumber;
     }
 
     getGender(): string {
@@ -51,11 +65,11 @@ export class Player extends User {
         this.dob = dob;
     }
 
-    getVisibility(): string {
+    getVisibility(): Visibility {
         return this.visibility;
     }
 
-    setVisibility(visibility: string): void {
+    setVisibility(visibility: Visibility): void {
         this.visibility = visibility;
     }
 
@@ -75,11 +89,11 @@ export class Player extends User {
         this.image = image;
     }
 
-    getStatus(): string {
+    getStatus(): Status {
         return this.status;
     }
 
-    setStatus(status: string): void {
+    setStatus(status: Status): void {
         this.status = status;
     }
 

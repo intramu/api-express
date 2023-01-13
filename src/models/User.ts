@@ -1,5 +1,7 @@
+import { Role, Status } from "../utilities/enums";
+
 export abstract class User {
-    protected authId: string;
+    protected id: string | null;
 
     protected firstName: string;
 
@@ -9,23 +11,26 @@ export abstract class User {
 
     protected emailAddress: string;
 
-    protected role: string | null;
+    protected role: Role | null
 
     protected dateCreated: Date;
 
-    protected status: string;
+    protected status: Status;
+
+    protected organizationId: string
 
     constructor(
-        authId: string,
+        authId: string | null,
         firstName: string,
         lastName: string,
         language: string,
         emailAddress: string,
-        role: string | null,
+        role: Role | null,
         dateCreated: Date,
-        status: string
+        status: Status,
+        organizationId: string
     ) {
-        this.authId = authId;
+        this.id = authId;
         this.firstName = firstName;
         this.lastName = lastName;
         this.language = language;
@@ -33,14 +38,15 @@ export abstract class User {
         this.role = role;
         this.dateCreated = dateCreated;
         this.status = status;
+        this.organizationId = organizationId;
     }
 
-    getAuthId(): string {
-        return this.authId;
+    getAuthId(): string|null {
+        return this.id;
     }
 
     setAuthId(authId: string): void {
-        this.authId = authId;
+        this.id = authId;
     }
 
     getFirstName(): string {
@@ -75,11 +81,11 @@ export abstract class User {
         this.emailAddress = emailAddress;
     }
 
-    getRole(): string | null {
+    getRole(): Role | null {
         return this.role;
     }
 
-    setRole(role: string | null): void {
+    setRole(role: Role | null): void {
         this.role = role;
     }
 
@@ -91,12 +97,20 @@ export abstract class User {
         this.dateCreated = dateCreated;
     }
 
-    getStatus(): string {
+    getStatus(): Status {
         return this.status;
     }
 
-    setStatus(status: string) {
+    setStatus(status: Status) {
         this.status = status;
+    }
+
+    getOrganizationId(): string {
+        return this.organizationId
+    }
+
+    setOrganizationId(organizationId: string):void {
+        this.organizationId = organizationId;
     }
 
     // protected universityId!: number;

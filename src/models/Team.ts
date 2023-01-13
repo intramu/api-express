@@ -1,4 +1,5 @@
-import { Player } from "./Player";
+import { Visibility } from "../utilities/enums";
+import { PlayerSmall } from "./PlayerSmall";
 
 export class Team {
     protected id: number;
@@ -13,7 +14,7 @@ export class Team {
 
     protected image: string | null;
 
-    protected visibility: string;
+    protected visibility: Visibility;
 
     protected sport: string | null;
 
@@ -25,13 +26,11 @@ export class Team {
 
     protected maxTeamSize: number | null;
 
-    protected womenCount: number;
-
-    protected menCount: number;
-
-    protected players: Player[];
+    protected players: PlayerSmall[];
 
     protected organizationId: string;
+
+    protected bracketId: number | null;
 
     constructor(
         id: number,
@@ -40,16 +39,15 @@ export class Team {
         ties: number | null,
         losses: number | null,
         image: string | null,
-        visibility: string,
+        visibility: Visibility,
         sport: string | null,
         dateCreated: Date | null,
         sportsmanshipScore: number,
         status: string | null,
         maxTeamSize: number | null,
-        womenCount: number,
-        menCount: number,
-        players: Player[],
-        organizationId: string
+        players: PlayerSmall[],
+        organizationId: string,
+        bracketId: number | null
     ) {
         this.id = id;
         this.name = name;
@@ -57,11 +55,8 @@ export class Team {
         this.ties = ties;
         this.losses = losses;
         this.image = image;
-        this.visibility = visibility;
         this.sport = sport;
         this.dateCreated = dateCreated;
-        this.womenCount = womenCount;
-        this.menCount = menCount;
         this.name = name;
         this.image = image;
         this.visibility = visibility;
@@ -70,6 +65,7 @@ export class Team {
         this.maxTeamSize = maxTeamSize;
         this.players = players;
         this.organizationId = organizationId;
+        this.bracketId = bracketId;
     }
 
     /** Constructor */
@@ -137,11 +133,11 @@ export class Team {
         this.image = image;
     }
 
-    getVisibility(): string {
+    getVisibility(): Visibility {
         return this.visibility;
     }
 
-    setVisibility(visibility: string): void {
+    setVisibility(visibility: Visibility): void {
         this.visibility = visibility;
     }
 
@@ -159,22 +155,6 @@ export class Team {
 
     setDateCreated(dateCreated: Date | null): void {
         this.dateCreated = dateCreated;
-    }
-
-    getWomenCount(): number {
-        return this.womenCount;
-    }
-
-    setWomenCount(womenCount: number): void {
-        this.womenCount = womenCount;
-    }
-
-    getMenCount(): number {
-        return this.menCount;
-    }
-
-    setMenCount(menCount: number): void {
-        this.menCount = menCount;
     }
 
     getSportsmanshipScore(): number {
@@ -201,11 +181,11 @@ export class Team {
         this.maxTeamSize = maxTeamSize;
     }
 
-    getPlayers(): Player[] {
+    getPlayers(): PlayerSmall[] {
         return this.players;
     }
 
-    setPlayers(players: Player[]): void {
+    setPlayers(players: PlayerSmall[]): void {
         this.players = players;
     }
 
@@ -215,5 +195,13 @@ export class Team {
 
     setOrganizationId(organizationId: string): void {
         this.organizationId = organizationId;
+    }
+
+    getBracketId(): number | null {
+        return this.bracketId
+    }
+
+    setBracketId(bracketId: number | null): void{
+        this.bracketId = bracketId
     }
 }

@@ -1,16 +1,17 @@
 /* eslint-disable consistent-return */
 import { Player } from "../models/Player";
+import { PlayerSmall } from "../models/PlayerSmall";
 import { Team } from "../models/Team";
-import { Gender } from "../utilities/enums";
+import { Gender, Status, Visibility } from "../utilities/enums";
 import logger from "../utilities/winstonConfig";
 
 import { db, withClient } from "./database";
 
 // todo: Return types?
-export default class playerDAO {
+export default class PlayerDAO {
     className = this.constructor.name;
 
-    async findTeams() {
+async findTeams() {
         logger.verbose("Entering method findAllTeams()", {
             class: this.className,
         });
@@ -70,7 +71,7 @@ export default class playerDAO {
         let client = null;
 
         const sql =
-            ' "SELECT team.ID as team_ID, team.NAME, team.WINS, team.TIES, team.LOSSES, team.IMAGE, team.VISIBILITY, team.SPORT, team.DATE_CREATED, team.MAX_TEAM_SIZE, tr.ROLE, tr.player_AUTH_ID, player.FIRST_NAME, player.LAST_NAME, player.GENDER FROM team team JOIN team_roster tr on(team.ID = tr.team_ID) JOIN player player on(tr.player_AUTH_ID = player.AUTH_ID) WHERE tr.team_ID IN (SELECT team_ID FROM team_roster WHERE player_AUTH_ID = ?) ORDER BY tr.team_ID ASC";';
+            "SELECT team.ID as team_ID, team.NAME, team.WINS, team.TIES, team.LOSSES, team.IMAGE, team.VISIBILITY, team.SPORT, team.DATE_CREATED, team.MAX_TEAM_SIZE, tr.ROLE, tr.player_AUTH_ID, player.FIRST_NAME, player.LAST_NAME, player.GENDER FROM team team JOIN team_roster tr on(team.ID = tr.team_ID) JOIN player player on(tr.player_AUTH_ID = player.AUTH_ID) WHERE tr.team_ID IN (SELECT team_ID FROM team_roster WHERE player_AUTH_ID = ?) ORDER BY tr.team_ID ASC";
         try {
             client = await db.connect();
             const response = await client.query(sql);
@@ -96,7 +97,7 @@ export default class playerDAO {
         let client = null;
 
         const sqlCreate =
-            "INSERT INTO team (name, wins, ties, losses, image, visibility, sport, sportsmanship_score, status, max_team_size, women_count, men_count, organization_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING ID";
+            "INSERT INTO team (name, wins, ties, losses, image, visibility, sport, sportsmanship_score, status, max_team_size, organization_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING ID";
 
         try {
             client = await db.connect();
@@ -111,8 +112,6 @@ export default class playerDAO {
                 team.getSportsmanshipScore(),
                 team.getStatus(),
                 team.getMaxTeamSize(),
-                team.getWomenCount(),
-                team.getMenCount(),
                 team.getOrganizationId(),
             ]);
             const results = response.rows;
@@ -139,7 +138,7 @@ export default class playerDAO {
             const sqlInsert =
             "INSERT INTO player (AUTH_ID, FIRST_NAME, LAST_NAME, LANGUAGE, STATUS, GENDER, EMAIL_ADDRESS, DOB, VISIBILITY, GRADUATION_TERM, IMAGE, organization_ID) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *";
 
-            const response = await querier(sqlInsert, [
+            const response = await querier<Player>(sqlInsert, [
                 player.getAuthId(),
                 player.getFirstName(),
                 player.getLastName(),
@@ -154,32 +153,32 @@ export default class playerDAO {
                 orgId,
             ])
 
-            const result = response.rows
+            const results = response.rows
 
-            if(result.length === 0){
+            // not sure how to destructure this better
+            const [returnedPlayer] = results;
+            const newPlayer: Player = returnedPlayer;
+
+            // console.log(newPlayer);
+
+            if(results.length === 0){
                 return null;
             }
             
-            console.log(result);
-            
-            return null
-            // return new Player(result.)
+            return newPlayer
         })
     }
 
-    async updatePlayer(player: Player) {
+    async updatePlayer(player: Player): Promise<Player | null>{
         logger.verbose("Entering method updatePlayer()", {
             class: this.className,
         });
 
-        let client = null;
-
         const sqlUpdate =
-            "UPDATE player SET first_name=$1, last_name=$2, language=$3, status=$4, gender=$5, email_address=$6, dob=$7, visibility=$8, graduation_term=$9, image=$10 WHERE auth_id=$12 RETURNING *";
+            "UPDATE player SET first_name=$1, last_name=$2, language=$3, status=$4, gender=$5, email_address=$6, dob=$7, visibility=$8, graduation_term=$9, image=$10 WHERE auth_id=$11 RETURNING *";
 
-        try {
-            client = await db.connect();
-            const response = await client.query(sqlUpdate, [
+        return withClient(async (querier) => {
+            const response = await querier(sqlUpdate, [
                 player.getFirstName(),
                 player.getLastName(),
                 player.getLanguage(),
@@ -190,19 +189,18 @@ export default class playerDAO {
                 player.getVisibility(),
                 player.getGraduationTerm(),
                 player.getImage(),
-            ]);
-            const results = response.rows;
-            console.log(results);
-            // return results
-        } catch (error) {
-            logger.error("Database Connection / Query Error", {
-                type: error,
-                class: this.className,
-            });
-            return null;
-        } finally {
-            client?.release();
-        }
+                player.getAuthId()
+            ])
+
+            const [results] = response.rows
+            
+            if(response.rowCount === 0){
+                return null
+            }
+            
+            //todo: add Phonenumber in return
+            return new Player(results.auth_id, results.first_name, results.last_name, results.language, results.emailAddress, "", null, results.gender, results.dob, results.visibility, results.graduation_term, results.image, results.status, results.date_created, results.organization_id);
+        })
     }
 
     async deletePlayerById(playerId: string) {
@@ -410,74 +408,59 @@ export default class playerDAO {
         }
     }
 
-    async findPlayersByTeamId(teamId: number) {
-        logger.verbose("Entering method ...()", {
+    async findPlayersByTeamId(teamId: number): Promise<PlayerSmall[] | null>{
+        logger.verbose("Entering method findPlayersByTeamId()", {
             class: this.className,
         });
 
-        let client = null;
-
         const sqlJoin =
-            "SELECT * FROM team_roster RIGHT JOIN player ON team_roster.player_AUTH_ID = player.auth_ID WHERE team_roster.team_ID = $1";
-        try {
-            client = await db.connect();
-            const response = await client.query(sqlJoin, [teamId]);
-            const results = response.rows;
-            console.log(results);
-            // return results
-        } catch (error) {
-            logger.error("Database Connection / Query Error", {
-                type: error,
-                class: this.className,
-            });
-            return null;
-        } finally {
-            client?.release();
-        }
+            "SELECT team_roster.role, player.auth_id, player.first_name, player.last_name, player.gender, player.status, player.image FROM team_roster JOIN player ON team_roster.player_AUTH_ID = player.auth_ID WHERE team_roster.team_ID = $1";
+
+        return withClient(async (querier) =>{
+            const response = await querier(sqlJoin, [teamId])
+            const results = response.rows
+
+            const playerList = results.map((result) => 
+                new PlayerSmall(result.auth_id, result.role, result.first_name, result.last_name, result.gender, result.status, result.image)
+            )
+
+            return playerList;
+        })
     }
 }
 
-const test = new playerDAO();
+const test = new PlayerDAO();
 
-// const team = new Team(
-//     0,
-//     "Team Anderson",
-//     null,
-//     0,
-//     0,
-//     null,
-//     "",
-//     "SOCCER",
-//     null,
-//     0,
-//     "",
-//     null,
-//     0,
-//     0,
-//     [],
-//     "ea9dc7a5-5e40-4715-b8d9-4b7acf4a2291"
-// );
-// // test.createTeam(team)
-// // test.findAllTeams()
-// // test.findAllTeamsByOrganizationId("ea9dc7a5-5e40-4715-b8d9-4b7acf4a2291")
+
+
 const player = new Player(
-    "test4935",
+    "doesntexist",
     "Jacob",
     "Hropoff",
     "",
-    "noahr1936@gmail.com",
+    "testEmail1936@gmail.com",
+    "5052214064",
     null,
     "MALE",
     new Date(),
-    "",
+    Visibility.PUBLIC,
     "SPRING_2023",
     null,
-    "",
-    new Date()
+    Status.INCOMPLETE,
+    new Date(),
+    "ea9dc7a5-5e40-4715-b8d9-4b7acf4a2291"
 );
-test.createPlayerByOrganizationId(player, "ea9dc7a5-5e40-4715-b8d9-4b7acf4a2291")
+
+testFunc()
+
+async function testFunc(){
+    // console.log(await test.findPlayersByTeamId(12));  
+    // console.log(await test.updatePlayer(player));
+    
+}
+// console.log(test.createPlayerByOrganizationId(player, "7f83b6f4-754a-4f34-913d-907c1226321f"))
 // // test.deletePlayerById("test4934")
 // // test.findPlayersByOrganizationId("ea9dc7a5-5e40-4715-b8d9-4b7acf4a2291")
 // // test.findPlayers()
 // // test.addToTeamRoster(1, "test4935")
-// test.findPlayersByTeamId(1);
+// test.findPlayersByTeamId(12);
