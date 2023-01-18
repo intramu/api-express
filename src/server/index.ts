@@ -15,6 +15,7 @@ import cors from "cors";
 // import PlayerDAO from "../data/playerDAO";
 // import admin from "./routes/admin";
 import competition from "./routes/competition";
+import player from "./routes/playerRoute";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 require("dotenv").config();
@@ -368,7 +369,8 @@ app.use(cors());
 
 // app.use("/admin", admin);
 
-app.use("/competition", competition);
+// app.use("/competition", competition);
+app.use("/player", player);
 
 app.listen(process.env.EXPRESSPORT, () => {
     console.log(`App listening on port ${process.env.EXPRESSPORT}`);

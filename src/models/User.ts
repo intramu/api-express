@@ -11,13 +11,13 @@ export abstract class User {
 
     protected emailAddress: string;
 
-    protected role: Role | null
+    protected role: Role | null;
 
-    protected dateCreated: Date;
+    protected dateCreated: Date | null;
 
-    protected status: Status;
+    protected status: Status | null;
 
-    protected organizationId: string
+    protected organizationId: string | null;
 
     constructor(
         authId: string | null,
@@ -26,9 +26,9 @@ export abstract class User {
         language: string,
         emailAddress: string,
         role: Role | null,
-        dateCreated: Date,
-        status: Status,
-        organizationId: string
+        dateCreated: Date | null,
+        status: Status | null,
+        organizationId: string | null
     ) {
         this.id = authId;
         this.firstName = firstName;
@@ -41,7 +41,7 @@ export abstract class User {
         this.organizationId = organizationId;
     }
 
-    getAuthId(): string|null {
+    getAuthId(): string | null {
         return this.id;
     }
 
@@ -89,7 +89,7 @@ export abstract class User {
         this.role = role;
     }
 
-    getDateCreated(): Date {
+    getDateCreated(): Date | null {
         return this.dateCreated;
     }
 
@@ -97,19 +97,19 @@ export abstract class User {
         this.dateCreated = dateCreated;
     }
 
-    getStatus(): Status {
+    getStatus(): Status | null {
         return this.status;
     }
 
-    setStatus(status: Status) {
+    setStatus(status: Status | null) {
         this.status = status;
     }
 
-    getOrganizationId(): string {
-        return this.organizationId
+    getOrganizationId(): string | null {
+        return this.organizationId;
     }
 
-    setOrganizationId(organizationId: string):void {
+    setOrganizationId(organizationId: string): void {
         this.organizationId = organizationId;
     }
 

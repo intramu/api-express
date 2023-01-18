@@ -4,7 +4,7 @@ import logger from "../utilities/winstonConfig";
 export const db = new Pool({
     user: "noah",
     host: "localhost",
-    database: "noah",
+    database: "intramu",
     password: "root",
     port: 5432,
     max: 20,
@@ -72,7 +72,7 @@ export async function query<T extends QueryResultRow>(
             query: queryTextOrConfig,
             values,
         });
-        return Promise.reject("Database Query Error")
+        return Promise.reject("Database Query Error");
     }
 }
 

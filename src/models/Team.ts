@@ -2,7 +2,7 @@ import { Visibility } from "../utilities/enums";
 import { PlayerSmall } from "./PlayerSmall";
 
 export class Team {
-    protected id: number;
+    protected id: number | null;
 
     protected name: string;
 
@@ -20,7 +20,7 @@ export class Team {
 
     protected dateCreated: Date | null;
 
-    protected sportsmanshipScore: number;
+    protected sportsmanshipScore: number | null;
 
     protected status: string | null;
 
@@ -33,7 +33,7 @@ export class Team {
     protected bracketId: number | null;
 
     constructor(
-        id: number,
+        id: number | null,
         name: string,
         wins: number | null,
         ties: number | null,
@@ -42,7 +42,7 @@ export class Team {
         visibility: Visibility,
         sport: string | null,
         dateCreated: Date | null,
-        sportsmanshipScore: number,
+        sportsmanshipScore: number | null,
         status: string | null,
         maxTeamSize: number | null,
         players: PlayerSmall[],
@@ -85,11 +85,11 @@ export class Team {
     //     return result;
     // }
 
-    getId(): number {
+    getId(): number | null {
         return this.id;
     }
 
-    setId(id: number): void {
+    setId(id: number | null): void {
         this.id = id;
     }
 
@@ -157,11 +157,11 @@ export class Team {
         this.dateCreated = dateCreated;
     }
 
-    getSportsmanshipScore(): number {
+    getSportsmanshipScore(): number | null {
         return this.sportsmanshipScore;
     }
 
-    setSportsmanshipScore(sportsmanshipScore: number): void {
+    setSportsmanshipScore(sportsmanshipScore: number | null): void {
         this.sportsmanshipScore = sportsmanshipScore;
     }
 
@@ -198,10 +198,10 @@ export class Team {
     }
 
     getBracketId(): number | null {
-        return this.bracketId
+        return this.bracketId;
     }
 
-    setBracketId(bracketId: number | null): void{
-        this.bracketId = bracketId
+    setBracketId(bracketId: number | null): void {
+        this.bracketId = bracketId;
     }
 }

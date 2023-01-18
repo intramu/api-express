@@ -11,58 +11,6 @@ import { db, withClient } from "./database";
 export default class PlayerDAO {
     className = this.constructor.name;
 
-async findTeams() {
-        logger.verbose("Entering method findAllTeams()", {
-            class: this.className,
-        });
-
-        let client = null;
-
-        const sqlAll = "SELECT * FROM team";
-        try {
-            client = await db.connect();
-            const response = await client.query(sqlAll);
-            const results = response.rows;
-
-            console.log(results);
-            // return results
-        } catch (error) {
-            logger.error("Database Connection / Query Error", {
-                type: error,
-                class: this.className,
-            });
-            return null;
-        } finally {
-            client?.release();
-        }
-    }
-
-    async findTeamsByOrganizationId(orgId: string) {
-        logger.verbose("Entering method findAllTeamsByOrganizationId()", {
-            class: this.className,
-        });
-
-        let client = null;
-
-        const sqlAll = "SELECT * FROM team WHERE organization_id = $1";
-        try {
-            client = await db.connect();
-            const response = await client.query(sqlAll, [orgId]);
-            const results = response.rows;
-            console.log(results);
-            // return results
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (error) {
-            logger.error("Database Connection / Query Error", {
-                type: error,
-                class: this.className,
-            });
-            return null;
-        } finally {
-            client?.release();
-        }
-    }
-
     async findTeamsByPlayerId() {
         logger.verbose("Entering method findAllTeamsByPlayerId()", {
             class: this.className,
@@ -129,16 +77,16 @@ async findTeams() {
         }
     }
 
-    async createPlayerByOrganizationId(player: Player, orgId: string): Promise<Player|null> {
+    async createPlayerByOrganizationId(player: Player): Promise<Player | null> {
         logger.verbose("Entering method createPlayerByOrganizationId()", {
             class: this.className,
         });
 
         return withClient(async (querier) => {
             const sqlInsert =
-            "INSERT INTO player (AUTH_ID, FIRST_NAME, LAST_NAME, LANGUAGE, STATUS, GENDER, EMAIL_ADDRESS, DOB, VISIBILITY, GRADUATION_TERM, IMAGE, organization_ID) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *";
+                "INSERT INTO player (AUTH_ID, FIRST_NAME, LAST_NAME, LANGUAGE, STATUS, GENDER, EMAIL_ADDRESS, DOB, VISIBILITY, GRADUATION_TERM, IMAGE, organization_ID) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *";
 
-            const response = await querier<Player>(sqlInsert, [
+            const response = await querier(sqlInsert, [
                 player.getAuthId(),
                 player.getFirstName(),
                 player.getLastName(),
@@ -150,26 +98,35 @@ async findTeams() {
                 player.getVisibility(),
                 player.getGraduationTerm(),
                 player.getImage(),
-                orgId,
-            ])
+                player.getOrganizationId(),
+            ]);
 
-            const results = response.rows
+            const [results] = response.rows;
 
-            // not sure how to destructure this better
-            const [returnedPlayer] = results;
-            const newPlayer: Player = returnedPlayer;
-
-            // console.log(newPlayer);
-
-            if(results.length === 0){
+            if (results === undefined) {
                 return null;
             }
-            
-            return newPlayer
-        })
+
+            return new Player(
+                results.auth_id,
+                results.first_name,
+                results.last_name,
+                results.language,
+                results.emailAddress,
+                null,
+                results.gender,
+                results.dob,
+                results.visibility,
+                results.graduation_term,
+                results.image,
+                results.status,
+                results.date_created,
+                results.organization_id
+            );
+        });
     }
 
-    async updatePlayer(player: Player): Promise<Player | null>{
+    async updatePlayer(player: Player): Promise<Player | null> {
         logger.verbose("Entering method updatePlayer()", {
             class: this.className,
         });
@@ -189,18 +146,32 @@ async findTeams() {
                 player.getVisibility(),
                 player.getGraduationTerm(),
                 player.getImage(),
-                player.getAuthId()
-            ])
+                player.getAuthId(),
+            ]);
 
-            const [results] = response.rows
-            
-            if(response.rowCount === 0){
-                return null
+            const [results] = response.rows;
+
+            if (response.rowCount === 0) {
+                return null;
             }
-            
-            //todo: add Phonenumber in return
-            return new Player(results.auth_id, results.first_name, results.last_name, results.language, results.emailAddress, "", null, results.gender, results.dob, results.visibility, results.graduation_term, results.image, results.status, results.date_created, results.organization_id);
-        })
+
+            return new Player(
+                results.auth_id,
+                results.first_name,
+                results.last_name,
+                results.language,
+                results.emailAddress,
+                null,
+                results.gender,
+                results.dob,
+                results.visibility,
+                results.graduation_term,
+                results.image,
+                results.status,
+                results.date_created,
+                results.organization_id
+            );
+        });
     }
 
     async deletePlayerById(playerId: string) {
@@ -228,29 +199,38 @@ async findTeams() {
         }
     }
 
-    async findPlayerById(playerId: string) {
+    async findPlayerById(playerId: string): Promise<Player | null> {
         logger.verbose("Entering method findPlayerById()", {
             class: this.className,
         });
 
-        let client = null;
-
         const sqlSelect = "SELECT * FROM player WHERE auth_id=$1";
-        try {
-            client = await db.connect();
-            const response = await client.query(sqlSelect, [playerId]);
-            const results = response.rows;
-            console.log(results);
-            // return results
-        } catch (error) {
-            logger.error("Database Connection / Query Error", {
-                type: error,
-                class: this.className,
-            });
-            return null;
-        } finally {
-            client?.release();
-        }
+
+        return withClient(async (querier) => {
+            const response = await querier(sqlSelect, [playerId]);
+            const [results] = response.rows;
+
+            if (results === undefined) {
+                return null;
+            }
+
+            return new Player(
+                results.auth_id,
+                results.first_name,
+                results.last_name,
+                results.language,
+                results.emailAddress,
+                null,
+                results.gender,
+                results.dob,
+                results.visibility,
+                results.graduation_term,
+                results.image,
+                results.status,
+                results.date_created,
+                results.organization_id
+            );
+        });
     }
 
     async findPlayers() {
@@ -303,112 +283,64 @@ async findTeams() {
         }
     }
 
-    async addToTeamRoster(teamId: number, playerId: string) {
-        logger.verbose("Entering method addToTeamRoster()", {
+    async patchPlayer(player: Player): Promise<Player | null> {
+        logger.verbose("Entering method patchPlayer()", {
             class: this.className,
+            values: player,
         });
 
-        let client = null;
+        // NR - I don't know how I feel about this. I would like to rather be able to set firstName
+        // to null, but that doesn't seem right either.
+        const firstName = player.getFirstName() === "" ? null : player.getFirstName();
+        const lastName = player.getLastName() === "" ? null : player.getLastName();
+        const language = player.getLanguage() === "" ? null : player.getLanguage();
+        const emailAddress = player.getEmailAddress() === "" ? null : player.getEmailAddress();
+        const graduationTerm =
+            player.getGraduationTerm() === "" ? null : player.getGraduationTerm();
 
-        const sqlAddPlayer = "INSERT INTO team_roster (player_AUTH_ID, team_ID) VALUES ($1, $2)";
+        const sqlPatch =
+            "UPDATE player SET first_name=COALESCE($1, first_name), last_name=COALESCE($2, last_name), language=COALESCE($3, language), status=COALESCE($4, status), gender=COALESCE($5, gender), email_address=COALESCE($6, email_address), dob=COALESCE($7, dob), visibility=COALESCE($8, visibility), graduation_term=COALESCE($9, graduation_term), image=COALESCE($10, image) WHERE auth_id=$11 RETURNING *";
 
-        const sqlSearch = "SELECT GENDER FROM player WHERE auth_ID=$1";
+        return withClient(async (querier) => {
+            const response = await querier(sqlPatch, [
+                firstName,
+                lastName,
+                language,
+                player.getStatus(),
+                player.getGender(),
+                emailAddress,
+                player.getDob(),
+                player.getVisibility(),
+                graduationTerm,
+                player.getImage(),
+                player.getAuthId(),
+            ]);
+            const [results] = response.rows;
 
-        const sqlTeamSizeMen = "UPDATE team SET MEN_COUNT = MEN_COUNT + 1 WHERE ID = $1";
-        const sqlTeamSizeWomen = "UPDATE team SET WOMEN_COUNT = WOMEN_COUNT + 1 WHERE ID = $1";
-
-        try {
-            client = await db.connect();
-            await client.query("BEGIN");
-
-            await client.query(sqlAddPlayer, [playerId, teamId]);
-
-            const response = await client.query(sqlSearch, [playerId]);
-            const results = response.rows;
-            const [user] = results;
-
-            if (user.gender === Gender.MALE) {
-                await client.query(sqlTeamSizeMen, [teamId]);
+            if (results === undefined) {
+                return null;
             }
-            await client.query(sqlTeamSizeWomen, [teamId]);
 
-            // const team: Team = { players: [] } as any;
-            // ! Note for Noah
-            // const menCount = team
-            //     .getPlayers()
-            //     .filter((player) => player.getGender() === "male").length;
-
-            await client.query("COMMIT");
-
-            console.log("FINISHED");
-
-            return 1;
-        } catch (error) {
-            logger.error("Database Connection / Query Error", {
-                type: error,
-                class: this.className,
-            });
-            await client?.query("ROLLBACK");
-
-            return null;
-        } finally {
-            client?.release();
-        }
-    }
-
-    async removeFromTeamRoster(teamId: number, playerId: string) {
-        logger.verbose("Entering method removeFromTeamRoster()", {
-            class: this.className,
+            return new Player(
+                results.auth_id,
+                results.first_name,
+                results.last_name,
+                results.language,
+                results.emailAddress,
+                null,
+                results.gender,
+                results.dob,
+                results.visibility,
+                results.graduation_term,
+                results.image,
+                results.status,
+                results.date_created,
+                results.organization_id
+            );
         });
-
-        let client = null;
-
-        const sqlRemove = "DELETE FROM team_roster WHERE player_AUTH_ID=$1 AND team_ID=$2";
-
-        try {
-            client = await db.connect();
-            const response = await client.query(sqlRemove, [playerId, teamId]);
-            const results = response;
-            console.log(results);
-            // return results
-        } catch (error) {
-            logger.error("Database Connection / Query Error", {
-                type: error,
-                class: this.className,
-            });
-            return null;
-        } finally {
-            client?.release();
-        }
     }
 
-    async updateToTeamRoster(teamId: number, playerId: string, role: string) {
-        logger.verbose("Entering method updateToTeamRoster()", {
-            class: this.className,
-        });
-
-        let client = null;
-
-        const sqlUpdate = "UPDATE team_roster SET ROLE=$1 WHERE team_ID=$2 AND player_AUTH_ID=$3";
-
-        try {
-            client = await db.connect();
-            const response = await client.query(sqlUpdate, [role, teamId, playerId]);
-            const results = response.rows;
-            console.log(results);
-            // return results
-        } catch (error) {
-            logger.error("Database Connection / Query Error", {
-                type: error,
-                class: this.className,
-            });
-            return null;
-        } finally {
-            client?.release();
-        }
-    }
-
-    async findPlayersByTeamId(teamId: number): Promise<PlayerSmall[] | null>{
+    async findPlayersByTeamId(teamId: number): Promise<PlayerSmall[] | null> {
         logger.verbose("Entering method findPlayersByTeamId()", {
             class: this.className,
         });
@@ -416,47 +348,57 @@ async findTeams() {
         const sqlJoin =
             "SELECT team_roster.role, player.auth_id, player.first_name, player.last_name, player.gender, player.status, player.image FROM team_roster JOIN player ON team_roster.player_AUTH_ID = player.auth_ID WHERE team_roster.team_ID = $1";
 
-        return withClient(async (querier) =>{
-            const response = await querier(sqlJoin, [teamId])
-            const results = response.rows
+        return withClient(async (querier) => {
+            const response = await querier(sqlJoin, [teamId]);
+            const results = response.rows;
 
-            const playerList = results.map((result) => 
-                new PlayerSmall(result.auth_id, result.role, result.first_name, result.last_name, result.gender, result.status, result.image)
-            )
+            const playerList = results.map(
+                (result) =>
+                    new PlayerSmall(
+                        result.auth_id,
+                        result.role,
+                        result.first_name,
+                        result.last_name,
+                        result.gender,
+                        result.status,
+                        result.image
+                    )
+            );
 
             return playerList;
-        })
+        });
     }
 }
 
 const test = new PlayerDAO();
 
-
-
 const player = new Player(
-    "doesntexist",
-    "Jacob",
-    "Hropoff",
+    "test4947",
     "",
-    "testEmail1936@gmail.com",
-    "5052214064",
+    "",
+    "",
+    "michaelbittner@hotmail.com",
     null,
-    "MALE",
-    new Date(),
-    Visibility.PUBLIC,
-    "SPRING_2023",
+    null,
+    null,
+    Visibility.CLOSED,
+    "SPRING_2025",
     null,
     Status.INCOMPLETE,
-    new Date(),
+    null,
     "ea9dc7a5-5e40-4715-b8d9-4b7acf4a2291"
 );
 
-testFunc()
+testFunc();
 
-async function testFunc(){
-    // console.log(await test.findPlayersByTeamId(12));  
+async function testFunc() {
+    // await test.findPlayerById("player12");
+    // console.log(
+    //     await test.createPlayerByOrganizationId(player, "03503875-f4a2-49f6-bb9f-e9a22fb852d4")
+    // );
+    // console.log(await test.findPlayersByTeamId(12));
     // console.log(await test.updatePlayer(player));
-    
+    // console.log(await test.patchPlayer(player));
 }
 // console.log(test.createPlayerByOrganizationId(player, "7f83b6f4-754a-4f34-913d-907c1226321f"))
 // // test.deletePlayerById("test4934")

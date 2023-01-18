@@ -1,12 +1,34 @@
-import express from 'express'
-import admin from './routes/adminRoute'
+import express from "express";
+import admin from "./routes/adminRoute";
+import player from "./routes/playerRoute";
+import team from "./routes/teamRoute";
+import { auth } from "express-oauth2-jwt-bearer";
 
 const app = express();
 
-app.use(express.json())
+const checkJwt = auth({
+    audience: "https://server-authorization/",
+    issuerBaseURL: "https://dev-5p-an07k.us.auth0.com",
+});
 
-app.use('/api/admin', admin)
+app.use(express.json());
 
-app.listen(8080, () =>{
+// app.use('/api/admin', admin)
+app.use("/api/player", player);
+app.use("/api/team", team);
+
+app.get("/private", checkJwt, (req, res) => {
+    const auth = req.auth;
+
+    console.log("auth", auth);
+
+    console.log(req.params);
+    console.log(req.query);
+    console.log(req.headers);
+
+    res.status(200).json("wow");
+});
+
+app.listen(8080, () => {
     console.log(`App listening on port 8080`);
-})
+});

@@ -1,25 +1,32 @@
 export enum ReturnTypes {}
 
 export enum Gender {
-    MALE,
-    FEMALE,
+    MALE = "MALE",
+    FEMALE = "FEMALE",
+}
+
+export enum Language {
+    ENGLISH = "ENGLISH",
 }
 
 export enum Role {
     CAPTAIN = "CAPTAIN",
-    PLAYER = "PLAYER"
+    COCAPTAIN = "COCAPTAIN",
+    PLAYER = "PLAYER",
+    MASTER = "MASTER",
+    WORKER = "WORKER",
 }
 
 export enum Visibility {
     PRIVATE = "PRIVATE",
-    PUBLIC = "OPEN",
-    CLOSED = "CLOSED"
+    OPEN = "OPEN",
+    CLOSED = "CLOSED",
 }
 
-export enum Status{
+export enum Status {
     ACTIVE = "ACTIVE",
     INACTIVE = "INACTIVE",
     INCOMPLETE = "INCOMPLETE",
     BANNED = "BANNED",
-    GRADUATED = "GRADUATED"
+    GRADUATED = "GRADUATED",
 }

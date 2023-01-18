@@ -1,39 +1,48 @@
-import { Role, Status, Visibility } from "../utilities/enums";
+import { Gender, Role, Status, Visibility } from "../utilities/enums";
 import { User } from "./User";
 
 export class Player extends User {
-    protected gender: string;
+    protected gender: Gender | null;
 
-    protected dob: Date;
+    protected dob: Date | null;
 
-    protected visibility: Visibility;
+    protected visibility: Visibility | null;
 
     protected graduationTerm: string;
 
     protected image: string | null;
 
-    protected phoneNumber: string;
+    protected phoneNumber: string | null;
 
     constructor(
-        authId: string|null,
+        authId: string | null,
         firstName: string,
         lastName: string,
         language: string,
         emailAddress: string,
-        phoneNumber: string,
         role: Role | null,
-        gender: string,
-        dob: Date,
-        visibility: Visibility,
+        gender: Gender | null,
+        dob: Date | null,
+        visibility: Visibility | null,
         graduationTerm: string,
         image: string | null,
-        status: Status,
-        dateCreated: Date,
-        organizationId: string
+        status: Status | null,
+        dateCreated: Date | null,
+        organizationId: string | null
     ) {
-        super(authId, firstName, lastName, language, emailAddress, role, dateCreated, status, organizationId);
+        super(
+            authId,
+            firstName,
+            lastName,
+            language,
+            emailAddress,
+            role,
+            dateCreated,
+            status,
+            organizationId
+        );
 
-        this.phoneNumber = phoneNumber;
+        this.phoneNumber = null;
         this.gender = gender;
         this.dob = dob;
         this.visibility = visibility;
@@ -41,23 +50,23 @@ export class Player extends User {
         this.image = image;
     }
 
-    getPhoneNumber(): string{
-        return this.phoneNumber
+    getPhoneNumber(): string | null {
+        return this.phoneNumber;
     }
 
-    setPhoneNumber(phoneNumber: string): void {
+    setPhoneNumber(phoneNumber: string | null): void {
         this.phoneNumber = phoneNumber;
     }
 
-    getGender(): string {
+    getGender(): Gender | null {
         return this.gender;
     }
 
-    setGender(gender: string): void {
+    setGender(gender: Gender): void {
         this.gender = gender;
     }
 
-    getDob(): Date {
+    getDob(): Date | null {
         return this.dob;
     }
 
@@ -65,7 +74,7 @@ export class Player extends User {
         this.dob = dob;
     }
 
-    getVisibility(): Visibility {
+    getVisibility(): Visibility | null {
         return this.visibility;
     }
 
@@ -87,14 +96,6 @@ export class Player extends User {
 
     setImage(image: string | null): void {
         this.image = image;
-    }
-
-    getStatus(): Status {
-        return this.status;
-    }
-
-    setStatus(status: Status): void {
-        this.status = status;
     }
 
     // Constructors

@@ -9,147 +9,6 @@ import { Gender } from "../utilities/enums";
 export default class AdminDAO {
     readonly className = this.constructor.name;
 
-    /**
-     * Will create the organization and the master admin for the organization.
-     * A auth0 account will have to be created then linked with this organization through
-     * the use of a generated code.
-     *
-     * @param org
-     */
-    async createOrganization(org: Organization) {
-        logger.verbose("Entering method createOrganization()", {
-            class: this.className,
-        });
-
-        const response = await withClientRollback(async (querier) => {
-            // todo: adjust default values plugged in
-            const sqlCreateOrg =
-                "INSERT INTO organization (NAME, INFO, IMAGE, MAIN_COLOR) VALUES ($1, $2, $3, $4) RETURNING *";
-            const sqlCreateMasterAdmin =
-                "INSERT INTO admin (auth_id, first_name, last_name, language, role, status, organization_ID) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING auth_id";
-
-            const orgResponse = await querier(sqlCreateOrg, [
-                org.getName(),
-                org.getInfo(),
-                org.getImage(),
-                org.getMainColor(),
-            ]);
-
-            const { id } = orgResponse.rows[0];
-
-            // todo: make call to auth0 management api to create admin account. Then use this authId
-            const adminResponse = await querier(sqlCreateMasterAdmin, [
-                randomUUID().substring(20),
-                `${org.getName()} master admin`,
-                null,
-                "ENGLISH",
-                "MASTER",
-                "VALID",
-                id,
-            ]);
-
-            console.log({ adminResponse });
-
-            return adminResponse.rowCount;
-        });
-
-        if (response === IsRollback) {
-            return 0;
-        }
-        console.log({ response });
-        return response;
-    }
-
-    async findAllOrganizations(): Promise<Organization[]> {
-        logger.verbose("Entering method findAllOrganizations()", {
-            class: this.className,
-        });
-
-        const sqlAll = "SELECT * FROM organization";
-
-        return withClient(async (querier) => {
-            const response = await querier<Organization>(sqlAll);
-
-            const results = response.rows;
-            // console.log(response.rows);
-            logger.verbose("Result", {
-                class: this.className,
-                values: results
-            })
-            return results;
-        });
-    }
-
-    async findOrganizationById(id: string){
-        logger.verbose("Entering method findOrganizationById()", {
-            class: this.className,
-        });
-
-        const sqlSelect = "SELECT * FROM organization WHERE id = $1";
-
-        return withClient(async (querier) => {
-            const response = await querier(sqlSelect, [id]);
-
-            const [results] = response.rows;
-            console.log(results);
-
-            return results;
-        });
-    }
-
-    // eslint-disable-next-line consistent-return
-    async deleteOrganizationById(orgId: string) {
-        logger.verbose("Entering method deleteOrganizationById()", {
-            class: this.className,
-        });
-
-        return withClient(async (querier) => {
-            const sqlDelete = "DELETE FROM organization WHERE id=$1";
-
-            const response = await querier(sqlDelete, [orgId]);
-
-            // todo: Finish delete method when database is updated with cascade operation on delete
-            console.log(response);
-            // return results
-        });
-    }
-
-    async updateOrganization(org: Organization) {
-        logger.verbose("Entering method updateOrganization()", {
-            class: this.className,
-        });
-
-        return withClient(async (querier) => {
-            const sqlUpdate =
-                "UPDATE organization SET name=$1, image=$2, info=$3, main_color=$4, approval_status=$5 WHERE id = $6 RETURNING *";
-
-            const sqlSelect = 
-                "SELECT id FROM organization WHERE id=$1"
-
-            const idCheck = await querier(sqlSelect, [org.getId()])
-            const [idResponse] = idCheck.rows
-            
-            if(idResponse === undefined){                
-                return undefined
-            }
-            
-            const response = await querier(sqlUpdate, [
-                org.getName(),
-                org.getImage(),
-                org.getInfo(),
-                org.getMainColor(),
-                org.getApprovalStatus(),
-                org.getId(),
-            ]);
-
-            const results = response.rows;
-
-            console.log(results);
-            return results;
-            // return idCheck
-        });
-    }
-
     // eslint-disable-next-line class-methods-use-this, consistent-return
     async createAdminByOrganizationId(admin: Admin, organizationId: string) {
         return withClient(async (querier) => {
@@ -165,11 +24,13 @@ export default class AdminDAO {
                 admin.getStatus(),
                 organizationId,
             ]);
-            const [results] = response.rows
+            const [results] = response.rows;
             console.log(results);
-            return results
+            return results;
         });
     }
+
+    // todo:patchAdmin method() to replace updateAdmin()
 
     // eslint-disable-next-line consistent-return
     async updateAdmin(admin: Admin) {
@@ -190,7 +51,7 @@ export default class AdminDAO {
             ]);
 
             console.log(response);
-            return 
+            return;
         });
     }
 
@@ -221,30 +82,7 @@ export default class AdminDAO {
             return results;
         });
     }
-
-    async findAllAdminsInOrganization(orgId: string): Promise<Admin[]> {
-        logger.verbose("Entering method findAllAdmins()", {
-            class: this.className,
-        });
-
-        return withClient(async (querier) => {
-            const sqlAll = "SELECT * FROM admin WHERE organization_id=$1";
-
-            const response = await querier(sqlAll, [orgId]);
-            const results = response.rows;
-
-            console.log(results);
-
-            throw new Error("Method not implemented.");
-        });
-    }
-
-    async findAllPlayersInOrganization(){}
-
-    async findAllTeams
 }
-
-
 
 // possible error handling
 // if(error.errno === -4078)
@@ -265,7 +103,6 @@ export default class AdminDAO {
 // }
 
 const test = new AdminDAO();
-test.testFunction()
 
 // test.createOrganization(new Organization('','Grand Canyon University', '', 'The coolest University', 'purple', '', new Date()))
 // test.findAllAdmins();

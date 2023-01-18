@@ -11,24 +11,24 @@ export class Organization {
 
     private approvalStatus: string;
 
-    private dateCreated: Date|null;
+    private dateCreated: Date | null;
 
     constructor(
-        $id: string,
-        $name: string,
-        $image: string,
-        $info: string,
-        $mainColor: string,
-        $approvalStatus: string,
-        $dateCreated: Date|null
+        id: string,
+        name: string,
+        image: string,
+        info: string,
+        mainColor: string,
+        approvalStatus: string,
+        dateCreated: Date | null
     ) {
-        this.id = $id;
-        this.name = $name;
-        this.image = $image;
-        this.info = $info;
-        this.mainColor = $mainColor;
-        this.approvalStatus = $approvalStatus;
-        this.dateCreated = $dateCreated;
+        this.id = id;
+        this.name = name;
+        this.image = image;
+        this.info = info;
+        this.mainColor = mainColor;
+        this.approvalStatus = approvalStatus;
+        this.dateCreated = dateCreated;
     }
 
     getId(): string {
@@ -79,11 +79,11 @@ export class Organization {
         this.approvalStatus = approvalStatus;
     }
 
-    getDateCreated(): Date|null {
+    getDateCreated(): Date | null {
         return this.dateCreated;
     }
 
-    setDateCreated(dateCreated: Date|null): void {
+    setDateCreated(dateCreated: Date | null): void {
         this.dateCreated = dateCreated;
     }
 }
