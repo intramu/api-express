@@ -1,9 +1,10 @@
+import { randomUUID } from "crypto";
 import { Admin } from "../models/Admin";
 import { Organization } from "../models/Organization";
 import logger from "../utilities/winstonConfig";
 
 import { IsRollback, withClient, withClientRollback } from "./database";
-import { randomUUID } from "crypto";
+
 import { Gender } from "../utilities/enums";
 
 export default class AdminDAO {
@@ -51,7 +52,7 @@ export default class AdminDAO {
             ]);
 
             console.log(response);
-            return;
+            return response;
         });
     }
 

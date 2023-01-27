@@ -1,4 +1,4 @@
-import { Role, Status } from "../utilities/enums";
+import { Language, Role, Status } from "../utilities/enums";
 
 export abstract class User {
     protected id: string | null;
@@ -7,7 +7,7 @@ export abstract class User {
 
     protected lastName: string;
 
-    protected language: string;
+    protected language: Language | null;
 
     protected emailAddress: string;
 
@@ -23,7 +23,7 @@ export abstract class User {
         authId: string | null,
         firstName: string,
         lastName: string,
-        language: string,
+        language: Language | null,
         emailAddress: string,
         role: Role | null,
         dateCreated: Date | null,
@@ -65,11 +65,11 @@ export abstract class User {
         this.lastName = lastName;
     }
 
-    getLanguage(): string {
+    getLanguage(): Language | null {
         return this.language;
     }
 
-    setLanguage(language: string): void {
+    setLanguage(language: Language | null): void {
         this.language = language;
     }
 

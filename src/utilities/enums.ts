@@ -1,5 +1,3 @@
-export enum ReturnTypes {}
-
 export enum Gender {
     MALE = "MALE",
     FEMALE = "FEMALE",
@@ -29,4 +27,29 @@ export enum Status {
     INCOMPLETE = "INCOMPLETE",
     BANNED = "BANNED",
     GRADUATED = "GRADUATED",
+}
+
+export enum TournamentType {
+    SINGLE = "SINGLE",
+    DOUBLE = "DOUBLE",
+    ROUNDROBIN = "ROUND",
+    RANDOM = "RANDOM",
+}
+
+export enum TournamentSeedType {
+    POINTS = "POINTS",
+    RANKING = "RANKING",
+    RANDOM = "RANDOM",
+}
+
+export enum TournamentStatus {
+    NOTPLAYED = "NOTPLAYED",
+    TOBEDETERMINED = "TOBEDETERMINED",
+    WON = "WON",
+    LOST = "LOST",
+    FORFEIT = "FORFEIT",
+    SUSPENDED = "SUSPENDED",
+    WEATHER = "WEATHER",
+    RESCHEDULED = "RESCHEDULED",
+    OTHER = "OTHER",
 }

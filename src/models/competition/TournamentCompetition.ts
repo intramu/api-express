@@ -1,4 +1,4 @@
-import { DivisionModel } from "./Division";
+import { DivisionModel } from "../Division";
 
 export class TournamentCompetitionModel {
     protected name: string;

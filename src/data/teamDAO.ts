@@ -1,4 +1,3 @@
-import { APIResponse } from "../models/APIResponse";
 import { PlayerSmall } from "../models/PlayerSmall";
 import { Team } from "../models/Team";
 import { Role, Status, Visibility } from "../utilities/enums";
@@ -26,23 +25,23 @@ export default class TeamDAO {
 
             return results.map(
                 (team) =>
-                    new Team(
-                        team.id,
-                        team.name,
-                        team.wins,
-                        team.ties,
-                        team.losses,
-                        team.image,
-                        team.visibility,
-                        team.sport,
-                        team.date_created,
-                        team.sportsmanship_score,
-                        team.status,
-                        team.max_team_size,
-                        [],
-                        team.organization_id,
-                        null
-                    )
+                    new Team({
+                        id: team.id,
+                        name: team.name,
+                        wins: team.wins,
+                        ties: team.ties,
+                        losses: team.losses,
+                        image: team.image,
+                        visibility: team.visibility,
+                        sport: team.sport,
+                        dateCreated: team.date_created,
+                        sportsmanshipScore: team.sportsmanship_score,
+                        status: team.status,
+                        maxTeamSize: team.max_team_size,
+                        players: [],
+                        organizationId: team.organization_id,
+                        bracketId: null,
+                    })
             );
         });
     }
@@ -92,11 +91,12 @@ export default class TeamDAO {
         const sqlFindPlayers =
             "SELECT team_roster.role, player.auth_id, player.first_name, player.last_name, player.gender, player.status, player.image FROM team_roster JOIN player ON team_roster.player_AUTH_ID = player.auth_ID WHERE team_roster.team_ID = $1";
 
-        const result = await withClientRollback(async (querier) => {
-            const responseFind = await querier(sqlFind, [teamId]);
-            const responseFindPlayers = await querier(sqlFindPlayers, [teamId]);
-            const [team] = responseFind.rows;
-            const players = responseFindPlayers.rows;
+        return withClient(async (querier) => {
+            const players = (await querier(sqlFindPlayers, [teamId])).rows;
+
+            if (players.length === 0) {
+                return null;
+            }
 
             const playerList = players.map(
                 (player) =>
@@ -111,34 +111,29 @@ export default class TeamDAO {
                     )
             );
 
-            if (responseFind === undefined) {
-                return IsRollback;
+            const [team] = (await querier(sqlFind, [teamId])).rows;
+            if (team === undefined) {
+                return null;
             }
 
-            return new Team(
-                team.id,
-                team.name,
-                team.wins,
-                team.ties,
-                team.losses,
-                team.image,
-                team.visibility,
-                team.sport,
-                team.date_created,
-                team.sportsmanship_score,
-                team.status,
-                team.max_team_size,
-                playerList,
-                team.organization_id,
-                null
-            );
+            return new Team({
+                id: team.id,
+                name: team.name,
+                wins: team.wins,
+                ties: team.ties,
+                losses: team.losses,
+                image: team.image,
+                visibility: team.visibility,
+                sport: team.sport,
+                dateCreated: team.date_created,
+                sportsmanshipScore: team.sportsmanship_score,
+                status: team.status,
+                maxTeamSize: team.max_team_size,
+                players: playerList,
+                organizationId: team.organization_id,
+                bracketId: null,
+            });
         });
-
-        if (result === IsRollback) {
-            return null;
-        }
-
-        return result;
     }
 
     async findTeamById(teamId: number): Promise<Team | null> {
@@ -157,23 +152,23 @@ export default class TeamDAO {
                 return null;
             }
 
-            return new Team(
-                team.name,
-                team.id,
-                team.wins,
-                team.ties,
-                team.losses,
-                team.image,
-                team.visibility,
-                team.sport,
-                team.date_created,
-                team.sportsmanship_score,
-                team.status,
-                team.max_team_size,
-                [],
-                team.organization_id,
-                null
-            );
+            return new Team({
+                id: team.id,
+                name: team.name,
+                wins: team.wins,
+                ties: team.ties,
+                losses: team.losses,
+                image: team.image,
+                visibility: team.visibility,
+                sport: team.sport,
+                dateCreated: team.date_created,
+                sportsmanshipScore: team.sportsmanship_score,
+                status: team.status,
+                maxTeamSize: team.max_team_size,
+                players: [],
+                organizationId: team.organization_id,
+                bracketId: null,
+            });
         });
     }
 
@@ -206,23 +201,23 @@ export default class TeamDAO {
                 return null;
             }
 
-            return new Team(
-                results.id,
-                results.name,
-                results.wins,
-                results.ties,
-                results.losses,
-                results.image,
-                results.visibility,
-                results.sport,
-                results.date_created,
-                results.sportsmanship_score,
-                results.status,
-                results.max_team_size,
-                [],
-                results.organization_id,
-                null
-            );
+            return new Team({
+                id: results.id,
+                name: results.name,
+                wins: results.wins,
+                ties: results.ties,
+                losses: results.losses,
+                image: results.image,
+                visibility: results.visibility,
+                sport: results.sport,
+                dateCreated: results.date_created,
+                sportsmanshipScore: results.sportsmanship_score,
+                status: results.status,
+                maxTeamSize: results.max_team_size,
+                players: [],
+                organizationId: results.organization_id,
+                bracketId: null,
+            });
         });
     }
 
@@ -264,23 +259,23 @@ export default class TeamDAO {
                 return IsRollback;
             }
 
-            return new Team(
-                results.id,
-                results.name,
-                results.wins,
-                results.ties,
-                results.losses,
-                results.image,
-                results.visibility,
-                results.sport,
-                results.sportsmanship_score,
-                results.status,
-                results.max_team_size,
-                results.date_created,
-                [],
-                results.organization_id,
-                null
-            );
+            return new Team({
+                id: results.id,
+                name: results.name,
+                wins: results.wins,
+                ties: results.ties,
+                losses: results.losses,
+                image: results.image,
+                visibility: results.visibility,
+                sport: results.sport,
+                dateCreated: results.date_created,
+                sportsmanshipScore: results.sportsmanship_score,
+                status: results.status,
+                maxTeamSize: results.max_team_size,
+                players: [],
+                organizationId: results.organization_id,
+                bracketId: null,
+            });
         });
 
         if (result === IsRollback) {
@@ -317,7 +312,7 @@ export default class TeamDAO {
         const sqlRemove = "DELETE FROM team_roster WHERE player_AUTH_ID=$1 AND team_ID=$2";
 
         return withClient(async (querier) => {
-            const response = await querier(sqlRemove, [playerId, teamId]).catch((err) => null);
+            const response = await querier(sqlRemove, [playerId, teamId]);
 
             if (response === null) {
                 return false;
@@ -327,8 +322,8 @@ export default class TeamDAO {
                 logger.error("removeFromTeamRoster deleted more than one record", {
                     class: this.className,
                     values: {
-                        playerId: playerId,
-                        teamId: teamId,
+                        playerId,
+                        teamId,
                     },
                 });
             }
@@ -359,6 +354,66 @@ export default class TeamDAO {
             return true;
         });
     }
+
+    async createJoinRequest(
+        teamId: number,
+        playerId: string,
+        expirationTime: Date
+    ): Promise<boolean> {
+        logger.verbose("Entering method createJoinRequest()", {
+            class: this.className,
+            values: teamId,
+            playerId,
+        });
+
+        const sqlAdd =
+            "INSERT INTO team_join_requests (player_auth_id, team_id, requesting_player_full_name, expiration_time) VALUES ($1,$2,$3,$4) RETURNING *";
+
+        const sqlPlayer = "SELECT first_name, last_name FROM player WHERE auth_id = $1";
+
+        return withClient(async (querier) => {
+            const [player] = (await querier(sqlPlayer, [playerId])).rows;
+            if (player === undefined) {
+                return false;
+            }
+
+            const [result] = (
+                await querier(sqlAdd, [
+                    playerId,
+                    teamId,
+                    `${player.first_name} ${player.last_name}`,
+                    expirationTime,
+                ])
+            ).rows;
+
+            if (result === undefined) {
+                return false;
+            }
+
+            return true;
+        });
+    }
+
+    async deleteJoinRequest(playerId: string, teamId: number): Promise<boolean> {
+        logger.verbose("Entering method deleteJoinRequest()", {
+            class: this.className,
+            values: teamId,
+            playerId,
+        });
+
+        const sqlDelete =
+            "DELETE FROM team_join_requests WHERE player_auth_id = $1 AND team_id = $2";
+
+        return withClient(async (querier) => {
+            const results = (await querier(sqlDelete, [playerId, teamId])).rowCount;
+
+            if (results === 0) {
+                return false;
+            }
+
+            return true;
+        });
+    }
 }
 
 const test = new TeamDAO();
@@ -366,27 +421,28 @@ const test = new TeamDAO();
 // test.findAllTeams();
 // test.findTeamById(12)
 
-const team = new Team(
-    20,
-    "Hello Barbie",
-    0,
-    0,
-    0,
-    null,
-    Visibility.OPEN,
-    "Soccer",
-    null,
-    4.0,
-    Status.ACTIVE,
-    12,
-    [],
-    "7f83b6f4-754a-4f34-913d-907c1226321f",
-    null
-);
+const team = new Team({
+    id: 20,
+    name: "Hello Barbie",
+    wins: 0,
+    ties: 0,
+    losses: 0,
+    image: "",
+    visibility: Visibility.OPEN,
+    sport: "Soccer",
+    dateCreated: null,
+    sportsmanshipScore: 4.0,
+    status: Status.ACTIVE,
+    maxTeamSize: 12,
+    players: [],
+    organizationId: "7f83b6f4-754a-4f34-913d-907c1226321f",
+    bracketId: null,
+});
 
 testFunc();
 
 async function testFunc() {
+    // test.createJoinRequest(12, "player4");
     // await test.findTeamByIdWithPlayers(12);
     // console.log(await test.addToTeamRoster(12, "player4", Role.PLAYER))
     // console.log(await test.removeFromTeamRoster(12, "player2"));

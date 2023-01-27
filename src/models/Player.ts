@@ -1,4 +1,4 @@
-import { Gender, Role, Status, Visibility } from "../utilities/enums";
+import { Gender, Language, Role, Status, Visibility } from "../utilities/enums";
 import { User } from "./User";
 
 export class Player extends User {
@@ -14,40 +14,40 @@ export class Player extends User {
 
     protected phoneNumber: string | null;
 
-    constructor(
-        authId: string | null,
-        firstName: string,
-        lastName: string,
-        language: string,
-        emailAddress: string,
-        role: Role | null,
-        gender: Gender | null,
-        dob: Date | null,
-        visibility: Visibility | null,
-        graduationTerm: string,
-        image: string | null,
-        status: Status | null,
-        dateCreated: Date | null,
-        organizationId: string | null
-    ) {
+    constructor(props: {
+        authId: string | null;
+        firstName: string;
+        lastName: string;
+        language: Language | null;
+        emailAddress: string;
+        role: Role | null;
+        gender: Gender | null;
+        dob: Date | null;
+        visibility: Visibility | null;
+        graduationTerm: string;
+        image: string;
+        status: Status | null;
+        dateCreated: Date | null;
+        organizationId: string;
+    }) {
         super(
-            authId,
-            firstName,
-            lastName,
-            language,
-            emailAddress,
-            role,
-            dateCreated,
-            status,
-            organizationId
+            props.authId,
+            props.firstName,
+            props.lastName,
+            props.language,
+            props.emailAddress,
+            props.role,
+            props.dateCreated,
+            props.status,
+            props.organizationId
         );
 
         this.phoneNumber = null;
-        this.gender = gender;
-        this.dob = dob;
-        this.visibility = visibility;
-        this.graduationTerm = graduationTerm;
-        this.image = image;
+        this.gender = props.gender;
+        this.dob = props.dob;
+        this.visibility = props.visibility;
+        this.graduationTerm = props.graduationTerm;
+        this.image = props.image;
     }
 
     getPhoneNumber(): string | null {

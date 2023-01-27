@@ -1,3 +1,5 @@
+import { performance, PerformanceObserver } from "perf_hooks";
+
 import PlayerDAO from "../data/playerDAO";
 import { Player } from "../models/Player";
 import logger from "../utilities/winstonConfig";
@@ -6,7 +8,6 @@ import { APIResponse } from "../models/APIResponse";
 import { Role, Status, Visibility } from "../utilities/enums";
 import TeamDAO from "../data/teamDAO";
 import { Team } from "../models/Team";
-import { performance, PerformanceObserver } from "perf_hooks";
 import OrganizationDAO from "../data/organizationDAO";
 
 const playerDatabase = new PlayerDAO();
@@ -42,7 +43,7 @@ export class PlayerBusinessService {
         }
 
         const newPlayer: Player = player;
-        //sets the player status to active, there account is complete
+        // sets the player status to active, there account is complete
         newPlayer.setStatus(Status.ACTIVE);
 
         const response = await playerDatabase.createPlayerByOrganizationId(player);
@@ -62,22 +63,22 @@ export class PlayerBusinessService {
      * @param orgId organization id which the player is added under
      * @returns ??? Should return player object with password attached. May need to alter Player model
      */
-    async createPlayerWithAuth0Account(player: Player): Promise<APIResponse | String> {
+    async createPlayerWithAuth0Account(player: Player): Promise<APIResponse | string> {
         logger.verbose("Entering method createPlayerWithAuth0()", {
             class: this.className,
             values: player,
         });
 
-        //check if organization exists
+        // check if organization exists
         const organization = await organizationDatabase.findOrganizationById(
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             player.getOrganizationId()!
         );
-
         if (organization === null) {
             return APIResponse[404](`No Organization found with id: ${player.getOrganizationId()}`);
         }
 
-        let newPlayer: Player = player;
+        const newPlayer: Player = player;
         // create body for new user to be added to Auth0 system
         const newAuthUser = {
             // todo: be able to change blocked, verify_email, and email_verified values
@@ -89,7 +90,7 @@ export class PlayerBusinessService {
             email_verified: false,
             given_name: player.getFirstName(),
             family_name: player.getLastName(),
-            name: player.getFirstName() + " " + player.getLastName(),
+            name: `${player.getFirstName()} ${player.getLastName()}`,
             connection: "Username-Password-Authentication",
             password: Math.random().toString(36).slice(-8).concat("1111!"),
             verify_email: true,
@@ -98,7 +99,7 @@ export class PlayerBusinessService {
         const response = await auth0
             .createUser(newAuthUser)
             .then((result) => {
-                logger.debug("Auth0 user created with id: " + result.user_id, {
+                logger.debug(`Auth0 user created with id: ${result.user_id}`, {
                     class: this.className,
                     values: result,
                 });
@@ -166,10 +167,10 @@ export class PlayerBusinessService {
             return APIResponse[404](`No player found with id: ${playerId}`, null);
         }
 
-        // const player: Player = response;
         return response;
     }
 
+    // todo: implement
     async completePlayerProfile(player: Player): Promise<APIResponse | Player> {
         logger.verbose("Entering method finishPlayerProfile", {
             class: this.className,
@@ -248,11 +249,7 @@ export class PlayerBusinessService {
             return APIResponse[404](`No teams found with id ${orgId}`);
         }
 
-        const teamList = response.filter((team) => {
-            if (team.getStatus() === Status.ACTIVE) {
-                return team;
-            }
-        });
+        const teamList = response.filter((team) => team.getStatus() === Status.ACTIVE);
 
         return teamList;
     }
@@ -263,34 +260,53 @@ export class PlayerBusinessService {
             values: orgId,
         });
 
-        const response = await teamDatabase.findAllTeamsByOrganizationId(orgId);
+        const org = await organizationDatabase.findOrganizationById(orgId);
+        if (org === null) {
+            return APIResponse[404](`No organization found with id: ${orgId}`);
+        }
 
+        const response = await teamDatabase.findAllTeamsByOrganizationId(orgId);
         if (response.length === 0) {
-            return APIResponse[404](`No teams found with organization id ${orgId}`);
+            return APIResponse[404](`No teams found with organization id: ${orgId}`);
         }
 
         return response;
     }
 
-    // // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    async findAllPlayersByOrganizationId(orgId: string): Promise<APIResponse | Player[]> {
+        logger.verbose("Entering method findAllPlayersByOrganizationId()", {
+            class: this.className,
+            values: orgId,
+        });
+
+        const response = await organizationDatabase.findOrganizationById(orgId);
+        if (response === null) {
+            return APIResponse[404](`No organization found with id: ${orgId}`);
+        }
+
+        const players = await playerDatabase.findPlayersByOrganizationId(orgId);
+        if (response === null) {
+            return APIResponse[404](`No teams found with organization id: ${orgId}`);
+        }
+
+        return players;
+    }
+
     async joinTeam(playerId: string, teamId: number): Promise<APIResponse | boolean> {
         logger.verbose("Entering method joinTeam()", {
             class: this.className,
         });
 
-        const playerList = await playerDatabase.findPlayersByTeamId(teamId);
-        const team = await teamDatabase.findTeamById(teamId);
+        const team = await teamDatabase.findTeamByIdWithPlayers(teamId);
 
         if (team === null) {
-            return APIResponse[404](`Team not found with id: ${teamId}`);
+            return APIResponse[404](`No Team found with id: ${teamId}`);
         }
-        if (playerList === null || !playerList.length) {
-            return APIResponse[404](`No players on team: ${teamId}`);
-        }
-        if (playerList.length >= team.getMaxTeamSize()!) {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        if (team.getPlayers().length >= team.getMaxTeamSize()!) {
             return APIResponse[409](`Team is full. Max size: ${team.getMaxTeamSize()}`);
         }
-        if (!!playerList.find((player) => player.getAuthId() === playerId)) {
+        if (team.getPlayers().some((player) => player.getAuthId() === playerId)) {
             return APIResponse[409](`Player ${playerId} is already on team`);
         }
         if (
@@ -302,11 +318,8 @@ export class PlayerBusinessService {
 
         const responseAdd = await teamDatabase.addToTeamRoster(teamId, playerId, Role.PLAYER);
         if (!responseAdd) {
-            return APIResponse[500]("Server encountered error adding player");
+            return APIResponse[500]("Error adding player to roster");
         }
-
-        console.log("playerList: ", playerList);
-        console.log("team:", team);
 
         return true;
     }
@@ -320,26 +333,26 @@ export class PlayerBusinessService {
             class: this.className,
         });
 
-        const playerList = await playerDatabase.findPlayersByTeamId(teamId);
+        const players = await playerDatabase.findPlayersByTeamId(teamId);
 
-        if (playerList === null || !playerList.length) {
-            return APIResponse[404](`No players on team: ${teamId}`);
+        if (players === null || !players.length) {
+            return APIResponse[404](`No team found with id: ${teamId}`);
         }
         if (
-            !playerList.find(
+            !players.find(
                 (player) =>
                     player.getAuthId() === authorizingId && player.getRole() === Role.CAPTAIN
             )
         ) {
-            return APIResponse[403](`Id ${authorizingId} not authorized`);
+            return APIResponse[403](`Id: ${authorizingId} not authorized`);
         }
-        if (!playerList.find((player) => player.getAuthId() === playerId)) {
-            return APIResponse[404](`Player ${playerId} to kick not found`);
+        if (!players.find((player) => player.getAuthId() === playerId)) {
+            return APIResponse[404](`Player: ${playerId} to kick not found`);
         }
 
         const response = await teamDatabase.removeFromTeamRoster(teamId, playerId);
         if (!response) {
-            return APIResponse[500]("Server encountered error removing player");
+            return APIResponse[500]("Error removing player from roster");
         }
 
         return true;
@@ -378,6 +391,184 @@ export class PlayerBusinessService {
 
         return updatedTeam;
     }
+
+    async acceptTeamInvite(playerId: string, teamId: number): Promise<APIResponse | true> {
+        logger.verbose("Entering method acceptTeamInvite()", {
+            class: this.className,
+            values: {
+                playerId,
+                teamId,
+            },
+        });
+
+        // if this invite comes back as invalid, it validates that either the team id or the player id
+        // was invalid
+        const inviteResponse = await playerDatabase.deletePlayerInvite(playerId, teamId);
+        if (inviteResponse === null) {
+            return APIResponse[404](
+                `No invite found with player id: ${playerId} and team id: ${teamId}`
+            );
+        }
+
+        const response = await teamDatabase.addToTeamRoster(teamId, playerId, Role.PLAYER);
+        if (response === false) {
+            return APIResponse[500](`Error adding ${playerId} to team ${teamId}`);
+        }
+
+        return true;
+    }
+
+    async invitePlayerToTeam(
+        requestingId: string,
+        inviteeId: string,
+        teamId: number
+    ): Promise<APIResponse | true> {
+        logger.verbose("Entering method invitePlayerToTeam()", {
+            class: this.className,
+            values: {
+                requestingId,
+                inviteeId,
+                teamId,
+            },
+        });
+
+        // check team exists and is valid for invite
+        const team = await teamDatabase.findTeamByIdWithPlayers(teamId);
+        if (team === null) {
+            return APIResponse[404](`No team found with id: ${teamId}`);
+        }
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        if (team.getPlayers().length >= team.getMaxTeamSize()!) {
+            return APIResponse[409](`Team is full`);
+        }
+
+        // check requesting id is captain
+        // check that invitee isnt already on team
+        // eslint-disable-next-line consistent-return
+        team.getPlayers().forEach((player) => {
+            if (
+                player.getAuthId() === requestingId &&
+                player.getRole() === (Role.CAPTAIN || Role.COCAPTAIN)
+            ) {
+                return APIResponse[403](
+                    `Player ${requestingId} does not possess a valid Role to perform this action`
+                );
+            }
+            if (player.getAuthId() === inviteeId) {
+                return APIResponse[409](`Player ${inviteeId} is already on team`);
+            }
+        });
+
+        // add player invite to database
+        // expiration date will be set to 1 week from invite.
+        const date = new Date();
+        date.setDate(date.getDate() + 7);
+
+        const invite = playerDatabase.createPlayerInvite(requestingId, inviteeId, teamId, date);
+        if (invite === null) {
+            return APIResponse[500]("Error inviting player to team");
+        }
+
+        // todo: send invitee a notification of the invite
+
+        return true;
+    }
+
+    async requestToJoinTeam(playerId: string, teamId: number): Promise<APIResponse | true> {
+        logger.verbose("Entering method invitePlayerToTeam()", {
+            class: this.className,
+            values: {
+                playerId,
+                teamId,
+            },
+        });
+
+        const team = await teamDatabase.findTeamByIdWithPlayers(teamId);
+        if (team === null) {
+            return APIResponse[404](`Team id: ${teamId} not found`);
+        }
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        if (team.getPlayers().length > team.getMaxTeamSize()!) {
+            return APIResponse[409](`Team id: ${teamId} is full`);
+        }
+
+        // expiration date is set one week out
+        const date = new Date();
+        date.setDate(date.getDate() + 7);
+        const response = await teamDatabase.createJoinRequest(teamId, playerId, date);
+        if (response === false) {
+            APIResponse[500](`Error requesting to join team: ${teamId}`);
+        }
+
+        return true;
+    }
+
+    async acceptJoinRequest(
+        requesteeId: string,
+        acepteeId: string,
+        teamId: number
+    ): Promise<APIResponse | true> {
+        logger.verbose("Entering method acceptJoinRequest()", {
+            class: this.className,
+            values: {
+                requesteeId,
+                acepteeId,
+                teamId,
+            },
+        });
+
+        // check if team exists
+        const team = await teamDatabase.findTeamByIdWithPlayers(teamId);
+        if (team === null) {
+            return APIResponse[404](`No team found with id: ${teamId}`);
+        }
+        // check that aceptee id possesses valid rights to accept join request
+        if (
+            !team
+                .getPlayers()
+                .some(
+                    (player) =>
+                        (player.getAuthId() === acepteeId && player.getRole() === Role.CAPTAIN) ||
+                        player.getRole() === Role.COCAPTAIN
+                )
+        ) {
+            return APIResponse[403](
+                `Player ${acepteeId} does not possess a valid Role to perform this action`
+            );
+        }
+
+        // delete join request
+        const deleteResponse = await teamDatabase.deleteJoinRequest(requesteeId, teamId);
+        if (deleteResponse === false) {
+            return APIResponse[404](
+                `No join request found with player id: ${requesteeId} and team id: ${teamId}`
+            );
+        }
+
+        // add player to team roster
+        const response = await teamDatabase.addToTeamRoster(teamId, requesteeId, Role.PLAYER);
+        if (response === false) {
+            return APIResponse[500](
+                `Error joining team with player: ${requesteeId} and team: ${teamId}`
+            );
+        }
+
+        return true;
+    }
+
+    async findOrganizationList(): Promise<APIResponse | [name: string, id: string][]> {
+        logger.verbose("Entering method acceptJoinRequest()", {
+            class: this.className,
+        });
+
+        const orgs = await organizationDatabase.findAllOrganizations();
+
+        if (orgs.length === 0) {
+            return APIResponse[404]("No organizations found");
+        }
+
+        return orgs.map((organization) => [organization.getName(), organization.getId()]);
+    }
 }
 const test = new PlayerBusinessService();
 
@@ -402,103 +593,19 @@ const test = new PlayerBusinessService();
 
 testFunc();
 async function testFunc() {
-    performance.mark("start");
+    // performance.mark("start");
+    // console.log(await test.invitePlayerToTeam("player1", "player4", 12));
+    // console.log(await test.acceptTeamInvite("player4", 12));
+    // console.log(await test.requestToJoinTeam("player4", 12));
+    // console.log(await test.acceptJoinRequest("player4", "player1", 12));
+
     // console.log(await test.viewTeamDetailsById(12));
 
-    // console.log(await test.kickPlayerFromTeam("player2", 12, "player1"));
-    // console.log(await test.joinTeam("player2", 12));
+    console.log(await test.kickPlayerFromTeam("player4", 12, "player2"));
+    // console.log(await test.joinTeam("player1", 10));
 
-    performance.mark("end");
+    // performance.mark("end");
 
-    performance.measure("example", "start", "end");
+    // performance.measure("example", "start", "end");
 }
 // const profile = tempLogger.startTimer();
-// database.getConnectionFromPool((conn: any) => {
-//     if (conn === null) {
-//         logger.error("Bad request to Data Layer", {
-//             class: this.className,
-//         });
-//         return callback({ message: "Database Error", code: -1 });
-//     }
-
-//     database.findTeamVisibility(
-//         teamId,
-//         conn,
-//         (resultVisibility: any) => {
-//             if (resultVisibility === null) {
-//                 logger.error("Bad request to Data Layer", {
-//                     class: this.className,
-//                 });
-//                 return callback({
-//                     message: "Database Error",
-//                     code: -1,
-//                 });
-//             }
-
-//             if (
-//                 resultVisibility[0].VISIBILITY === "PRIVATE" ||
-//                 resultVisibility[0].VISIBILITY === "CLOSED" ||
-//                 resultVisibility[0].CURRENT_TEAM_SIZE ===
-//                     resultVisibility[0].MAX_TEAM_SIZE
-//             ) {
-//                 logger.info("Team is not open OR team is at max size", {
-//                     class: this.className,
-//                 });
-//                 return callback({
-//                     message: "Team is not open OR team is at max size",
-//                     code: 0,
-//                 });
-//             }
-
-//             database.joinTeam(
-//                 playerId,
-//                 teamId,
-//                 conn,
-//                 (joinResult: any) => {
-//                     if (joinResult === null || joinResult === 0) {
-//                         logger.error("Bad request to Data Layer", {
-//                             class: this.className,
-//                         });
-//                         return callback({
-//                             message: "Database Error",
-//                             code: -1,
-//                         });
-//                     }
-
-//                     logger.info(
-//                         `Player with id: ${playerId} joined team with id: ${teamId}`,
-//                         {
-//                             class: this.className,
-//                         }
-//                     );
-
-//                     return callback({
-//                         message: "Player joined team",
-//                         code: 1,
-//                     });
-//                 }
-//             );
-//         }
-//     );
-// });
-
-//     createPrimary(player: Player, callback: any){
-//         databasePlayer.createPrimary(player, (result:any)=>{
-//             if(result === null){
-//                 console.log('Database Error');
-//                 callback({message: "Primary Player NOT Created", code: -1})
-//             }
-
-//             if(result > 0)
-//                 callback({message: "Primary Player Created", code: result})
-//             else
-//                 callback({message: "Primary Player NOT Created", code: result})
-//         })
-//     }
-
-// console.log("bruh");
-
-// business.showAllTeams((result: any) => {});
-// business.joinOpenTeam("1", 2, (result: any) => {
-//     // console.log(result);
-// });

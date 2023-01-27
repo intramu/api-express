@@ -1,15 +1,29 @@
 import express from "express";
-import { body, checkSchema, validationResult } from "express-validator";
+import { body, checkSchema, param, validationResult } from "express-validator";
 import { PlayerBusinessService } from "../../business/PlayerBusinessService";
 import { APIResponse } from "../../models/APIResponse";
 import { Player } from "../../models/Player";
-import { graduationTerms } from "../../utilities/constantsThatNeedAHome";
-import { Gender, Visibility } from "../../utilities/enums";
-import { newPersonSchema, patchPersonSchema } from "../../utilities/validationSchemas";
+import { newPersonSchema, patchPersonSchema, validate } from "../../utilities/validationSchemas";
 
 const router = express.Router();
 
 const playerService = new PlayerBusinessService();
+
+router.get(
+    "/organization/:id",
+
+    param("id").isUUID().withMessage("not in UUI format"),
+
+    (req, res) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            const errorResponse = errors.array()[0].msg;
+            return res.status(400).json(APIResponse[400](errorResponse));
+        }
+
+        return res.status(501).json(APIResponse[501]);
+    }
+);
 
 router.get("/:id", async (req, res) => {
     const response = await playerService.findPlayerById(req.params.id);
@@ -18,139 +32,44 @@ router.get("/:id", async (req, res) => {
         return res.status(response.statusCode).json(response);
     }
 
-    res.status(200).json(response);
+    return res.status(200).json(response);
 });
 
-const testArray: string[] = ["MALE", "FEMALE"];
+router.post("/", validate(newPersonSchema), async (req: express.Request, res: express.Response) => {
+    const errors = validationResult(req);
+    console.log(errors);
 
-router.post(
-    "/",
-    checkSchema({
-        firstName: {
-            notEmpty: {
-                errorMessage: "value firstName is missing",
-            },
-            trim: {},
-            escape: {},
-            isLength: {
-                options: { min: 2, max: 20 },
-                errorMessage: `firstName requires length from 2 to 20`,
-            },
-        },
-        lastName: {
-            notEmpty: {
-                errorMessage: "value lastName is missing",
-            },
-            trim: {},
-            escape: {},
-            isLength: {
-                options: { min: 2, max: 20 },
-                errorMessage: `lastName requires length from 2 to 20`,
-            },
-        },
-        emailAddress: {
-            notEmpty: {
-                errorMessage: "value emailAddress is missing",
-            },
-            trim: {},
-            isEmail: {
-                errorMessage: "emailAddress is not correctly formatted",
-            },
-        },
-        dateOfBirth: {
-            notEmpty: {
-                errorMessage: "value dateOfBirth is missing",
-            },
-            isDate: {
-                options: {
-                    format: "YYYY-MM-DD",
-                    strictMode: true,
-                },
-                errorMessage: "dateOfBirth is required in format YYYY-MM-DD",
-            },
-        },
-        organizationId: {
-            notEmpty: {
-                errorMessage: "value organizationId is missing",
-            },
-            isUUID: {
-                errorMessage: "organizationId is not in UUID format",
-            },
-        },
-    }),
-    body("gender")
-        .trim()
-        .notEmpty()
-        .withMessage("value gender is missing")
-        .toUpperCase()
-        .isIn([Gender.FEMALE, Gender.MALE])
-        .withMessage(`valid gender options are [${Gender.MALE}, ${Gender.FEMALE}]`),
-    body("language")
-        .trim()
-        .notEmpty()
-        .withMessage("value language is missing")
-        .toUpperCase()
-        .isIn(["ENGLISH"])
-        .withMessage(`valid language options are [ENGLISH]`),
-    body("graduationTerm")
-        .trim()
-        .notEmpty()
-        .withMessage("value graduationTerm is missing")
-        .toUpperCase()
-        .isIn(graduationTerms)
-        //todo: this error message returns undefined
-        .withMessage(
-            "valid graduationTerm options are " +
-                graduationTerms.forEach((term) => {
-                    console.log(term);
-
-                    return term + ", ";
-                })
-        ),
-    body("visibility")
-        .trim()
-        .notEmpty()
-        .withMessage("value visibility is missing")
-        .toUpperCase()
-        .isIn([Visibility.CLOSED, Visibility.OPEN, Visibility.PRIVATE])
-        .withMessage(
-            `valid visibility options are ${Visibility.CLOSED}, ${Visibility.OPEN}, ${Visibility.PRIVATE}`
-        ),
-    async (req: express.Request, res: express.Response) => {
-        const errors = validationResult(req);
-        console.log(errors);
-
-        if (!errors.isEmpty()) {
-            const errorResponse = errors.array()[0].msg;
-            return res.status(400).json(APIResponse[400](errorResponse));
-        }
-
-        const auth = req.auth?.payload;
-        const authId = auth?.sub;
-
-        const body = req.body;
-
-        const response = await playerService.createPlayer(
-            new Player(
-                authId!,
-                body.firstName,
-                body.lastName,
-                body.language,
-                body.emailAddress,
-                null,
-                body.gender,
-                body.dateOfBirth,
-                body.visibility,
-                body.graduationTerm,
-                null,
-                null,
-                null,
-                body.organizationId
-            )
-        );
-        res.status(200).json("hit the correct endpoint");
+    if (!errors.isEmpty()) {
+        const errorResponse = errors.array()[0].msg;
+        return res.status(400).json(APIResponse[400](errorResponse));
     }
-);
+
+    const auth = req.auth?.payload;
+    const authId = auth?.sub;
+
+    const reqBody = req.body;
+
+    const response = await playerService.createPlayer(
+        new Player({
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            authId: authId!,
+            firstName: reqBody.firstName,
+            lastName: reqBody.lastName,
+            language: reqBody.language,
+            emailAddress: reqBody.emailAddress,
+            role: null,
+            gender: reqBody.gender,
+            dob: reqBody.dateOfBirth,
+            visibility: reqBody.visibility,
+            graduationTerm: reqBody.graduationTerm,
+            image: reqBody.image,
+            status: null,
+            dateCreated: null,
+            organizationId: reqBody.organizationId,
+        })
+    );
+    return res.status(200).json(response);
+});
 
 router.patch("/", patchPersonSchema, async (req: express.Request, res: express.Response) => {
     const errors = validationResult(req);
@@ -161,37 +80,42 @@ router.patch("/", patchPersonSchema, async (req: express.Request, res: express.R
         return res.status(400).json(APIResponse[400](errorResponse));
     }
 
-    // //grab the authId of the user from the authorization token
-    // const auth = req.auth?.payload;
-    // const authId = auth?.sub;
+    console.log(req.auth);
 
-    // const body = req.body;
+    // grab the authId of the user from the authorization token
+    if (req.auth === undefined) {
+        return res.status(401).json();
+    }
+    const auth = req.auth.payload;
+    const { sub } = auth;
 
-    // const response = await playerService.completePlayerProfile(
-    //     new Player(
-    //         // authId!,
-    //         body.id,
-    //         body.firstName,
-    //         body.lastName,
-    //         body.language,
-    //         "",
-    //         null,
-    //         body.gender,
-    //         body.dateOfBirth,
-    //         body.visibility,
-    //         body.graduationTerm,
-    //         null,
-    //         null,
-    //         null,
-    //         null
-    //     )
-    // );
+    const reqBody = req.body;
 
-    // if (response instanceof APIResponse) {
-    //     return res.status(response.statusCode).json(response);
-    // }
+    const response = await playerService.completePlayerProfile(
+        new Player({
+            authId: sub,
+            // authId: reqBody.id,
+            firstName: reqBody.firstName,
+            lastName: reqBody.lastName,
+            language: reqBody.language,
+            emailAddress: reqBody.emailAddress,
+            role: null,
+            gender: reqBody.gender,
+            dob: reqBody.dateOfBirth,
+            visibility: reqBody.visibility,
+            graduationTerm: reqBody.graduationTerm,
+            image: reqBody.image,
+            status: reqBody.status,
+            dateCreated: null,
+            organizationId: reqBody.organizationId,
+        })
+    );
 
-    res.status(200).json(req.body);
+    if (response instanceof APIResponse) {
+        return res.status(response.statusCode).json(response);
+    }
+
+    return res.status(200).json(req.body);
 });
 
 export default router;

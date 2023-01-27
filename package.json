@@ -19,6 +19,7 @@
         "express-validator": "^6.14.2",
         "express-winston": "^4.2.0",
         "pg": "^8.8.0",
+        "pg-format": "^1.0.4",
         "winston": "^3.8.1"
     },
     "keywords": [],
@@ -27,7 +28,8 @@
         "@types/cors": "^2.8.12",
         "@types/mysql": "^2.15.21",
         "@types/node": "^18.11.18",
-        "@types/pg": "^8.6.5",
+        "@types/pg": "^8.6.6",
+        "@types/pg-format": "^1.0.2",
         "nodemon": "^2.0.20",
         "prettier": "^2.8.2",
         "ts-node": "^10.9.1",

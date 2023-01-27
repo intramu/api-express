@@ -1,7 +1,10 @@
 export class APIResponse {
     statusCode: number;
+
     error: string;
+
     message: string;
+
     errorCode: string | null;
 
     public constructor(message: string, errorCode?: string | null) {
@@ -17,17 +20,17 @@ export class APIResponse {
 
     // Constructors
     static 400(message: string, errorCode?: string | null) {
-        let x = new APIResponse(message, errorCode);
+        const x = new APIResponse(message, errorCode);
 
         x.statusCode = 400;
         x.error = "Bad Request";
-        x.message = "Payload validation error: " + message;
+        x.message = `Payload validation error: ${message}`;
 
         return x;
     }
 
     static 403(message: string, errorCode?: string | null) {
-        let x = new APIResponse(message, errorCode);
+        const x = new APIResponse(message, errorCode);
 
         x.statusCode = 403;
         x.error = "Forbidden";
@@ -36,7 +39,7 @@ export class APIResponse {
     }
 
     static 404(message: string, errorCode?: string | null) {
-        let x = new APIResponse(message, errorCode);
+        const x = new APIResponse(message, errorCode);
 
         x.statusCode = 404;
         x.error = "Not Found";
@@ -45,7 +48,7 @@ export class APIResponse {
     }
 
     static 409(message: string, errorCode?: string | null) {
-        let x = new APIResponse(message, errorCode);
+        const x = new APIResponse(message, errorCode);
 
         x.statusCode = 409;
         x.error = "Conflict";
@@ -54,7 +57,7 @@ export class APIResponse {
     }
 
     static 500(message: string, errorCode?: string | null) {
-        let x = new APIResponse(message, errorCode);
+        const x = new APIResponse(message, errorCode);
 
         x.statusCode = 500;
         x.error = "Interal Server Error";
@@ -63,7 +66,7 @@ export class APIResponse {
     }
 
     static 501() {
-        let x = new APIResponse("", null);
+        const x = new APIResponse("", null);
 
         x.statusCode = 501;
         x.error = "Not Implemented";
@@ -71,9 +74,3 @@ export class APIResponse {
         return x;
     }
 }
-
-// {
-//     "statusCode": 401,
-//     "error": "Unauthorized",
-//     "message": "Missing authentication"
-// }

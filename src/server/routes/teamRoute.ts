@@ -29,7 +29,7 @@ router.get(
             return res.status(response.statusCode).json(response);
         }
 
-        res.status(200).json(response);
+        return res.status(200).json(response);
     }
 );
 
@@ -50,7 +50,7 @@ router.get(
             return res.status(response.statusCode).json(response);
         }
 
-        res.status(200).json(response);
+        return res.status(200).json(response);
     }
 );
 
@@ -65,7 +65,7 @@ router.get("/:id", param("id").toInt(), async (req, res) => {
         return res.status(response.statusCode).json(response);
     }
 
-    res.status(200).json(response);
+    return res.status(200).json(response);
 });
 
 router.put("/", async (req, res) => {
@@ -92,11 +92,11 @@ router.post(
             return res.status(400).json(APIResponse[400](errorResponse));
         }
 
-        const body = req.body;
+        const { reqBody } = req.body;
 
         const team = new Team(
             null,
-            body.name,
+            reqBody.name,
             null,
             null,
             null,
@@ -117,7 +117,7 @@ router.post(
             return response;
         }
 
-        res.status(201).json(response);
+        return res.status(201).json(response);
     }
 );
 

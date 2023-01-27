@@ -1,16 +1,29 @@
 import { Gender, Role, Status } from "../utilities/enums";
 
-export class PlayerSmall{
-    protected authId: string;
-    protected role: Role;
-    protected firstName: string;
-    protected lastName: string;
-    protected gender: Gender;
-    protected status: Status;
-    protected image: string;
+export class PlayerSmall {
+    protected authId;
 
-    constructor(authId: string, role: Role, firstName: string, lastName: string, gender: Gender, status: Status, image: string)
-    {
+    protected role;
+
+    protected firstName;
+
+    protected lastName;
+
+    protected gender;
+
+    protected status;
+
+    protected image;
+
+    constructor(
+        authId: string,
+        role: Role,
+        firstName: string,
+        lastName: string,
+        gender: Gender,
+        status: Status,
+        image: string
+    ) {
         this.authId = authId;
         this.role = role;
         this.firstName = firstName;
@@ -74,5 +87,5 @@ export class PlayerSmall{
 
     public setImage(image: string): void {
         this.image = image;
-    }    
+    }
 }

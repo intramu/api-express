@@ -1,76 +1,75 @@
-import { Visibility } from "../utilities/enums";
+import { Status, Visibility } from "../utilities/enums";
 import { PlayerSmall } from "./PlayerSmall";
 
 export class Team {
-    protected id: number | null;
+    protected id;
 
-    protected name: string;
+    protected name;
 
-    protected wins: number | null;
+    protected wins;
 
-    protected ties: number | null;
+    protected ties;
 
-    protected losses: number | null;
+    protected losses;
 
-    protected image: string | null;
+    protected image;
 
-    protected visibility: Visibility;
+    protected visibility;
 
-    protected sport: string | null;
+    protected sport;
 
-    protected dateCreated: Date | null;
+    protected dateCreated;
 
-    protected sportsmanshipScore: number | null;
+    protected sportsmanshipScore;
 
-    protected status: string | null;
+    protected status;
 
-    protected maxTeamSize: number | null;
+    protected maxTeamSize;
 
-    protected players: PlayerSmall[];
+    protected players;
 
-    protected organizationId: string;
+    protected organizationId;
 
-    protected bracketId: number | null;
+    protected bracketId;
 
-    constructor(
-        id: number | null,
-        name: string,
-        wins: number | null,
-        ties: number | null,
-        losses: number | null,
-        image: string | null,
-        visibility: Visibility,
-        sport: string | null,
-        dateCreated: Date | null,
-        sportsmanshipScore: number | null,
-        status: string | null,
-        maxTeamSize: number | null,
-        players: PlayerSmall[],
-        organizationId: string,
-        bracketId: number | null
-    ) {
-        this.id = id;
-        this.name = name;
-        this.wins = wins;
-        this.ties = ties;
-        this.losses = losses;
-        this.image = image;
-        this.sport = sport;
-        this.dateCreated = dateCreated;
-        this.name = name;
-        this.image = image;
-        this.visibility = visibility;
-        this.sportsmanshipScore = sportsmanshipScore;
-        this.status = status;
-        this.maxTeamSize = maxTeamSize;
-        this.players = players;
-        this.organizationId = organizationId;
-        this.bracketId = bracketId;
+    constructor(props: {
+        id: number | null;
+        name: string;
+        wins: number | null;
+        ties: number | null;
+        losses: number | null;
+        image: string;
+        visibility: Visibility | null;
+        sport: string;
+        dateCreated: Date | null;
+        sportsmanshipScore: number | null;
+        status: Status | null;
+        maxTeamSize: number | null;
+        players: PlayerSmall[];
+        organizationId: string;
+        bracketId: number | null;
+    }) {
+        this.id = props.id;
+        this.name = props.name;
+        this.wins = props.wins;
+        this.ties = props.ties;
+        this.losses = props.losses;
+        this.image = props.image;
+        this.sport = props.sport;
+        this.dateCreated = props.dateCreated;
+        this.image = props.image;
+        this.visibility = props.visibility;
+        this.sportsmanshipScore = props.sportsmanshipScore;
+        this.status = props.status;
+        this.maxTeamSize = props.maxTeamSize;
+        this.players = props.players;
+        this.organizationId = props.organizationId;
+        this.bracketId = props.bracketId;
     }
 
     /** Constructor */
     // static CreatedTeam(
-    //     name: string,
+    //     name: string;
     //     image: string,
     //     visibility: string,
     //     sport: string
@@ -125,27 +124,27 @@ export class Team {
         this.losses = losses;
     }
 
-    getImage(): string | null {
+    getImage(): string {
         return this.image;
     }
 
-    setImage(image: string | null): void {
+    setImage(image: string): void {
         this.image = image;
     }
 
-    getVisibility(): Visibility {
+    getVisibility(): Visibility | null {
         return this.visibility;
     }
 
-    setVisibility(visibility: Visibility): void {
+    setVisibility(visibility: Visibility | null): void {
         this.visibility = visibility;
     }
 
-    getSport(): string | null {
+    getSport(): string {
         return this.sport;
     }
 
-    setSport(sport: string | null): void {
+    setSport(sport: string): void {
         this.sport = sport;
     }
 
@@ -165,11 +164,11 @@ export class Team {
         this.sportsmanshipScore = sportsmanshipScore;
     }
 
-    getStatus(): string | null {
+    getStatus(): Status | null {
         return this.status;
     }
 
-    setStatus(status: string | null): void {
+    setStatus(status: Status | null): void {
         this.status = status;
     }
 
