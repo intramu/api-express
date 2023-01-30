@@ -9,6 +9,7 @@ import { Role, Status, Visibility } from "../utilities/enums";
 import TeamDAO from "../data/teamDAO";
 import { Team } from "../models/Team";
 import OrganizationDAO from "../data/organizationDAO";
+import { NewTeam } from "../models/interfaces/NewTeam";
 
 const playerDatabase = new PlayerDAO();
 const teamDatabase = new TeamDAO();
@@ -170,33 +171,30 @@ export class PlayerBusinessService {
         return response;
     }
 
-    // todo: implement
     async completePlayerProfile(player: Player): Promise<APIResponse | Player> {
-        logger.verbose("Entering method finishPlayerProfile", {
+        logger.verbose("Entering method completePlayerProfile", {
             class: this.className,
         });
 
-        // const response = await playerDatabase.patchPlayer(player);
-
-        // if (response === null) {
-        //     return APIResponse[404](`No player found with id ${player.getAuthId()}`);
-        // }
-
-        // seems unsafe
-        // const authResponse = await auth0.updateUser(
-        //     { id: response.getAuthId()! },
-        //     { user_metadata: { profile_completion_status: "complete" } }
-        // );
-
-        const authResponse = await auth0.updateUser(
-            { id: player.getAuthId()! },
-            { user_metadata: { profile_completion_status: "complete" } }
+        const organization = await organizationDatabase.findOrganizationById(
+            player.getOrganizationId()!
         );
+        if (organization === null) {
+            return APIResponse[404](`No Organization found with id: ${player.getOrganizationId()}`);
+        }
 
-        console.log(authResponse);
+        const newPlayer: Player = player;
+        // sets the player status to active, there account is complete
+        newPlayer.setStatus(Status.ACTIVE);
 
-        // return response;
-        return APIResponse[501]();
+        // create new player in database
+        const response = await playerDatabase.createPlayerByOrganizationId(newPlayer);
+
+        if (response === null) {
+            return APIResponse[500](`Error creating player`);
+        }
+
+        return response;
     }
 
     /**
@@ -206,27 +204,42 @@ export class PlayerBusinessService {
      * @param playerId - player that will be set as captain of the team
      * @returns - returns single team object with added details
      */
-    async createTeam(team: Team, playerId: string): Promise<APIResponse | Team> {
+    async createTeam(newTeam: NewTeam, playerId: string): Promise<APIResponse | Team> {
         logger.verbose("Entering method createTeam()", {
             class: this.className,
-            values: team,
+            values: newTeam,
         });
-
-        const organization = await organizationDatabase.findOrganizationById(
-            team.getOrganizationId()
-        );
-        if (organization === null) {
-            return APIResponse[404](`No organization found with id: ${team.getOrganizationId()}`);
-        }
 
         const player = await playerDatabase.findPlayerById(playerId);
         if (player === null) {
             return APIResponse[404](`No player found with id: ${playerId}`);
         }
 
+        const organizationId = player.getOrganizationId();
+
+        const team = new Team({
+            id: null,
+            name: newTeam.name,
+            wins: 0,
+            ties: 0,
+            losses: 0,
+            // todo: images
+            image: "",
+            visibility: newTeam.visibility,
+            sport: newTeam.sport,
+            dateCreated: null,
+            sportsmanshipScore: null,
+            status: null,
+            // todo: get max team size
+            maxTeamSize: 12,
+            players: [],
+            organizationId: organizationId!,
+            bracketId: null,
+        });
+
         const response = await teamDatabase.createTeam(team, playerId);
         if (response === null) {
-            return APIResponse[500]("Database error");
+            return APIResponse[500]("Error creating team");
         }
 
         return response;
@@ -306,14 +319,14 @@ export class PlayerBusinessService {
         if (team.getPlayers().length >= team.getMaxTeamSize()!) {
             return APIResponse[409](`Team is full. Max size: ${team.getMaxTeamSize()}`);
         }
-        if (team.getPlayers().some((player) => player.getAuthId() === playerId)) {
-            return APIResponse[409](`Player ${playerId} is already on team`);
-        }
         if (
             team.getVisibility() === Visibility.CLOSED ||
             team.getVisibility() === Visibility.PRIVATE
         ) {
             return APIResponse[403](`Team visibility: ${team.getVisibility()}`);
+        }
+        if (team.getPlayers().some((player) => player.getAuthId() === playerId)) {
+            return APIResponse[409](`Player ${playerId} is already on team`);
         }
 
         const responseAdd = await teamDatabase.addToTeamRoster(teamId, playerId, Role.PLAYER);
@@ -475,7 +488,7 @@ export class PlayerBusinessService {
     }
 
     async requestToJoinTeam(playerId: string, teamId: number): Promise<APIResponse | true> {
-        logger.verbose("Entering method invitePlayerToTeam()", {
+        logger.verbose("Entering method requestToJoinTeam()", {
             class: this.className,
             values: {
                 playerId,
@@ -556,8 +569,8 @@ export class PlayerBusinessService {
         return true;
     }
 
-    async findOrganizationList(): Promise<APIResponse | [name: string, id: string][]> {
-        logger.verbose("Entering method acceptJoinRequest()", {
+    async findOrganizationList(): Promise<APIResponse | { id: string; name: string }[]> {
+        logger.verbose("Entering method findOrganizationList()", {
             class: this.className,
         });
 
@@ -567,7 +580,12 @@ export class PlayerBusinessService {
             return APIResponse[404]("No organizations found");
         }
 
-        return orgs.map((organization) => [organization.getName(), organization.getId()]);
+        return orgs.map((organization) => {
+            return {
+                name: organization.getName(),
+                id: organization.getId(),
+            };
+        });
     }
 }
 const test = new PlayerBusinessService();
@@ -598,14 +616,10 @@ async function testFunc() {
     // console.log(await test.acceptTeamInvite("player4", 12));
     // console.log(await test.requestToJoinTeam("player4", 12));
     // console.log(await test.acceptJoinRequest("player4", "player1", 12));
-
     // console.log(await test.viewTeamDetailsById(12));
-
-    console.log(await test.kickPlayerFromTeam("player4", 12, "player2"));
+    // console.log(await test.kickPlayerFromTeam("player4", 12, "player2"));
     // console.log(await test.joinTeam("player1", 10));
-
     // performance.mark("end");
-
     // performance.measure("example", "start", "end");
 }
 // const profile = tempLogger.startTimer();

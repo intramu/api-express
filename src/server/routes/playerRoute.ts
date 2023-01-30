@@ -1,11 +1,22 @@
 import express from "express";
+import { auth } from "express-oauth2-jwt-bearer";
 import { body, checkSchema, param, validationResult } from "express-validator";
 import { PlayerBusinessService } from "../../business/PlayerBusinessService";
 import { APIResponse } from "../../models/APIResponse";
 import { Player } from "../../models/Player";
-import { newPersonSchema, patchPersonSchema, validate } from "../../utilities/validationSchemas";
+import {
+    finishProfileSchema,
+    newPersonSchema,
+    patchPersonSchema,
+    validate,
+} from "../../utilities/validationSchemas";
 
 const router = express.Router();
+
+const checkJwt = auth({
+    audience: "https://server-authorization/",
+    issuerBaseURL: "https://dev-5p-an07k.us.auth0.com",
+});
 
 const playerService = new PlayerBusinessService();
 
@@ -14,7 +25,7 @@ router.get(
 
     param("id").isUUID().withMessage("not in UUI format"),
 
-    (req, res) => {
+    async (req, res) => {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
             const errorResponse = errors.array()[0].msg;
@@ -25,8 +36,13 @@ router.get(
     }
 );
 
-router.get("/:id", async (req, res) => {
-    const response = await playerService.findPlayerById(req.params.id);
+router.get("/", checkJwt, async (req, res) => {
+    if (req.auth === undefined) {
+        return res.status(401).json("No token");
+    }
+
+    const { sub } = req.auth.payload;
+    const response = await playerService.findPlayerById(sub!);
 
     if (response instanceof APIResponse) {
         return res.status(response.statusCode).json(response);
@@ -36,23 +52,17 @@ router.get("/:id", async (req, res) => {
 });
 
 router.post("/", validate(newPersonSchema), async (req: express.Request, res: express.Response) => {
-    const errors = validationResult(req);
-    console.log(errors);
-
-    if (!errors.isEmpty()) {
-        const errorResponse = errors.array()[0].msg;
-        return res.status(400).json(APIResponse[400](errorResponse));
+    if (req.auth === undefined) {
+        return res.status(401).json();
     }
-
-    const auth = req.auth?.payload;
-    const authId = auth?.sub;
+    const { sub } = req.auth.payload;
 
     const reqBody = req.body;
 
     const response = await playerService.createPlayer(
         new Player({
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            authId: authId!,
+            authId: sub!,
             firstName: reqBody.firstName,
             lastName: reqBody.lastName,
             language: reqBody.language,
@@ -71,29 +81,68 @@ router.post("/", validate(newPersonSchema), async (req: express.Request, res: ex
     return res.status(200).json(response);
 });
 
-router.patch("/", patchPersonSchema, async (req: express.Request, res: express.Response) => {
-    const errors = validationResult(req);
-    console.log(errors);
+router.patch("/finish", validate(finishProfileSchema()), async (req, res) => {
+    // grab the authId of the user from the authorization token
+    console.log("heaven");
 
-    if (!errors.isEmpty()) {
-        const errorResponse = errors.array()[0].msg;
-        return res.status(400).json(APIResponse[400](errorResponse));
+    if (req.auth === undefined) {
+        return res.status(401).json("bitch");
     }
 
-    console.log(req.auth);
+    console.log("maybe");
 
+    const {
+        firstName,
+        lastName,
+        emailAddress,
+        language,
+        dateOfBirth,
+        gender,
+        graduationTerm,
+        visibility,
+        organizationId,
+    } = req.body;
+
+    const { sub } = req.auth.payload;
+
+    const response = await playerService.completePlayerProfile(
+        new Player({
+            authId: sub!,
+            firstName,
+            lastName,
+            language,
+            emailAddress,
+            role: null,
+            dateCreated: null,
+            status: null,
+            organizationId,
+            gender,
+            dob: dateOfBirth,
+            visibility,
+            graduationTerm,
+            image: "",
+        })
+    );
+
+    if (response instanceof APIResponse) {
+        return res.status(response.statusCode).json(response);
+    }
+
+    return res.status(200).json(response);
+});
+
+router.patch("/", patchPersonSchema, async (req: express.Request, res: express.Response) => {
     // grab the authId of the user from the authorization token
     if (req.auth === undefined) {
         return res.status(401).json();
     }
-    const auth = req.auth.payload;
-    const { sub } = auth;
+    const { sub } = req.auth.payload;
 
     const reqBody = req.body;
 
     const response = await playerService.completePlayerProfile(
         new Player({
-            authId: sub,
+            authId: sub!,
             // authId: reqBody.id,
             firstName: reqBody.firstName,
             lastName: reqBody.lastName,

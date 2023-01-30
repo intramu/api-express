@@ -2,17 +2,17 @@ import { Gender, Language, Role, Status, Visibility } from "../utilities/enums";
 import { User } from "./User";
 
 export class Player extends User {
-    protected gender: Gender | null;
+    protected gender;
 
-    protected dob: Date | null;
+    protected dob;
 
-    protected visibility: Visibility | null;
+    protected visibility;
 
-    protected graduationTerm: string;
+    protected graduationTerm;
 
-    protected image: string | null;
+    protected image;
 
-    protected phoneNumber: string | null;
+    protected phoneNumber: string;
 
     constructor(props: {
         authId: string | null;
@@ -42,7 +42,7 @@ export class Player extends User {
             props.organizationId
         );
 
-        this.phoneNumber = null;
+        this.phoneNumber = "";
         this.gender = props.gender;
         this.dob = props.dob;
         this.visibility = props.visibility;
@@ -54,7 +54,7 @@ export class Player extends User {
         return this.phoneNumber;
     }
 
-    setPhoneNumber(phoneNumber: string | null): void {
+    setPhoneNumber(phoneNumber: string): void {
         this.phoneNumber = phoneNumber;
     }
 
@@ -90,11 +90,11 @@ export class Player extends User {
         this.graduationTerm = graduationTerm;
     }
 
-    getImage(): string | null {
+    getImage(): string {
         return this.image;
     }
 
-    setImage(image: string | null): void {
+    setImage(image: string): void {
         this.image = image;
     }
 

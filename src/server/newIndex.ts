@@ -1,5 +1,6 @@
 import express from "express";
 import { auth } from "express-oauth2-jwt-bearer";
+import cors from "cors";
 
 import admin from "./routes/adminRoute";
 import player from "./routes/playerRoute";
@@ -14,9 +15,10 @@ const checkJwt = auth({
 });
 
 app.use(express.json());
+app.use(cors());
 
 // app.use('/api/admin', admin)
-app.use("/api/player", player);
+app.use("/api/player", checkJwt, player);
 app.use("/api/team", team);
 app.use("/api/organization", organization);
 

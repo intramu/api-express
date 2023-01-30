@@ -136,96 +136,127 @@ export const newPersonSchema = checkSchema({
     },
 });
 
-export const patchPersonSchema = checkSchema({
-    firstName: {
-        optional: true,
-        trim: true,
-        escape: true,
-        isLength: {
-            options: { min: 2, max: 20 },
-            errorMessage: `firstName requires length from 2 to 20`,
-        },
-    },
-    lastName: {
-        optional: true,
-        trim: true,
-        escape: true,
-        isLength: {
-            options: { min: 2, max: 20 },
-            errorMessage: `lastName requires length from 2 to 20`,
-        },
-    },
-    emailAddress: {
-        optional: true,
-        trim: true,
-        escape: true,
-        isEmail: {
-            errorMessage: "emailAddress is not correctly formatted",
-        },
-    },
-    dateOfBirth: {
-        optional: true,
-        isDate: {
-            options: {
-                format: "YYYY-MM-DD",
-                strictMode: true,
-            },
-            errorMessage: "dateOfBirth is required in format YYYY-MM-DD",
-        },
-    },
-    organizationId: {
-        optional: true,
-        isUUID: {
-            errorMessage: "organizationId is not in UUID format",
-        },
-    },
-    gender: {
-        optional: true,
-        trim: true,
-        toUpperCase: true,
-        custom: {
-            options: (value: string) => {
-                return checkForValidGender(value);
-            },
-            errorMessage: printEnums(Gender, "gender"),
-        },
-    },
-    visibility: {
-        optional: true,
-        trim: true,
-        toUpperCase: true,
-        custom: {
-            options: (value: string) => {
-                return checkForValidVisibility(value);
-            },
-            errorMessage: printEnums(Visibility, "visibility"),
-        },
-    },
-    language: {
-        optional: true,
-        trim: true,
-        toUpperCase: true,
-        custom: {
-            options: (value: string) => {
-                return checkForValidLanguage(value);
-            },
-            errorMessage: printEnums(Language, "language"),
-        },
-    },
-    graduationTerm: {
-        optional: true,
-        trim: true,
-        escape: true,
-        toUpperCase: true,
-        // todo: fix
-        // custom: {
-        //     options: (value: string) => {
-        //         return checkForValidGraduationTerm(value);
-        //     },
-        //     errorMessage: printEnums(graduationTerms, "graduationTerm"),
-        // },
-    },
-});
+export const patchPersonSchema = () => {
+    return [
+        body("firstName")
+            .optional()
+            .trim()
+            .escape()
+            .isLength({ min: 2, max: 20 })
+            .withMessage("firstName requires length from 2 to 20"),
+        body("lastName")
+            .optional()
+            .trim()
+            .escape()
+            .isLength({ min: 2, max: 20 })
+            .withMessage("lastName requires length from 2 to 20"),
+        body("emailAddress")
+            .optional()
+            .trim()
+            .escape()
+            .isEmail()
+            .withMessage("emailAddress is not correctly formatted"),
+        body("dateOfBirth")
+            .optional()
+            .isDate({ format: "YYY-MM-DD", strictMode: true })
+            .withMessage("dateOfBirth is required in format YYYY-MM-DD"),
+        body("organizationId").isUUID().withMessage("organizationId is not in UUID format"),
+        body("gender")
+            .optional()
+            .trim()
+            .escape()
+            .toUpperCase()
+            .isIn([Gender.FEMALE, Gender.MALE])
+            .withMessage(printEnums(Gender, "gender")),
+        body("visibility")
+            .optional()
+            .trim()
+            .escape()
+            .toUpperCase()
+            .isIn([Visibility.CLOSED, Visibility.OPEN, Visibility.PRIVATE])
+            .withMessage(printEnums(Visibility, "visibility")),
+        body("language")
+            .optional()
+            .trim()
+            .escape()
+            .toUpperCase()
+            .isIn([Language.ENGLISH])
+            .withMessage(printEnums(Language, "language")),
+    ];
+};
+
+export const finishProfileSchema = () => {
+    return [
+        body("firstName")
+            .notEmpty()
+            .withMessage("value 'firstName' is missing")
+            .trim()
+            .escape()
+            .isLength({ min: 2, max: 20 })
+            .withMessage("firstName requires length from 2 to 20"),
+        body("lastName")
+            .notEmpty()
+            .withMessage("value 'lastName' is missing")
+            .trim()
+            .escape()
+            .isLength({ min: 2, max: 20 })
+            .withMessage("lastName requires length from 2 to 20"),
+        body("emailAddress")
+            .notEmpty()
+            .withMessage("value 'emailAddress' is missing")
+            .trim()
+            .escape()
+            .isEmail()
+            .withMessage("email is not correctly formatted"),
+        body("dateOfBirth")
+            .notEmpty()
+            .withMessage("value 'dateOfBirth' is missing")
+            .trim()
+            .escape()
+            .isDate({ format: "YYYY-MM-DD", strictMode: true })
+            .withMessage("dateOfBirth is required in format YYYY-MM-DD"),
+        body("organizationId")
+            .notEmpty()
+            .withMessage("value 'organizationId' is missing")
+            .trim()
+            .escape()
+            .isUUID()
+            .withMessage("organizationId is not in UUID format"),
+        body("gender")
+            .notEmpty()
+            .withMessage("value 'gender' is missing")
+            .trim()
+            .escape()
+            .toUpperCase()
+            .isIn([Gender.FEMALE, Gender.MALE])
+            .withMessage(printEnums(Gender, "gender")),
+        body("visibility")
+            .notEmpty()
+            .withMessage("value 'visibility' is missing")
+            .trim()
+            .escape()
+            .toUpperCase()
+            .isIn([Visibility.CLOSED, Visibility.OPEN, Visibility.PRIVATE])
+            .withMessage(printEnums(Visibility, "visibility")),
+        body("language")
+            .notEmpty()
+            .withMessage("value 'language is missing")
+            .trim()
+            .escape()
+            .toUpperCase()
+            .isIn([Language.ENGLISH])
+            .withMessage(printEnums(Language, "language")),
+        body("graduationTerm")
+            .notEmpty()
+            .withMessage("value 'graduationTerm' is missing")
+            .trim()
+            .escape()
+            .isIn([graduationTerms[0], graduationTerms[1], graduationTerms[2]])
+            .withMessage(
+                `valid graudation options are ${graduationTerms[0]}, ${graduationTerms[1]}, ${graduationTerms[2]}`
+            ),
+    ];
+};
 
 export const newOrganizationRules = () => {
     return [
@@ -242,7 +273,7 @@ export const newOrganizationRules = () => {
             .trim()
             .escape()
             .isLength({ min: 2, max: 30 })
-            .withMessage("value 'language' is missing for admin"),
+            .withMessage("lastname requires length from 2 to 30"),
         body("admin.language")
             .notEmpty()
             .withMessage("value 'language' is missing for admin")
