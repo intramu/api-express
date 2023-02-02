@@ -1,5 +1,5 @@
 import express from "express";
-import { auth } from "express-oauth2-jwt-bearer";
+import { auth, requiredScopes } from "express-oauth2-jwt-bearer";
 import { body, checkSchema, param, validationResult } from "express-validator";
 import { PlayerBusinessService } from "../../business/PlayerBusinessService";
 import { APIResponse } from "../../models/APIResponse";
@@ -20,78 +20,142 @@ const checkJwt = auth({
 
 const playerService = new PlayerBusinessService();
 
-router.get(
-    "/organization/:id",
+router
+    .route("/")
+    .get(checkJwt, async (req, res) => {
+        const { sub } = req.auth!.payload;
+        const response = await playerService.findPlayerById(sub!);
 
-    param("id").isUUID().withMessage("not in UUI format"),
-
-    async (req, res) => {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            const errorResponse = errors.array()[0].msg;
-            return res.status(400).json(APIResponse[400](errorResponse));
+        if (response instanceof APIResponse) {
+            return res.status(response.statusCode).json(response);
         }
 
-        return res.status(501).json(APIResponse[501]);
-    }
-);
+        return res.status(200).json(response);
+    })
+    // todo: add validation schema, there should already be one
+    .post(checkJwt, async (req, res) => {
+        const { sub } = req.auth!.payload;
 
-router.get("/", checkJwt, async (req, res) => {
-    if (req.auth === undefined) {
-        return res.status(401).json("No token");
-    }
+        const reqBody = req.body;
 
-    const { sub } = req.auth.payload;
-    const response = await playerService.findPlayerById(sub!);
+        const response = await playerService.completePlayerProfile(
+            new Player({
+                authId: sub!,
+                firstName: reqBody.firstName,
+                lastName: reqBody.lastName,
+                language: reqBody.language,
+                emailAddress: reqBody.emailAddress,
+                role: null,
+                gender: reqBody.gender,
+                dob: reqBody.dateOfBirth,
+                visibility: reqBody.visibility,
+                graduationTerm: reqBody.graduationTerm,
+                image: reqBody.image,
+                status: reqBody.status,
+                dateCreated: null,
+                organizationId: reqBody.organizationId,
+            })
+        );
 
-    if (response instanceof APIResponse) {
-        return res.status(response.statusCode).json(response);
-    }
+        if (response instanceof APIResponse) {
+            return res.status(response.statusCode).json(response);
+        }
 
-    return res.status(200).json(response);
+        return res.status(201).json(req.body);
+    })
+    .patch(checkJwt, async (req, res) => {
+        return res.json(APIResponse[501]());
+    });
+
+/** Returns a more limited amount of details on player compared to person profile */
+router.get("/:id", checkJwt, async (req, res) => {
+    return res.json(APIResponse[501]());
 });
 
-router.post("/", validate(newPersonSchema), async (req: express.Request, res: express.Response) => {
-    if (req.auth === undefined) {
-        return res.status(401).json();
-    }
-    const { sub } = req.auth.payload;
+// sudo scoped
+const sudoScoped = requiredScopes("all:application");
+const adminScoped = requiredScopes("all:organization");
+router
+    .route("/sudo/:id")
+    .get(checkJwt, sudoScoped, async (req, res) => {
+        const response = await playerService.findPlayerById(req.params.id);
 
-    const reqBody = req.body;
+        if (response instanceof APIResponse) {
+            return res.status(response.statusCode).json(response);
+        }
 
-    const response = await playerService.createPlayer(
-        new Player({
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            authId: sub!,
-            firstName: reqBody.firstName,
-            lastName: reqBody.lastName,
-            language: reqBody.language,
-            emailAddress: reqBody.emailAddress,
-            role: null,
-            gender: reqBody.gender,
-            dob: reqBody.dateOfBirth,
-            visibility: reqBody.visibility,
-            graduationTerm: reqBody.graduationTerm,
-            image: reqBody.image,
-            status: null,
-            dateCreated: null,
-            organizationId: reqBody.organizationId,
-        })
-    );
-    return res.status(200).json(response);
-});
+        return res.status(200).json(response);
+    })
+    .post(checkJwt, sudoScoped, async (req, res) => {
+        const {
+            authId,
+            firstName,
+            lastName,
+            emailAddress,
+            language,
+            dateOfBirth,
+            gender,
+            graduationTerm,
+            visibility,
+            status,
+            image,
+            organizationId,
+        } = req.body;
 
-router.patch("/finish", validate(finishProfileSchema()), async (req, res) => {
-    // grab the authId of the user from the authorization token
-    console.log("heaven");
+        const response = await playerService.createPlayer(
+            new Player({
+                authId,
+                firstName,
+                lastName,
+                language,
+                emailAddress,
+                role: null,
+                gender,
+                dob: dateOfBirth,
+                visibility,
+                graduationTerm,
+                image: "",
+                status,
+                dateCreated: null,
+                organizationId,
+            })
+        );
 
-    if (req.auth === undefined) {
-        return res.status(401).json("bitch");
-    }
+        if (response instanceof APIResponse) {
+            return res.status(response.statusCode).json(response);
+        }
 
-    console.log("maybe");
+        return res.status(201).json(response);
+    })
+    .patch(checkJwt, sudoScoped, async (req, res) => {
+        const {
+            firstName,
+            lastName,
+            emailAddress,
+            language,
+            dateOfBirth,
+            gender,
+            graduationTerm,
+            visibility,
+            status,
+            image,
+            organizationId,
+        } = req.body;
 
+        // todo: implement patch for player
+
+        // if (response instanceof APIResponse) {
+        //     return res.status(response.statusCode).json(response);
+        // }
+
+        // return res.status(200).json(response);
+        return res.json(APIResponse[501]());
+    });
+
+/** creates new player with auth0 account */
+router.post("/sudo/:id/account", checkJwt, sudoScoped, async (req, res) => {
     const {
+        authId,
         firstName,
         lastName,
         emailAddress,
@@ -100,27 +164,27 @@ router.patch("/finish", validate(finishProfileSchema()), async (req, res) => {
         gender,
         graduationTerm,
         visibility,
+        status,
+        image,
         organizationId,
     } = req.body;
 
-    const { sub } = req.auth.payload;
-
-    const response = await playerService.completePlayerProfile(
+    const response = await playerService.createPlayerWithAuth0Account(
         new Player({
-            authId: sub!,
+            authId,
             firstName,
             lastName,
             language,
             emailAddress,
             role: null,
-            dateCreated: null,
-            status: null,
-            organizationId,
             gender,
             dob: dateOfBirth,
             visibility,
             graduationTerm,
             image: "",
+            status,
+            dateCreated: null,
+            organizationId,
         })
     );
 
@@ -128,43 +192,12 @@ router.patch("/finish", validate(finishProfileSchema()), async (req, res) => {
         return res.status(response.statusCode).json(response);
     }
 
-    return res.status(200).json(response);
+    return res.status(201).json(response);
 });
 
-router.patch("/", patchPersonSchema, async (req: express.Request, res: express.Response) => {
-    // grab the authId of the user from the authorization token
-    if (req.auth === undefined) {
-        return res.status(401).json();
-    }
-    const { sub } = req.auth.payload;
-
-    const reqBody = req.body;
-
-    const response = await playerService.completePlayerProfile(
-        new Player({
-            authId: sub!,
-            // authId: reqBody.id,
-            firstName: reqBody.firstName,
-            lastName: reqBody.lastName,
-            language: reqBody.language,
-            emailAddress: reqBody.emailAddress,
-            role: null,
-            gender: reqBody.gender,
-            dob: reqBody.dateOfBirth,
-            visibility: reqBody.visibility,
-            graduationTerm: reqBody.graduationTerm,
-            image: reqBody.image,
-            status: reqBody.status,
-            dateCreated: null,
-            organizationId: reqBody.organizationId,
-        })
-    );
-
-    if (response instanceof APIResponse) {
-        return res.status(response.statusCode).json(response);
-    }
-
-    return res.status(200).json(req.body);
+/** Return all players under organization */
+router.get("sudo/organization/:id", checkJwt, adminScoped, async (req, res) => {
+    return res.json(APIResponse[501]());
 });
 
 export default router;

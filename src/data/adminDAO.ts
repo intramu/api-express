@@ -1,33 +1,43 @@
-import { randomUUID } from "crypto";
 import { Admin } from "../models/Admin";
-import { Organization } from "../models/Organization";
 import logger from "../utilities/winstonConfig";
-
-import { IsRollback, withClient, withClientRollback } from "./database";
-
-import { Gender } from "../utilities/enums";
+import { withClient } from "./database";
+import { AdminDatabaseInterface } from "../interfaces/Admin";
 
 export default class AdminDAO {
     readonly className = this.constructor.name;
 
-    // eslint-disable-next-line class-methods-use-this, consistent-return
-    async createAdminByOrganizationId(admin: Admin, organizationId: string) {
-        return withClient(async (querier) => {
-            const sqlCreate =
-                "INSERT INTO admin (auth_id, first_name, last_name, language, role, status, organization_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *";
+    async createAdminByOrganizationId(admin: Admin, organizationId: string): Promise<Admin | null> {
+        logger.verbose("Entering method createAdminByOrganizationId()", {
+            class: this.className,
+        });
 
-            const response = await querier(sqlCreate, [
-                admin.getAuthId(),
-                admin.getFirstName(),
-                admin.getLastName(),
-                admin.getLanguage(),
-                admin.getRole(),
-                admin.getStatus(),
-                organizationId,
-            ]);
-            const [results] = response.rows;
-            console.log(results);
-            return results;
+        const sqlCreate =
+            "INSERT INTO admin (auth_id, first_name, last_name, language, role, status, organization_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *";
+
+        return withClient(async (querier) => {
+            const [result] = (
+                await querier<AdminDatabaseInterface>(sqlCreate, [
+                    admin.getAuthId(),
+                    admin.getFirstName(),
+                    admin.getLastName(),
+                    admin.getLanguage(),
+                    admin.getRole(),
+                    admin.getStatus(),
+                    organizationId,
+                ])
+            ).rows;
+
+            return new Admin({
+                authId: result.auth_id,
+                firstName: result.first_name,
+                lastName: result.last_name,
+                language: result.language,
+                emailAddress: result.email_address,
+                role: result.role,
+                dateCreated: result.date_created,
+                status: result.status,
+                organizationId: result.organization_id,
+            });
         });
     }
 
@@ -56,31 +66,48 @@ export default class AdminDAO {
         });
     }
 
-    async deleteAdminById(adminId: string): Promise<void> {
+    async deleteAdminById(adminId: string): Promise<string | null> {
         logger.verbose("Entering method deleteAdminById()", {
             class: this.className,
         });
 
-        return withClient(async (querier) => {
-            const sqlDelete = "DELETE FROM admin WHERE id=$1";
-            const response = await querier(sqlDelete, [adminId]);
+        const sqlDelete = "DELETE FROM admin WHERE id=$1";
 
-            console.log(response);
+        return withClient(async (querier) => {
+            const response = await querier(sqlDelete, [adminId]);
+            if (response.rowCount < 0) {
+                return null;
+            }
+
+            return adminId;
         });
     }
 
-    async findAdminById(adminId: string) {
+    async findAdminById(adminId: string): Promise<Admin | null> {
         logger.verbose("Entering method findAdminById()", {
             class: this.className,
+            values: adminId,
         });
 
+        const sql = "SELECT * FROM admin WHERE auth_id=$1";
         return withClient(async (querier) => {
-            const sql = "SELECT * FROM admin WHERE auth_id=$1";
-            const response = await querier(sql, [adminId]);
-            const results = response.rows[0];
+            const [admin] = (await querier<AdminDatabaseInterface>(sql, [adminId])).rows;
 
-            console.log(results);
-            return results;
+            if (admin === undefined) {
+                return null;
+            }
+
+            return new Admin({
+                authId: admin.auth_id,
+                firstName: admin.first_name,
+                lastName: admin.last_name,
+                language: admin.language,
+                emailAddress: admin.email_address,
+                role: admin.role,
+                dateCreated: admin.date_created,
+                status: admin.status,
+                organizationId: admin.organization_id,
+            });
         });
     }
 }

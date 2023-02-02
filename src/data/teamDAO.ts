@@ -1,3 +1,4 @@
+import { TeamDatabaseInterface } from "../interfaces/Team";
 import { PlayerSmall } from "../models/PlayerSmall";
 import { Team } from "../models/Team";
 import { Role, Status, Visibility } from "../utilities/enums";
@@ -87,6 +88,7 @@ export default class TeamDAO {
             class: this.className,
         });
 
+        // todo: combine into one query
         const sqlFind = "SELECT * FROM team WHERE id = $1";
         const sqlFindPlayers =
             "SELECT team_roster.role, player.auth_id, player.first_name, player.last_name, player.gender, player.status, player.image FROM team_roster JOIN player ON team_roster.player_AUTH_ID = player.auth_ID WHERE team_roster.team_ID = $1";
@@ -172,61 +174,114 @@ export default class TeamDAO {
         });
     }
 
-    async updateTeam(team: Team): Promise<Team | null> {
+    async patchTeam(team: Team): Promise<Team | null> {
         logger.verbose("Entering method updateTeam()", {
             class: this.className,
             values: team,
         });
 
-        const sqlUpdate =
-            "UPDATE team SET name=$1, wins=$2, ties=$3, losses=$4, image=$5, visibility=$6, sport=$7, sportsmanship_score=$8, status=$9, max_team_size=$10 WHERE id = $11 RETURNING *";
+        const name = team.getName() || null;
+        const image = team.getImage() || null;
+
+        const sqlPatch =
+            "UPDATE team SET name=COALESCE($1, name), wins=COALESCE($2, wins), ties=COALESCE($3, ties), losses=COALESCE($4, losses), image=COALESCE($5, image), visibility=COALESCE($6, visibility), sport=COALESCE($7, sport), sportmanship_score=COALESCE($8, sportmanship_score), status=COALESCE($9, status), max_team_size=COALESCE($10, max_team_size), bracket_ID=COALESCE($11, bracket_ID) WHERE auth_id=$11 RETURNING *";
 
         return withClient(async (querier) => {
-            const response = await querier(sqlUpdate, [
-                team.getName(),
-                team.getWins(),
-                team.getTies(),
-                team.getLosses(),
-                team.getImage(),
-                team.getVisibility(),
-                team.getSport(),
-                team.getSportsmanshipScore(),
-                team.getStatus(),
-                team.getMaxTeamSize(),
-                team.getId(),
-            ]);
-            const [results] = response.rows;
+            const [response] = (
+                await querier<TeamDatabaseInterface>(sqlPatch, [
+                    name,
+                    team.getWins(),
+                    team.getTies(),
+                    team.getLosses(),
+                    image,
+                    team.getVisibility(),
+                    team.getSport(),
+                    team.getSportsmanshipScore(),
+                    team.getStatus(),
+                    team.getMaxTeamSize(),
+                    team.getBracketId(),
+                ])
+            ).rows;
 
-            if (results === undefined) {
+            if (response === undefined) {
                 return null;
             }
 
             return new Team({
-                id: results.id,
-                name: results.name,
-                wins: results.wins,
-                ties: results.ties,
-                losses: results.losses,
-                image: results.image,
-                visibility: results.visibility,
-                sport: results.sport,
-                dateCreated: results.date_created,
-                sportsmanshipScore: results.sportsmanship_score,
-                status: results.status,
-                maxTeamSize: results.max_team_size,
+                id: response.id,
+                name: response.name,
+                wins: response.wins,
+                ties: response.ties,
+                losses: response.losses,
+                image: response.image,
+                visibility: response.visibility,
+                sport: response.sport,
+                dateCreated: response.date_created,
+                sportsmanshipScore: response.sportsmanship_score,
+                status: response.status,
+                maxTeamSize: response.max_team_size,
                 players: [],
-                organizationId: results.organization_id,
-                bracketId: null,
+                organizationId: response.organization_id,
+                bracketId: response.bracket_id,
             });
         });
     }
+    // async updateTeam(team: Team): Promise<Team | null> {
+    //     logger.verbose("Entering method updateTeam()", {
+    //         class: this.className,
+    //         values: team,
+    //     });
+
+    //     const sqlUpdate =
+    //         "UPDATE team SET name=$1, wins=$2, ties=$3, losses=$4, image=$5, visibility=$6, sport=$7, sportsmanship_score=$8, status=$9, max_team_size=$10 WHERE id = $11 RETURNING *";
+
+    //     return withClient(async (querier) => {
+    //         const response = await querier(sqlUpdate, [
+    //             team.getName(),
+    //             team.getWins(),
+    //             team.getTies(),
+    //             team.getLosses(),
+    //             team.getImage(),
+    //             team.getVisibility(),
+    //             team.getSport(),
+    //             team.getSportsmanshipScore(),
+    //             team.getStatus(),
+    //             team.getMaxTeamSize(),
+    //             team.getId(),
+    //         ]);
+    //         const [results] = response.rows;
+
+    //         if (results === undefined) {
+    //             return null;
+    //         }
+
+    //         return new Team({
+    //             id: results.id,
+    //             name: results.name,
+    //             wins: results.wins,
+    //             ties: results.ties,
+    //             losses: results.losses,
+    //             image: results.image,
+    //             visibility: results.visibility,
+    //             sport: results.sport,
+    //             dateCreated: results.date_created,
+    //             sportsmanshipScore: results.sportsmanship_score,
+    //             status: results.status,
+    //             maxTeamSize: results.max_team_size,
+    //             players: [],
+    //             organizationId: results.organization_id,
+    //             bracketId: null,
+    //         });
+    //     });
+    // }
 
     async createTeam(team: Team, playerId: string): Promise<Team | null> {
         logger.verbose("Entering method createTeam()", {
             class: this.className,
-            values: team,
+            values: { team, playerId },
         });
 
+        // todo: combine into one query
         const sqlAdd =
             "INSERT INTO team (name, wins, ties, losses, image, visibility, sport, sportsmanship_score, status, max_team_size, organization_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *";
 
@@ -288,6 +343,7 @@ export default class TeamDAO {
     async addToTeamRoster(teamId: number, playerId: string, role: Role): Promise<boolean> {
         logger.verbose("Entering method addToTeamRoster()", {
             class: this.className,
+            values: { teamId, playerId },
         });
 
         const sqlAddPlayer =
@@ -307,6 +363,7 @@ export default class TeamDAO {
     async removeFromTeamRoster(teamId: number, playerId: string): Promise<boolean> {
         logger.verbose("Entering method removeFromTeamRoster()", {
             class: this.className,
+            values: { teamId, playerId },
         });
 
         const sqlRemove = "DELETE FROM team_roster WHERE player_AUTH_ID=$1 AND team_ID=$2";
@@ -362,10 +419,10 @@ export default class TeamDAO {
     ): Promise<boolean> {
         logger.verbose("Entering method createJoinRequest()", {
             class: this.className,
-            values: teamId,
-            playerId,
+            values: { teamId, playerId },
         });
 
+        // todo: combine into one query
         const sqlAdd =
             "INSERT INTO team_join_requests (player_auth_id, team_id, requesting_player_full_name, expiration_time) VALUES ($1,$2,$3,$4) RETURNING *";
 
@@ -397,8 +454,7 @@ export default class TeamDAO {
     async deleteJoinRequest(playerId: string, teamId: number): Promise<boolean> {
         logger.verbose("Entering method deleteJoinRequest()", {
             class: this.className,
-            values: teamId,
-            playerId,
+            values: { teamId, playerId },
         });
 
         const sqlDelete =
@@ -421,23 +477,23 @@ const test = new TeamDAO();
 // test.findAllTeams();
 // test.findTeamById(12)
 
-const team = new Team({
-    id: 20,
-    name: "Hello Barbie",
-    wins: 0,
-    ties: 0,
-    losses: 0,
-    image: "",
-    visibility: Visibility.OPEN,
-    sport: "Soccer",
-    dateCreated: null,
-    sportsmanshipScore: 4.0,
-    status: Status.ACTIVE,
-    maxTeamSize: 12,
-    players: [],
-    organizationId: "7f83b6f4-754a-4f34-913d-907c1226321f",
-    bracketId: null,
-});
+// const team = new Team({
+//     id: 20,
+//     name: "Hello Barbie",
+//     wins: 0,
+//     ties: 0,
+//     losses: 0,
+//     image: "",
+//     visibility: Visibility.OPEN,
+//     sport: "Soccer",
+//     dateCreated: null,
+//     sportsmanshipScore: 4.0,
+//     status: Status.ACTIVE,
+//     maxTeamSize: 12,
+//     players: [],
+//     organizationId: "7f83b6f4-754a-4f34-913d-907c1226321f",
+//     bracketId: null,
+// });
 
 testFunc();
 

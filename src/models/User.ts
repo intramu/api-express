@@ -17,7 +17,7 @@ export abstract class User {
 
     protected status: Status | null;
 
-    protected organizationId: string | null;
+    protected organizationId: string;
 
     constructor(
         authId: string | null,
@@ -28,7 +28,7 @@ export abstract class User {
         role: Role | null,
         dateCreated: Date | null,
         status: Status | null,
-        organizationId: string | null
+        organizationId: string
     ) {
         this.id = authId;
         this.firstName = firstName;
@@ -105,7 +105,7 @@ export abstract class User {
         this.status = status;
     }
 
-    getOrganizationId(): string | null {
+    getOrganizationId(): string {
         return this.organizationId;
     }
 

@@ -3,11 +3,20 @@
 // import logger from "../utilities/winstonConfig";
 // import { LeagueCompetitionModel } from "../models/LeagueCompetition";
 import format from "pg-format";
+import { BracketDatabaseInterface } from "../interfaces/Bracket";
+import { ContestDatabaseInterface } from "../interfaces/Contest";
+import { LeagueDatabaseInterface } from "../interfaces/League";
+import { Bracket } from "../models/competition/Bracket";
+import { Contest } from "../models/competition/Contest";
+import { Division } from "../models/competition/Division";
+import { League } from "../models/competition/League";
+import { TimeSlot } from "../models/competition/TimeSlot";
 import { Tournament } from "../models/competition/Tournament";
 import { TournamentGame } from "../models/competition/TournamentGame";
-import { Status, TournamentStatus, TournamentType, Visibility } from "../utilities/enums";
+import { Team } from "../models/Team";
+import { TournamentStatus } from "../utilities/enums";
 import logger from "../utilities/winstonConfig";
-import { withClient } from "./database";
+import { IsRollback, withClient, withClientRollback } from "./database";
 
 export default class CompetitionDAO {
     private readonly className = this.constructor.name;
@@ -164,59 +173,6 @@ export default class CompetitionDAO {
         });
     }
 
-    async createTournamentGame(game: TournamentGame): Promise<TournamentGame | null> {
-        logger.verbose("Entering method createTournamentGame()", {
-            class: this.className,
-            values: game,
-        });
-
-        const sqlAdd =
-            "INSERT INTO tournament_game (GAME_DATE, LOCATION, LOCATION_DETAILS, SCORE_HOME, SCORE_AWAY, SEED_HOME, SEED_AWAY, STATUS_HOME, STATUS_AWAY, LEVEL, ROUND, HOME_TEAM_ID, AWAY_TEAM_ID, tournament_ID) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING tournament_ID";
-
-        return withClient(async (querier) => {
-            const response = await querier(sqlAdd, [
-                game.getGameDate(),
-                game.getLocation(),
-                game.getLocationDetails(),
-                game.getScoreHome(),
-                game.getScoreAway(),
-                game.getSeedHome(),
-                game.getSeedAway(),
-                game.getStatusHome(),
-                game.getStatusAway(),
-                game.getLevel(),
-                game.getRound(),
-                game.getHomeTeamId(),
-                game.getAwayTeamId(),
-                game.getTournamentId(),
-            ]);
-
-            const [results] = response.rows;
-            if (results === undefined) {
-                return null;
-            }
-
-            return new TournamentGame({
-                id: results.id,
-                dateCreated: results.date_created,
-                gameDate: results.game_date,
-                location: results.location,
-                locationDetails: results.location_details,
-                scoreHome: results.score_home,
-                scoreAway: results.score_away,
-                seedHome: results.seed_home,
-                seedAway: results.seed_away,
-                statusHome: results.status_home,
-                statusAway: results.status_away,
-                level: results.level,
-                round: results.round,
-                homeTeamId: results.home_team_id,
-                awayTeamId: results.away_team_id,
-                tournamentId: results.tournament_id,
-            });
-        });
-    }
-
     async createTournamentGames(games: TournamentGame[]): Promise<TournamentGame[]> {
         logger.verbose("Entering method createTournamentGames()", {
             class: this.className,
@@ -275,6 +231,523 @@ export default class CompetitionDAO {
             );
         });
     }
+
+    async createContest(contest: Contest): Promise<Contest | null> {
+        logger.verbose("Entering method createContest()", {
+            class: this.className,
+            values: contest,
+        });
+
+        const sqlAdd =
+            "INSERT INTO contest (NAME, VISIBILITY, STATUS, START_DATE, END_DATE, PLAYOFF, PLAYOFF_TYPE, PLAYOFF_SEEDING_TYPE, CONTEST_TYPE, organization_Id) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *";
+
+        return withClient(async (querier) => {
+            const [result] = (
+                await querier(sqlAdd, [
+                    contest.getName(),
+                    contest.getVisibility(),
+                    contest.getStatus(),
+                    contest.getStartDate(),
+                    contest.getEndDate(),
+                    contest.getPlayoff(),
+                    contest.getPlayoffType(),
+                    contest.getPlayoffSeedingType(),
+                    contest.getContestType(),
+                    contest.getOrganizationId(),
+                ])
+            ).rows;
+
+            if (contest === undefined) {
+                return null;
+            }
+
+            return new Contest({
+                id: result.id,
+                name: result.name,
+                visibility: result.visibility,
+                status: result.status,
+                dateCreated: result.date_created,
+                startDate: result.start_date,
+                endDate: result.end_date,
+                playoff: result.playoff,
+                playoffType: result.playoff_type,
+                playoffSeedingType: result.playoff_seeding_type,
+                contestType: result.contest_type,
+                leagues: [],
+                organizationId: result.organization_id,
+            });
+        });
+    }
+
+    async createLeagues(leagues: League[]): Promise<League[]> {
+        logger.verbose("Entering method createLeagues()", {
+            class: this.className,
+            values: leagues,
+        });
+
+        const sqlAdd =
+            "INSERT INTO league (NAME, SPORT, START_DATE, END_DATE, contest_ID, organization_ID) VALUES %L RETURNING *";
+
+        const values = leagues.map((league) => [
+            league.getName(),
+            league.getSport(),
+            league.getStartDate(),
+            league.getEndDate(),
+            league.getContestId(),
+            league.getOrganizationId(),
+        ]);
+
+        return withClient(async (querier) => {
+            const results = (await querier(format(sqlAdd, values))).rows;
+
+            if (results.length === 0) {
+                return [];
+            }
+
+            return results.map(
+                (league) =>
+                    new League({
+                        id: league.id,
+                        name: league.name,
+                        sport: league.sport,
+                        startDate: league.start_date,
+                        endDate: league.end_date,
+                        divisions: [],
+                        contestId: league.contest_id,
+                        organizationId: league.organization_id,
+                    })
+            );
+        });
+    }
+
+    async createLeaguesAndChildren(
+        leagues: League[],
+        orgId: string,
+        contestId: number
+    ): Promise<boolean> {
+        logger.verbose("Entering method createFullLeagues()", {
+            class: this.className,
+            values: leagues,
+        });
+
+        const sqlLeague =
+            "INSERT INTO league (NAME, SPORT, START_DATE, END_DATE, contest_ID, organization_ID) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *";
+
+        const sqlDivision =
+            "INSERT INTO division (NAME, TYPE, LEVEL, MAX_TEAM_SIZE, MIN_WOMEN_COUNT, MIN_MEN_COUNT, league_ID) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *";
+
+        const sqlBracket =
+            "INSERT INTO bracket (DAY_CHOICES, MAX_TEAM_AMOUNT, division_ID) VALUES ($1, $2, $3) RETURNING *";
+
+        const sqlTimeSlot =
+            "INSERT INTO bracket_time_slots (START_TIME, END_TIME, bracket_ID) VALUES ($1, $2, $3) RETURNING *";
+
+        // const leagueValues: any = [];
+        // const divisionValues: any = [];
+        // const bracketValues: any = [];
+        // const timeSlotValues: any = [];
+
+        // leagues.forEach((league) => {
+        //     leagueValues.push([
+        //         league.getName(),
+        //         league.getSport(),
+        //         league.getStartDate(),
+        //         league.getEndDate(),
+        //         league.getContestId(),
+        //         league.getOrganizationId(),
+        //     ]);
+
+        // league.getDivisions().forEach((division) => {
+        //     divisionValues.push([
+        //         division.getName(),
+        //         division.getType(),
+        //         division.getLevel(),
+        //         division.getMaxTeamSize(),
+        //         division.getMinWomenCount(),
+        //         division.getMinMenCount(),
+        //         division.getLeagueId(),
+        //     ]);
+
+        //     division.getBrackets().forEach((bracket) => {
+        //         bracketValues.push([
+        //             bracket.getDayChoices(),
+        //             bracket.getMaxSize(),
+        //             bracket.getDivisionId(),
+        //         ]);
+
+        //         bracket.getTimeSlots().forEach((timeSlot) => {
+        //             timeSlotValues.push([
+        //                 timeSlot.getStartTime(),
+        //                 timeSlot.getEndTime(),
+        //                 timeSlot.getBracketId(),
+        //             ]);
+        //         });
+        //     });
+        // });
+        // });
+
+        const result = await withClientRollback(async (querier) => {
+            // i'm not feeling this. It causes a lot of query operations on the database
+            // won't be run that often. Creating leagues only happens twice a semester at
+            // GCU at least. Fetching this list on the other hand may be slow. We will see
+            leagues.forEach(async (league) => {
+                const [returnedLeague] = (
+                    await querier(sqlLeague, [
+                        league.getName(),
+                        league.getSport(),
+                        league.getStartDate(),
+                        league.getEndDate(),
+                        contestId,
+                        orgId,
+                    ])
+                ).rows;
+
+                if (returnedLeague === undefined) {
+                    return IsRollback;
+                }
+
+                return league.getDivisions().forEach(async (division) => {
+                    const [returnedDivision] = (
+                        await querier(sqlDivision, [
+                            division.getName(),
+                            division.getType(),
+                            division.getLevel(),
+                            division.getMaxTeamSize(),
+                            division.getMinWomenCount(),
+                            division.getMinMenCount(),
+                            returnedLeague.id,
+                        ])
+                    ).rows;
+
+                    if (returnedDivision === undefined) {
+                        return IsRollback;
+                    }
+
+                    return division.getBrackets().forEach(async (bracket) => {
+                        const [returnedBracket] = (
+                            await querier(sqlBracket, [
+                                bracket.getDayChoices(),
+                                bracket.getMaxTeamAmount(),
+                                returnedDivision.id,
+                            ])
+                        ).rows;
+
+                        if (returnedBracket === undefined) {
+                            return IsRollback;
+                        }
+
+                        return bracket.getTimeSlots().forEach(async (timeSlot) => {
+                            const [returnedTimeSlot] = (
+                                await querier(sqlTimeSlot, [
+                                    timeSlot.getStartTime(),
+                                    timeSlot.getEndTime(),
+                                    returnedBracket.id,
+                                ])
+                            ).rows;
+
+                            if (returnedTimeSlot === undefined) {
+                                return IsRollback;
+                            }
+
+                            return returnedTimeSlot;
+                        });
+                    });
+                });
+            });
+
+            return true;
+        });
+
+        if (result === IsRollback) {
+            return false;
+        }
+
+        return result;
+    }
+
+    async findLeaguesAndChildrenByContestId(contestId: number): Promise<League[]> {
+        logger.verbose("Entering method findLeaguesAndChildrenByContestId()", {
+            class: this.className,
+            values: contestId,
+        });
+
+        const sqlLeague = "SELECT * FROM league WHERE contest_id = $1";
+        const sqlDivision = "SELECT * FROM division WHERE league_id IN (%L)";
+        const sqlBracket = "SELECT * FROM bracket WHERE division_id IN (%L)";
+        const sqlTimeSlot = "SELECT * FROM bracket_time_slots WHERE bracket_id IN (%L)";
+        const sqlTeams = "SELECT * FROM team WHERE bracket_id IN (%L)";
+
+        // this is all so gross
+
+        const result = await withClientRollback(async (querier) => {
+            const leagues = (await querier<LeagueDatabaseInterface>(sqlLeague, [contestId])).rows;
+
+            // fetch divisions based on league ids
+            const leagueIdList = leagues.map((x) => x.id);
+            const divisions = (await querier(format(sqlDivision, leagueIdList))).rows;
+
+            // fetch brackets based on division ids
+            const divisionIdList = divisions.map((x) => x.id);
+            const brackets = (await querier(format(sqlBracket, divisionIdList))).rows;
+
+            // fetch timeSlots based on bracket ids
+            const bracketIdList = brackets.map((x) => x.id);
+            const timeSlots = (await querier(format(sqlTimeSlot, bracketIdList))).rows;
+
+            // fetch all Teams that are part of bracket
+            const teams = (await querier(format(sqlTeams, bracketIdList))).rows;
+
+            if (leagues.length === 0) {
+                return IsRollback;
+            }
+
+            console.log("throw");
+
+            /** My thought process here was to reverse the process for the insert function
+             * above. It relies on querying the database for every single league, division,
+             * bracket, etc. With this one it only queries once for each object, then
+             * relies on server power to sort the results into objects. This retrieve
+             * function is going to be used a lot, so we will keep an eye on its performance
+             */
+            const formattedLeagues = leagues.map((league) => {
+                const divisionList = divisions
+                    .filter((division) => division.league_id === league.id)
+                    .map((division) => {
+                        const bracketList = brackets
+                            .filter((bracket) => bracket.division_id === division.id)
+                            .map((bracket) => {
+                                const timeSlotList = timeSlots
+                                    .filter((timeSlot) => timeSlot.bracket_id === bracket.id)
+                                    .map(
+                                        (timeSlot) =>
+                                            new TimeSlot({
+                                                id: timeSlot.id,
+                                                startTime: timeSlot.start_time,
+                                                endTime: timeSlot.end_time,
+                                                bracketId: timeSlot.bracket_id,
+                                            })
+                                    );
+                                const teamList = teams
+                                    .filter((team) => team.bracket_id === bracket.id)
+                                    .map(
+                                        (team) =>
+                                            new Team({
+                                                id: team.id,
+                                                name: team.name,
+                                                wins: team.wins,
+                                                ties: team.ties,
+                                                losses: team.losses,
+                                                image: team.image,
+                                                visibility: team.visibility,
+                                                sport: team.sport,
+                                                dateCreated: team.date_created,
+                                                sportsmanshipScore: team.sportsmanship_score,
+                                                status: team.status,
+                                                maxTeamSize: team.max_team_size,
+                                                players: [],
+                                                organizationId: team.organization_id,
+                                                bracketId: null,
+                                            })
+                                    );
+
+                                return new Bracket({
+                                    id: bracket.id,
+                                    dayChoices: bracket.day_choices,
+                                    timeSlots: timeSlotList,
+                                    maxTeamAmount: bracket.max_team_amount,
+                                    teams: teamList,
+                                    divisionId: bracket.division_id,
+                                });
+                            });
+
+                        return new Division({
+                            id: division.id,
+                            name: division.name,
+                            type: division.type,
+                            level: division.level,
+                            maxTeamSize: division.max_team_size,
+                            minMenCount: division.min_men_count,
+                            minWomenCount: division.min_women_count,
+                            brackets: bracketList,
+                            leagueId: division.league_id,
+                        });
+                    });
+
+                return new League({
+                    id: league.id,
+                    name: league.name,
+                    sport: league.sport,
+                    startDate: league.start_date,
+                    endDate: league.end_date,
+                    divisions: divisionList,
+                    contestId: league.contest_id,
+                    organizationId: league.organization_id,
+                });
+            });
+
+            return formattedLeagues;
+        });
+
+        if (result === IsRollback) {
+            return [];
+        }
+        return result;
+    }
+
+    async findContestById(contestId: number): Promise<Contest | null> {
+        logger.verbose("Entering method findContest()", {
+            class: this.className,
+            values: contestId,
+        });
+
+        const sqlFind = "SELECT * FROM contest WHERE id = $1";
+        return withClient(async (querier) => {
+            const [contest] = (await querier<ContestDatabaseInterface>(sqlFind, [contestId])).rows;
+
+            if (contest === undefined) {
+                return null;
+            }
+
+            return new Contest({
+                id: contest.id,
+                name: contest.name,
+                visibility: contest.visibility,
+                status: contest.status,
+                dateCreated: contest.date_created,
+                startDate: contest.start_date,
+                endDate: contest.end_date,
+                playoff: contest.playoff,
+                playoffType: contest.playoff_type,
+                playoffSeedingType: contest.playoff_seeding_type,
+                contestType: contest.contest_type,
+                leagues: [],
+                organizationId: contest.organization_id,
+            });
+        });
+    }
+
+    async findBracketId(bracketId: number): Promise<Bracket | null> {
+        logger.verbose("Entering method findBracketId()", {
+            class: this.className,
+            values: bracketId,
+        });
+
+        const sqlBracket = "SELECT * FROM bracket WHERE id = $1";
+        const sqlTime = "SELECT * FROM bracket_time_slots WHERE bracket_id = $1";
+
+        const result = await withClientRollback(async (querier) => {
+            const [bracket] = (await querier<BracketDatabaseInterface>(sqlBracket, [bracketId]))
+                .rows;
+
+            if (bracket === undefined) {
+                return IsRollback;
+            }
+            const timeSlots = (await querier(sqlTime, [bracket.id])).rows.map((timeSlot) => {
+                return new TimeSlot({
+                    id: timeSlot.id,
+                    startTime: timeSlot.start_time,
+                    endTime: timeSlot.end_time,
+                    bracketId: timeSlot.bracket_id,
+                });
+            });
+
+            return new Bracket({
+                id: bracket.id,
+                dayChoices: bracket.day_choices,
+                divisionId: bracket.division_id,
+                maxTeamAmount: bracket.max_team_amount,
+                teams: [],
+                timeSlots,
+            });
+        });
+
+        if (result === IsRollback) {
+            return null;
+        }
+
+        return result;
+    }
+
+    /**
+     * This method works its way up the tree starting with the bracket. Will create
+     * nested object list from contest all the way to the bracket it started with.
+     *
+     * @param bracketId - Bracket id to search with
+     * @returns - returns a Contest object with the tree to the bracket
+     */
+    async findPathByBracketId(bracketId: number): Promise<Contest | null> {
+        logger.verbose("Entering method findPathByBracketId()", {
+            class: this.className,
+            values: bracketId,
+        });
+
+        const sqlSelect = `SELECT bracket.id as bracket_id, bracket.day_choices, bracket.max_team_amount, division.id as division_id, division.name as division_name, division.type, division.level, division.max_team_size, division.min_women_count, division.min_men_count, league.id as league_id, league.name as league_name, league.sport, league.start_date as league_start_date, league.end_date as league_end_date, contest.id as contest_id, contest.name as contest_name, contest.visibility, contest.status, contest.date_created, contest.start_date as contest_start_date, contest.end_date as contest_end_date, contest.playoff, contest.playoff_type, contest.playoff_seeding_type, contest.contest_type, contest.organization_id FROM bracket
+        INNER JOIN division ON bracket.division_ID=division.id
+        INNER JOIN league ON division.league_ID=league.id
+        INNER JOIN contest ON league.contest_id=contest.id
+        WHERE bracket.id = $1`;
+
+        return withClient(async (querier) => {
+            const [res] = (await querier(sqlSelect, [bracketId])).rows;
+
+            if (res === undefined) {
+                return null;
+            }
+
+            const bracket = new Bracket({
+                id: res.bracket_id,
+                dayChoices: res.day_choices,
+                maxTeamAmount: res.max_team_amount,
+                divisionId: res.division_id,
+                teams: [],
+                timeSlots: [],
+            });
+
+            const division = new Division({
+                id: res.division_id,
+                name: res.division_name,
+                type: res.type,
+                level: res.level,
+                maxTeamSize: res.max_team_size,
+                minWomenCount: res.min_women_count,
+                minMenCount: res.min_men_count,
+                brackets: [bracket],
+                leagueId: res.league_id,
+            });
+
+            const league = new League({
+                id: res.league_id,
+                name: res.league_name,
+                sport: res.sport,
+                startDate: res.league_start_date,
+                endDate: res.league_end_date,
+                contestId: res.contest_id,
+                divisions: [division],
+                organizationId: res.organization_id,
+            });
+
+            const contest = new Contest({
+                id: res.contest_id,
+                name: res.contest_name,
+                visibility: res.visibility,
+                status: res.status,
+                dateCreated: res.date_created,
+                startDate: res.contest_start_date,
+                endDate: res.contest_end_date,
+                playoff: res.playoff,
+                playoffType: res.playoff_type,
+                playoffSeedingType: res.playoff_seeding_type,
+                contestType: res.contest_type,
+                leagues: [league],
+                organizationId: res.organization_id,
+            });
+
+            return contest;
+        });
+    }
+
+    // async patchBracket(bracket: Bracket): Promise<Bracket[] | null>{    }
+    // async findLeagues() {}
 }
 
 const test = new CompetitionDAO();
@@ -320,6 +793,8 @@ const list: TournamentGame[] = [
 testFunc();
 
 async function testFunc() {
+    // await test.findPathByBracketId(1);
+    // await test.findLeaguesAndChildren(1);
     // console.log(await test.findTournamentByIdWithGames(2));
     // await test.createTournamentGames();
     // await test.createTournament(
@@ -340,152 +815,3 @@ async function testFunc() {
     // );
     // await test.createTournamentGames(list);
 }
-
-// export default class CompetitionDAO {
-//     className = this.constructor.name;
-//     /**
-//     async() {
-//         logger.verbose("Entering method removeFromTeam()", {
-//             class: this.className,
-//         });
-//         let conn = null;
-//         let sql = "";
-
-//         try {
-//             conn = await pool.getConnection();
-
-//             await conn.commit();
-//             // return updateResult;
-//         } catch (error) {
-//             if (conn) await conn.rollback();
-//             logger.crit("Database Connection / Query Error", {
-//                 type: error,
-//                 class: this.className,
-//             });
-//             return null;
-//         } finally {
-//             if (conn) conn.release();
-//         }
-//     }
-
-//     */
-
-//     async showCompetition_league() {
-//         logger.verbose("Entering method removeFromTeam()", {
-//             class: this.className,
-//         });
-//         let conn = null;
-//         const sql = "";
-
-//         try {
-//             conn = await pool.getConnection();
-
-//             await conn.commit();
-//             // return updateResult;
-//         } catch (error) {
-//             if (conn) await conn.rollback();
-//             logger.crit("Database Connection / Query Error", {
-//                 type: error,
-//                 class: this.className,
-//             });
-//             return null;
-//         } finally {
-//             if (conn) conn.release();
-//         }
-//     }
-
-//     async createCompetition_league(competition: LeagueCompetitionModel, organizationId: string) {
-//         logger.verbose("Entering method createCompetition_league", {
-//             class: this.className,
-//         });
-
-//         let conn = null;
-//         const sqlComp =
-//             "INSERT INTO league_competition (NAME, VISIBILITY, STATUS, TYPE_OF_LEAGUE, organization_ID) VALUES(?,?,?,?,UNHEX(?))";
-
-//         const sqlLeague =
-//             "INSERT INTO league (NAME, SPORT, LEAGUE_START_DATE, LEAGUE_END_DATE, LEAGUE_DETAILS, LEAGUE_SETS_DATES, league_competition_ID) VALUES (?,?,?,?,?,?,?)";
-
-//         const sqlDivision =
-//             "INSERT INTO division (NAME, DIVISION_START_DATE, DIVISION_END_DATE, TYPE, LEVEL, league_ID, tournament_competition_ID) VALUES(?,?,?,?,?,?,?)";
-
-//         const sqlBracket =
-//             "INSERT INTO bracket (DAY_CHOICES, MAX_BRACKET_SIZE, division_ID) VALUES(?,?,?)";
-
-//         const sqlTimeslot =
-//             "INSERT INTO time_slots (START_TIME, END_TIME, bracket_ID) VALUES(?,?,?)";
-
-//         try {
-//             conn = await pool.getConnection();
-//             await conn.beginTransaction();
-
-//             const [comp_r] = await conn.query(sqlComp, [
-//                 competition.getName(),
-//                 competition.getVisibility(),
-//                 competition.getStatus(),
-//                 competition.getType(),
-//                 organizationId,
-//             ]);
-
-//             const compId: any = comp_r;
-
-//             for (let index = 0; index < competition.getLeagues().length; index++) {
-//                 const league = competition.getLeagues()[index];
-//                 const [league_r, fields2] = await conn.query(sqlLeague, [
-//                     league.getLeagueName(),
-//                     league.getLeagueSport(),
-//                     league.getLeagueStartDate(),
-//                     league.getLeagueEndDate(),
-//                     league.getLeagueDetails(),
-//                     league.getLeagueSetsDates(),
-//                     compId.insertId,
-//                 ]);
-
-//                 const leagueId: any = league_r;
-
-//                 for (let index = 0; index < league.getDivisions().length; index++) {
-//                     const division = league.getDivisions()[index];
-//                     const [division_r] = await conn.query(sqlDivision, [
-//                         division.getDivisionName(),
-//                         division.getDivisionStartDate(),
-//                         division.getDivisionEndDate(),
-//                         division.getDivisionType(),
-//                         division.getDivisionLevel(),
-//                         leagueId.insertId,
-//                         null,
-//                     ]);
-
-//                     const divisionId: any = division_r;
-//                     for (let index = 0; index < division.getBrackets().length; index++) {
-//                         const bracket = division.getBrackets()[index];
-//                         const [bracket_r] = await conn.query(sqlBracket, [
-//                             bracket.getBracketDayChoices(),
-//                             bracket.getBracketMaxSize(),
-//                             divisionId.insertId,
-//                         ]);
-
-//                         const bracketId: any = bracket_r;
-//                         for (let index = 0; index < bracket.getBracketTimeSlots().length; index++) {
-//                             const timeSlot = bracket.getBracketTimeSlots()[index];
-
-//                             const timeslot: any = timeSlot;
-//                             await conn.query(sqlTimeslot, [
-//                                 timeslot.startTime,
-//                                 timeslot.endTime,
-//                                 bracketId.insertId,
-//                             ]);
-//                         }
-//                     }
-//                 }
-//             }
-//             await conn.commit();
-//         } catch (error) {
-//             console.log(error);
-
-//             if (conn) await conn.rollback();
-//             return null;
-//         } finally {
-//             if (conn) conn.release();
-//         }
-//     }
-// }

@@ -1,6 +1,6 @@
-import { Visibility } from "../../utilities/enums";
+import { Visibility } from "../utilities/enums";
 
-export interface NewTeam {
+export interface TeamNew {
     name: string;
     image: string;
     visibility: Visibility;

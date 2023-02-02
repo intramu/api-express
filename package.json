@@ -5,7 +5,7 @@
     "main": "index.ts",
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
-        "dev:server": "nodemon --watch './**/*.ts' --exec ts-node ./dist/server/newIndex.js"
+        "dev": "concurrently \"npx tsc --watch \" \"nodemon -q dist/server/newIndex.js\""
     },
     "author": "",
     "license": "ISC",
@@ -30,6 +30,7 @@
         "@types/node": "^18.11.18",
         "@types/pg": "^8.6.6",
         "@types/pg-format": "^1.0.2",
+        "concurrently": "^7.6.0",
         "nodemon": "^2.0.20",
         "prettier": "^2.8.2",
         "ts-node": "^10.9.1",

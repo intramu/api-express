@@ -1,3 +1,5 @@
+import { Status } from "../utilities/enums";
+
 export class Organization {
     private id: string;
 
@@ -9,26 +11,26 @@ export class Organization {
 
     private mainColor: string;
 
-    private approvalStatus: string;
+    private approvalStatus: Status | null;
 
     private dateCreated: Date | null;
 
-    constructor(
-        id: string,
-        name: string,
-        image: string,
-        info: string,
-        mainColor: string,
-        approvalStatus: string,
-        dateCreated: Date | null
-    ) {
-        this.id = id;
-        this.name = name;
-        this.image = image;
-        this.info = info;
-        this.mainColor = mainColor;
-        this.approvalStatus = approvalStatus;
-        this.dateCreated = dateCreated;
+    constructor(props: {
+        id: string;
+        name: string;
+        image: string;
+        info: string;
+        mainColor: string;
+        approvalStatus: Status | null;
+        dateCreated: Date | null;
+    }) {
+        this.id = props.id;
+        this.name = props.name;
+        this.image = props.image;
+        this.info = props.info;
+        this.mainColor = props.mainColor;
+        this.approvalStatus = props.approvalStatus;
+        this.dateCreated = props.dateCreated;
     }
 
     getId(): string {
@@ -71,11 +73,11 @@ export class Organization {
         this.mainColor = mainColor;
     }
 
-    getApprovalStatus(): string {
+    getApprovalStatus(): Status | null {
         return this.approvalStatus;
     }
 
-    setApprovalStatus(approvalStatus: string): void {
+    setApprovalStatus(approvalStatus: Status | null): void {
         this.approvalStatus = approvalStatus;
     }
 

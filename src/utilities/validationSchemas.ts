@@ -1,22 +1,22 @@
 import express from "express";
 
-import { body, checkSchema, ValidationChain, validationResult } from "express-validator";
+import { body, ValidationChain, validationResult } from "express-validator";
 import { APIResponse } from "../models/APIResponse";
 import { graduationTerms } from "./constantsThatNeedAHome";
-import { Gender, Language, Role, Visibility } from "./enums";
+import {
+    Gender,
+    Language,
+    Sport,
+    Visibility,
+    DivisionType,
+    DivisionLevel,
+    Status,
+    TournamentType,
+    PlayoffSeedingType,
+    ContestType,
+} from "./enums";
 
 // utility methods
-const checkForValidGender = (value: string) =>
-    Object.values(Gender).some((gender) => value === gender);
-
-const checkForValidVisibility = (value: string) =>
-    Object.values(Visibility).some((visibility) => value === visibility);
-
-const checkForValidLanguage = (value: string) =>
-    Object.values(Language).some((language) => value === language);
-
-const checkForValidRole = (value: string) => Object.values(Role).some((role) => value === role);
-
 const printEnums = (values: any, type: string) => {
     // adds values of enum to list spacing out each value, then converts into string
     const list = Object.values(values)
@@ -27,114 +27,77 @@ const printEnums = (values: any, type: string) => {
     return `valid ${type} options are [${list.substring(0, list.length)} ]`;
 };
 
+const listEnums = (enumValue: any) => Object.values(enumValue).map((value: any) => value);
+
 // schemas
-export const newPersonSchema = checkSchema({
-    firstName: {
-        notEmpty: {
-            errorMessage: "value firstName is missing",
-        },
-        trim: true,
-        escape: true,
-        isLength: {
-            options: { min: 2, max: 20 },
-            errorMessage: `firstName requires length from 2 to 20`,
-        },
-    },
-    lastName: {
-        notEmpty: {
-            errorMessage: "value lastName is missing",
-        },
-        trim: {},
-        escape: {},
-        isLength: {
-            options: { min: 2, max: 20 },
-            errorMessage: `lastName requires length from 2 to 20`,
-        },
-    },
-    emailAddress: {
-        notEmpty: {
-            errorMessage: "value emailAddress is missing",
-        },
-        trim: {},
-        isEmail: {
-            errorMessage: "emailAddress is not correctly formatted",
-        },
-    },
-    dateOfBirth: {
-        notEmpty: {
-            errorMessage: "value dateOfBirth is missing",
-        },
-        isDate: {
-            options: {
-                format: "YYYY-MM-DD",
-                strictMode: true,
-            },
-            errorMessage: "dateOfBirth is required in format YYYY-MM-DD",
-        },
-    },
-    organizationId: {
-        notEmpty: {
-            errorMessage: "value organizationId is missing",
-        },
-        isUUID: {
-            errorMessage: "organizationId is not in UUID format",
-        },
-    },
-    gender: {
-        trim: true,
-        notEmpty: {
-            errorMessage: "value gender is missing",
-        },
-        toUpperCase: true,
-        custom: {
-            options: (value: string) => {
-                return checkForValidGender(value);
-            },
-            errorMessage: printEnums(Gender, "gender"),
-        },
-    },
-    visibility: {
-        trim: true,
-        notEmpty: {
-            errorMessage: "value visibility is missing",
-        },
-        toUpperCase: true,
-        custom: {
-            options: (value: string) => {
-                return checkForValidVisibility(value);
-            },
-            errorMessage: printEnums(Visibility, "visibility"),
-        },
-    },
-    language: {
-        trim: true,
-        notEmpty: {
-            errorMessage: "value language is missing",
-        },
-        toUpperCase: true,
-        custom: {
-            options: (value: string) => {
-                return checkForValidLanguage(value);
-            },
-            errorMessage: printEnums(Language, "language"),
-        },
-    },
-    graduationTerm: {
-        trim: true,
-        escape: true,
-        notEmpty: {
-            errorMessage: "value graduationTerm is missing",
-        },
-        toUpperCase: true,
-        // todo: fix
-        // custom: {
-        //     options: (value: string) => {
-        //         return checkForValidGraduationTerm(value);
-        //     },
-        //     errorMessage: printEnums(graduationTerms, "graduationTerm"),
-        // },
-    },
-});
+export const newPersonSchema = () => {
+    return [
+        body("firstName")
+            .notEmpty()
+            .withMessage("value 'firstName' is missing")
+            .trim()
+            .escape()
+            .isLength({ min: 2, max: 20 })
+            .withMessage("firstName requires length from 2 to 20"),
+        body("lastName")
+            .notEmpty()
+            .withMessage("value 'lastName' is missing")
+            .trim()
+            .escape()
+            .isLength({ min: 2, max: 20 })
+            .withMessage("lastName requires length from 2 to 20"),
+        body("emailAddress")
+            .notEmpty()
+            .withMessage("value 'emailAddress' is missing")
+            .trim()
+            .escape()
+            .isEmail()
+            .withMessage("emailAddress is not correctly formatted"),
+        body("dateOfBirth")
+            .notEmpty()
+            .withMessage("value 'dateOfBirth' is missing")
+            .isDate({ format: "YYYY-MM-DD", strictMode: true })
+            .withMessage("dateOfBirth is required in format YYYY-MM-DD"),
+        body("organizationId")
+            .notEmpty()
+            .withMessage("value 'organizationId' is missing")
+            .isUUID()
+            .withMessage("organizationId is not in UUID format"),
+        body("gender")
+            .notEmpty()
+            .withMessage("value gender is missing")
+            .trim()
+            .escape()
+            .toUpperCase()
+            .isIn([Gender.FEMALE, Gender.MALE])
+            .withMessage(printEnums(Gender, "gender")),
+        body("visibility")
+            .notEmpty()
+            .withMessage("value 'visibility' is missing")
+            .trim()
+            .escape()
+            .toUpperCase()
+            .isIn([Visibility.CLOSED, Visibility.OPEN, Visibility.PRIVATE])
+            .withMessage(printEnums(Visibility, "visibility")),
+        body("language")
+            .notEmpty()
+            .withMessage("value language is missing")
+            .trim()
+            .escape()
+            .toUpperCase()
+            .isIn([Language.ENGLISH])
+            .withMessage(printEnums(Language, "language")),
+        body("graduationTerm")
+            .notEmpty()
+            .withMessage("value 'graduationTerm' is missing")
+            .trim()
+            .escape()
+            .isIn([graduationTerms[0], graduationTerms[1], graduationTerms[2]])
+            .withMessage(
+                `valid graudation options are ${graduationTerms[0]}, ${graduationTerms[1]}, ${graduationTerms[2]}`
+            ),
+    ];
+};
 
 export const patchPersonSchema = () => {
     return [
@@ -253,12 +216,12 @@ export const finishProfileSchema = () => {
             .escape()
             .isIn([graduationTerms[0], graduationTerms[1], graduationTerms[2]])
             .withMessage(
-                `valid graudation options are ${graduationTerms[0]}, ${graduationTerms[1]}, ${graduationTerms[2]}`
+                `valid graduation options are ${graduationTerms[0]}, ${graduationTerms[1]}, ${graduationTerms[2]}`
             ),
     ];
 };
 
-export const newOrganizationRules = () => {
+export const newOrganizationSchema = () => {
     return [
         body("admin.firstName")
             .notEmpty()
@@ -311,6 +274,203 @@ export const newOrganizationRules = () => {
     ];
 };
 
+// export const newContestSchema = () => {};
+
+export const newLeagueSchema = () => {
+    return [
+        body("contestId")
+            .notEmpty()
+            .withMessage("value 'contestId' on 'leagues' is missing")
+            .trim()
+            .toInt(),
+        body("leagues")
+            .notEmpty()
+            .withMessage("value 'leagues' is missing or contains no objects")
+            .isArray()
+            .withMessage("leagues requires array of objects"),
+        body("leagues.*.name")
+            .optional()
+            .trim()
+            .escape()
+            .isLength({ min: 2, max: 30 })
+            .withMessage("name requires length from 2 to 30"),
+        body("leagues.*.sport")
+            .notEmpty()
+            .withMessage("value 'sport' on 'leagues' is missing")
+            .trim()
+            .escape()
+            .toUpperCase()
+            .isIn(listEnums(Sport))
+            .withMessage(printEnums(Sport, "sport")),
+        body("leagues.*.startDate")
+            .notEmpty()
+            .withMessage("value 'startDate' on 'leagues' is missing")
+            .trim()
+            .escape()
+            .isDate({ format: "YYYY-MM-DD", strictMode: true })
+            .withMessage("startDate is required in format YYYY-MM-DD"),
+        body("leagues.*.endDate")
+            .notEmpty()
+            .withMessage("value 'endDate' on 'leagues' is missing")
+            .trim()
+            .escape()
+            .isDate({ format: "YYYY-MM-DD", strictMode: true })
+            .withMessage("endDate is required in format YYYY-MM-DD"),
+        body("leagues.*.divisions")
+            .notEmpty()
+            .withMessage("value 'divisions' on 'leagues' is missing or contains no objects")
+            .isArray()
+            .withMessage("divisions requires array of objects"),
+        body("leagues.*.divisions.*.name")
+            .optional()
+            .trim()
+            .escape()
+            .isLength({ min: 2, max: 30 })
+            .withMessage("name requires length from 2 to 30"),
+        body("leagues.*.divisions.*.type")
+            .notEmpty()
+            .withMessage("value 'type' on 'divisions' is missing")
+            .trim()
+            .escape()
+            .toUpperCase()
+            .isIn(listEnums(DivisionType))
+            .withMessage(printEnums(DivisionType, "DivisionType")),
+        body("leagues.*.divisions.*.level")
+            .notEmpty()
+            .withMessage("value 'level' on 'divisions' is missing")
+            .trim()
+            .escape()
+            .toUpperCase()
+            .isIn(listEnums(DivisionLevel))
+            .withMessage(printEnums(DivisionLevel, "DivisionLevel")),
+        body("leagues.*.divisions.*.maxTeamSize")
+            .notEmpty()
+            .withMessage("value 'maxTeamSize' on 'divisions' is missing")
+            .trim()
+            .isInt({ min: 1, max: 100 })
+            .withMessage("maxTeamSize requires length from 1 to 100"),
+        body("leagues.*.divisions.*.minWomenCount")
+            .notEmpty()
+            .withMessage("value 'minWomenCount' on 'divisions' is missing")
+            .trim()
+            .isInt({ min: 1, max: 100 })
+            .withMessage("minWomenCount requires length from 1 to 100"),
+        body("leagues.*.divisions.*.minMenCount")
+            .notEmpty()
+            .withMessage("value 'minMenCount' on 'divisions' is missing")
+            .trim()
+            .isInt({ min: 1, max: 100 })
+            .withMessage("minMenCount requires length from 1 to 100"),
+        body("leagues.*.divisions.*.brackets")
+            .notEmpty()
+            .withMessage("value 'brackets' on 'divisions' is missing or contains no objects")
+            .isArray()
+            .withMessage("brackets requires array of objects"),
+        body("leagues.*.divisions.*.brackets.*.dayChoices")
+            .isArray()
+            // todo: escape values
+            .customSanitizer((array: string[]) => array.map((day) => day.trim().toUpperCase()))
+            .isIn(["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"])
+            .withMessage("valid 'dayChoices' options are days of the week"),
+        body("leagues.*.divisions.*.brackets.*.maxTeamAmount")
+            .notEmpty()
+            .withMessage("value 'maxTeamAmount' on 'bracket' is missing")
+            .trim()
+            .isInt({ min: 1, max: 100 })
+            .withMessage("minMenCount requires length from 1 to 100"),
+        body("leagues.*.divisions.*.brackets.*.timeSlots")
+            .notEmpty()
+            .withMessage("value 'timeSlots' on 'brackets' is missing or contains no objects")
+            .isArray()
+            .withMessage("timeSlots requires array of objects"),
+        body("leagues.*.divisions.*.brackets.*.timeSlots.*.startTime")
+            .notEmpty()
+            .withMessage("value 'startTime' on 'timeSlots' is missing")
+            .matches("^([0-1][0-9]|2[0-3]):([0-5][0-9])$")
+            .withMessage("startTime is required in format 00:00 (00:00 - 23:59)"),
+        body("leagues.*.divisions.*.brackets.*.timeSlots.*.endTime")
+            .notEmpty()
+            .withMessage("value 'endTime' on 'timeSlots' is missing")
+            .matches("^([0-1][0-9]|2[0-3]):([0-5][0-9])$")
+            .withMessage("endTime is required in format 00:00 (00:00 - 23:59)"),
+    ];
+};
+
+export const newContestSchema = () => {
+    return [
+        body("name")
+            .notEmpty()
+            .withMessage("value 'name' is missing")
+            .trim()
+            .escape()
+            .isLength({ min: 2, max: 40 }),
+        body("visibility")
+            .notEmpty()
+            .withMessage("value 'visibility' is missing")
+            .trim()
+            .toUpperCase()
+            .isIn([Visibility.OPEN, Visibility.PRIVATE])
+            .withMessage(
+                `valid visibility options are [ ${Visibility.OPEN}, ${Visibility.PRIVATE} ]`
+            ),
+        body("status")
+            .notEmpty()
+            .withMessage("value 'status' is missing")
+            .trim()
+            .toUpperCase()
+            .isIn([Status.ACTIVE, Status.INACTIVE])
+            .withMessage(`valid status options are [ ${Status.ACTIVE}, ${Status.INACTIVE} ]`),
+        body("startDate")
+            .notEmpty()
+            .withMessage("value 'startDate' is missing")
+            .trim()
+            .escape()
+            .isDate({ format: "YYYY-MM-DD", strictMode: true })
+            .withMessage("startDate is required in format YYYY-MM-DD")
+            .isAfter(new Date().toISOString())
+            .withMessage("here"),
+        body("endDate")
+            .notEmpty()
+            .withMessage("value 'startDate' is missing")
+            .trim()
+            .escape()
+            .isDate({ format: "YYYY-MM-DD", strictMode: true })
+            .withMessage("startDate is required in format YYYY-MM-DD"),
+        body("playoff")
+            .optional()
+            .trim()
+            .escape()
+            .isBoolean()
+            .withMessage("value 'playoff' requires boolean"),
+        body("playoffType")
+            .if(body("playoff").matches("true"))
+            .notEmpty()
+            .withMessage("value 'playoffType' is required for playoff")
+            .trim()
+            .toUpperCase()
+            .isIn(listEnums(TournamentType))
+            .withMessage(printEnums(TournamentType, "playoffType")),
+        body("playoffSeedingType")
+            .if(body("playoff").matches("true"))
+            .notEmpty()
+            .withMessage("value 'playoffSeedingType' is required for playoff")
+            .trim()
+            .toUpperCase()
+            .isIn(listEnums(PlayoffSeedingType))
+            .withMessage(printEnums(PlayoffSeedingType, "playoffSeedingType")),
+        body("contestType")
+            .if(body("playoff").matches("true"))
+            .notEmpty()
+            .withMessage("value 'contestType' is required for playoff")
+            .trim()
+            .toUpperCase()
+            .isIn(listEnums(ContestType))
+            .withMessage(printEnums(ContestType, "contestType")),
+    ];
+};
+
+// const date = new Date().toISOString();
+
 // NR - this parallel processes the errors
 // export const validate = (validations: ValidationChain[]) => {
 //     return async (req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -352,14 +512,4 @@ export const validate = (validations: ValidationChain[]) => {
         const errorResponse = errors.array()[0].msg;
         return res.status(400).json(APIResponse[400](errorResponse));
     };
-};
-
-const checkForValidGraduationTerm = (value: string) => {
-    // graduationTerms.forEach((term) => {
-    //     console.log(term);
-    //     if (value === term) {
-    //         console.log(term);
-    //         return true;
-    //     }
-    // });
 };

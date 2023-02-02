@@ -1,5 +1,3 @@
-import { performance, PerformanceObserver } from "perf_hooks";
-
 import PlayerDAO from "../data/playerDAO";
 import { Player } from "../models/Player";
 import logger from "../utilities/winstonConfig";
@@ -9,19 +7,12 @@ import { Role, Status, Visibility } from "../utilities/enums";
 import TeamDAO from "../data/teamDAO";
 import { Team } from "../models/Team";
 import OrganizationDAO from "../data/organizationDAO";
-import { NewTeam } from "../models/interfaces/NewTeam";
+import CompetitionDAO from "../data/competitionDAO";
 
 const playerDatabase = new PlayerDAO();
 const teamDatabase = new TeamDAO();
 const organizationDatabase = new OrganizationDAO();
-
-const perfObserver = new PerformanceObserver((items) => {
-    items.getEntries().forEach((entry) => {
-        console.log(entry);
-    });
-});
-
-perfObserver.observe({ entryTypes: ["measure"], buffered: true });
+const competitionDatabase = new CompetitionDAO();
 
 export class PlayerBusinessService {
     readonly className = this.constructor.name;
@@ -204,7 +195,7 @@ export class PlayerBusinessService {
      * @param playerId - player that will be set as captain of the team
      * @returns - returns single team object with added details
      */
-    async createTeam(newTeam: NewTeam, playerId: string): Promise<APIResponse | Team> {
+    async createTeam(newTeam: Team, playerId: string): Promise<APIResponse | Team> {
         logger.verbose("Entering method createTeam()", {
             class: this.className,
             values: newTeam,
@@ -215,18 +206,19 @@ export class PlayerBusinessService {
             return APIResponse[404](`No player found with id: ${playerId}`);
         }
 
+        // organization will always exists since player is created in organization
         const organizationId = player.getOrganizationId();
 
         const team = new Team({
             id: null,
-            name: newTeam.name,
+            name: newTeam.getName(),
             wins: 0,
             ties: 0,
             losses: 0,
             // todo: images
             image: "",
-            visibility: newTeam.visibility,
-            sport: newTeam.sport,
+            visibility: newTeam.getVisibility(),
+            sport: newTeam.getSport(),
             dateCreated: null,
             sportsmanshipScore: null,
             status: null,
@@ -396,7 +388,7 @@ export class PlayerBusinessService {
             return APIResponse[404](`No team found with id: ${team.getId()}`);
         }
 
-        const updatedTeam = await teamDatabase.updateTeam(team);
+        const updatedTeam = await teamDatabase.patchTeam(team);
 
         if (updatedTeam === null) {
             return APIResponse[500](`Error updating team: ${team.getId()}`);
@@ -587,6 +579,46 @@ export class PlayerBusinessService {
             };
         });
     }
+
+    // async joinBracket(
+    //     bracketId: number,
+    //     teamId: number,
+    //     playerId: string
+    // ): Promise<APIResponse | boolean> {
+    //     logger.verbose("Entering method joinBracket()", {
+    //         class: this.className,
+    //         values: { bracketId, teamId, playerId },
+    //     });
+
+    //     // todo: check if bracket exists in organization
+    //     const bracket = await competitionDatabase.findBracketId(bracketId);
+    //     if (bracket === null) {
+    //         return APIResponse[404](`No bracket found with id: ${bracketId}`);
+    //     }
+
+    //     const players = await playerDatabase.findPlayersByTeamId(teamId);
+    //     if (players === null || players.length === 0) {
+    //         return APIResponse[404](`No team found with id: ${teamId}`);
+    //     }
+
+    //     if (
+    //         !players.find(
+    //             (player) => player.getAuthId() === playerId && player.getRole() === Role.CAPTAIN
+    //         )
+    //     ) {
+    //         return APIResponse[403](`Id: ${playerId} not authorized`);
+    //     }
+
+    //     // get division id to set the max team size
+    //     const response = await teamDatabase.patchTeam(new Team({
+    //         id: teamId,
+    //         dateCreated: null,
+    //         bracketId,
+    //         image: "",
+    //         losses: null,
+    //         maxTeamSize: bracket,
+    //     }))
+    // }
 }
 const test = new PlayerBusinessService();
 

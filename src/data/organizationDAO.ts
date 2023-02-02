@@ -1,7 +1,7 @@
+import { OrganizationDatabaseInterface, OrganizationWithAdmin } from "../interfaces/Organization";
+import { AdminDatabaseInterface } from "../interfaces/Admin";
 import { Admin } from "../models/Admin";
 import { Organization } from "../models/Organization";
-import { Role } from "../utilities/enums";
-import { OrgWithAdmin } from "../utilities/interfaces";
 import logger from "../utilities/winstonConfig";
 import { IsRollback, withClient, withClientRollback } from "./database";
 
@@ -9,7 +9,7 @@ export default class OrganizationDAO {
     private readonly className = this.constructor.name;
 
     async findOrganizationById(orgId: string): Promise<Organization | null> {
-        logger.verbose("Entering method findPlayerById()", {
+        logger.verbose("Entering method findOrganizationById()", {
             class: this.className,
             values: orgId,
         });
@@ -17,57 +17,59 @@ export default class OrganizationDAO {
         const sqlSelect = "SELECT * FROM organization WHERE id=$1";
 
         return withClient(async (querier) => {
-            const response = await querier(sqlSelect, [orgId]);
-            const [results] = response.rows;
+            const [organization] = (
+                await querier<OrganizationDatabaseInterface>(sqlSelect, [orgId])
+            ).rows;
 
-            if (results === undefined) {
+            if (organization === undefined) {
                 return null;
             }
 
-            return new Organization(
-                results.id,
-                results.name,
-                results.image,
-                results.info,
-                results.main_color,
-                results.approval_status,
-                results.date_created
-            );
+            return new Organization({
+                id: organization.id,
+                name: organization.name,
+                image: organization.image,
+                info: organization.info,
+                mainColor: organization.main_color,
+                approvalStatus: organization.approval_status,
+                dateCreated: organization.date_created,
+            });
         });
     }
 
-    async updateOrganization(organization: Organization): Promise<Organization | null> {
+    async updateOrganization(org: Organization): Promise<Organization | null> {
         logger.verbose("Entering method updateOrganization()", {
             class: this.className,
-            values: organization,
+            values: org,
         });
 
         const sqlUpdate =
             "UPDATE organization SET name=$1, image=$2, info=$3, main_color=$4, approval_status=$5 WHERE id=$6";
 
         return withClient(async (querier) => {
-            const response = await querier(sqlUpdate, [
-                organization.getName(),
-                organization.getImage(),
-                organization.getInfo(),
-                organization.getMainColor(),
-                organization.getApprovalStatus(),
-            ]);
-            const [results] = response.rows;
+            const [organization] = (
+                await querier(sqlUpdate, [
+                    org.getName(),
+                    org.getImage(),
+                    org.getInfo(),
+                    org.getMainColor(),
+                    org.getApprovalStatus(),
+                ])
+            ).rows;
 
-            if (response.rowCount === 0) {
+            if (organization === undefined) {
                 return null;
             }
 
-            return new Organization(
-                results.id,
-                results.name,
-                results.image,
-                results.info,
-                results.main_color,
-                results.approval_status,
-                results.date_created
-            );
+            return new Organization({
+                id: organization.id,
+                name: organization.name,
+                image: organization.image,
+                info: organization.info,
+                mainColor: organization.main_color,
+                approvalStatus: organization.approval_status,
+                dateCreated: organization.date_created,
+            });
         });
     }
 
@@ -79,19 +81,19 @@ export default class OrganizationDAO {
         const sqlSelect = "SELECT * FROM organization";
 
         return withClient(async (querier) => {
-            const results = (await querier(sqlSelect)).rows;
+            const results = (await querier<OrganizationDatabaseInterface>(sqlSelect)).rows;
 
             return results.map(
-                (org) =>
-                    new Organization(
-                        org.id,
-                        org.name,
-                        org.image,
-                        org.info,
-                        org.main_color,
-                        org.approval_status,
-                        org.date_created
-                    )
+                (organization) =>
+                    new Organization({
+                        id: organization.id,
+                        name: organization.name,
+                        image: organization.image,
+                        info: organization.info,
+                        mainColor: organization.main_color,
+                        approvalStatus: organization.approval_status,
+                        dateCreated: organization.date_created,
+                    })
             );
         });
     }
@@ -104,14 +106,15 @@ export default class OrganizationDAO {
      * @returns - Returns organization details if successful
      */
     async createOrganization(
-        organization: Organization,
+        org: Organization,
         admin: Admin
-    ): Promise<OrgWithAdmin | null> {
+    ): Promise<OrganizationWithAdmin | null> {
         logger.verbose("Entering method createOrganization()", {
             class: this.className,
-            values: organization,
+            values: org,
         });
 
+        // todo: write this into one query
         const sqlCreate =
             "INSERT INTO organization (name, image, info, main_color, approval_status) VALUES ($1, $2, $3, $4, $5)";
 
@@ -119,59 +122,58 @@ export default class OrganizationDAO {
             "INSERT INTO admin (auth_id, first_name, last_name, language, email_address, role, status, organization_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)";
 
         const result = await withClientRollback(async (querier) => {
-            const responseOne = await querier(sqlCreate, [
-                organization.getName(),
-                organization.getImage(),
-                organization.getInfo(),
-                organization.getMainColor(),
-                organization.getApprovalStatus(),
-            ]);
-            const [resultsOne] = responseOne.rows;
+            const [organization] = (
+                await querier<OrganizationDatabaseInterface>(sqlCreate, [
+                    org.getName(),
+                    org.getImage(),
+                    org.getInfo(),
+                    org.getMainColor(),
+                    org.getApprovalStatus(),
+                ])
+            ).rows;
 
-            if (resultsOne === undefined) {
+            if (organization === undefined) {
                 return IsRollback;
             }
 
-            const responseTwo = await querier(sqlAddAdmin, [
-                admin.getAuthId(),
-                admin.getFirstName(),
-                admin.getLastName(),
-                admin.getLanguage,
-                admin.getEmailAddress(),
-                admin.getRole(),
-                admin.getStatus(),
-                resultsOne.organization_id,
-            ]);
+            const [administrator] = (
+                await querier<AdminDatabaseInterface>(sqlAddAdmin, [
+                    admin.getAuthId(),
+                    admin.getFirstName(),
+                    admin.getLastName(),
+                    admin.getLanguage,
+                    admin.getEmailAddress(),
+                    admin.getRole(),
+                    admin.getStatus(),
+                    organization.id,
+                ])
+            ).rows;
 
-            const [resultsTwo] = responseTwo.rows;
-
-            if (resultsTwo === undefined) {
+            if (administrator === undefined) {
                 return IsRollback;
             }
-
-            // const newOrganization: Organization =
 
             const responseObject = {
-                admin: new Admin(
-                    resultsOne.auth_id,
-                    resultsOne.first_name,
-                    resultsOne.last_name,
-                    resultsOne.language,
-                    resultsOne.email_address,
-                    resultsOne.role,
-                    resultsOne.status,
-                    resultsOne.date_created,
-                    resultsOne.organization_id
-                ),
-                organization: new Organization(
-                    resultsTwo.id,
-                    resultsTwo.name,
-                    resultsTwo.image,
-                    resultsTwo.info,
-                    resultsTwo.main_color,
-                    resultsTwo.approval_status,
-                    resultsTwo.date_created
-                ),
+                admin: new Admin({
+                    authId: administrator.auth_id,
+                    firstName: administrator.first_name,
+                    lastName: administrator.last_name,
+                    language: administrator.language,
+                    emailAddress: administrator.email_address,
+                    role: administrator.role,
+                    status: administrator.status,
+                    dateCreated: administrator.date_created,
+                    organizationId: administrator.organization_id,
+                }),
+                organization: new Organization({
+                    id: organization.id,
+                    name: organization.name,
+                    image: organization.image,
+                    info: organization.info,
+                    mainColor: organization.main_color,
+                    approvalStatus: organization.approval_status,
+                    dateCreated: organization.date_created,
+                }),
             };
             return responseObject;
         });

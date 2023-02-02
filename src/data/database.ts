@@ -112,6 +112,7 @@ export async function rollbackWithErrors<T>(
         if (result === IsRollback) {
             await rollback(client);
         } else {
+            console.log("COMMITTED");
             await querier("COMMIT");
         }
         return result;

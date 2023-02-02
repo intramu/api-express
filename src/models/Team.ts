@@ -1,4 +1,4 @@
-import { Status, Visibility } from "../utilities/enums";
+import { Sport, Status, Visibility } from "../utilities/enums";
 import { PlayerSmall } from "./PlayerSmall";
 
 export class Team {
@@ -40,7 +40,7 @@ export class Team {
         losses: number | null;
         image: string;
         visibility: Visibility | null;
-        sport: string;
+        sport: Sport | null;
         dateCreated: Date | null;
         sportsmanshipScore: number | null;
         status: Status | null;
@@ -140,11 +140,11 @@ export class Team {
         this.visibility = visibility;
     }
 
-    getSport(): string {
+    getSport(): Sport | null {
         return this.sport;
     }
 
-    setSport(sport: string): void {
+    setSport(sport: Sport | null): void {
         this.sport = sport;
     }
 
