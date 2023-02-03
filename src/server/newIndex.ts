@@ -34,6 +34,11 @@ app.use("/api/organization", organization);
 //     res.status(200).json("wow");
 // });
 
+app.get("*", (req, res) => {
+    console.log("404 Not Found | Request URL: ", req.url);
+    res.status(404).send("404 Not Found. Sorry not sure what you were looking for");
+});
+
 app.listen(8080, () => {
     console.log(`App listening on port 8080`);
 });
