@@ -1,38 +1,59 @@
-/* eslint-disable consistent-return */
 import { Player } from "../models/Player";
 import { PlayerSmall } from "../models/PlayerSmall";
-import { Status, Visibility } from "../utilities/enums";
 import logger from "../utilities/winstonConfig";
 
-import { db, withClient } from "./database";
+import { withClient } from "./database";
 
 export default class PlayerDAO {
     className = this.constructor.name;
 
-    async findTeamsByPlayerId() {
-        logger.verbose("Entering method findAllTeamsByPlayerId()", {
+    // async findTeamsByPlayerId(playerId: string) {
+    //     logger.verbose("Entering method findAllTeamsByPlayerId()", {
+    //         class: this.className,
+    //     });
+
+    //     let client = null;
+
+    //     const sql =
+    //         "SELECT team.ID as team_ID, team.NAME, team.WINS, team.TIES, team.LOSSES, team.IMAGE, team.VISIBILITY, team.SPORT, team.DATE_CREATED, team.MAX_TEAM_SIZE, tr.ROLE, tr.player_AUTH_ID, player.FIRST_NAME, player.LAST_NAME, player.GENDER FROM team team JOIN team_roster tr on(team.ID = tr.team_ID) JOIN player player on(tr.player_AUTH_ID = player.AUTH_ID) WHERE tr.team_ID IN (SELECT team_ID FROM team_roster WHERE player_AUTH_ID = ?) ORDER BY tr.team_ID ASC";
+    //     try {
+    //         client = await db.connect();
+    //         const response = await client.query(sql);
+    //         const results = response.rows;
+    //         console.log(results);
+    //         // return results
+    //     } catch (error) {
+    //         logger.error("Database Connection / Query Error", {
+    //             type: error,
+    //             class: this.className,
+    //         });
+    //         return null;
+    //     } finally {
+    //         client?.release();
+    //     }
+    // }
+
+    /**
+     * Returns the organization id by searching for the player
+     * @param playerId - auth id of player
+     * @returns - organization id or null if error
+     */
+    async findOrganizationIdByPlayerId(playerId: string): Promise<string | null> {
+        logger.verbose("Entering method findOrganizationIdByPlayerId()", {
             class: this.className,
+            values: playerId,
         });
 
-        let client = null;
+        const sqlFind = "SELECT organization_id FROM player WHERE auth_id = $1";
 
-        const sql =
-            "SELECT team.ID as team_ID, team.NAME, team.WINS, team.TIES, team.LOSSES, team.IMAGE, team.VISIBILITY, team.SPORT, team.DATE_CREATED, team.MAX_TEAM_SIZE, tr.ROLE, tr.player_AUTH_ID, player.FIRST_NAME, player.LAST_NAME, player.GENDER FROM team team JOIN team_roster tr on(team.ID = tr.team_ID) JOIN player player on(tr.player_AUTH_ID = player.AUTH_ID) WHERE tr.team_ID IN (SELECT team_ID FROM team_roster WHERE player_AUTH_ID = ?) ORDER BY tr.team_ID ASC";
-        try {
-            client = await db.connect();
-            const response = await client.query(sql);
-            const results = response.rows;
-            console.log(results);
-            // return results
-        } catch (error) {
-            logger.error("Database Connection / Query Error", {
-                type: error,
-                class: this.className,
-            });
-            return null;
-        } finally {
-            client?.release();
-        }
+        return withClient(async (querier) => {
+            const [response] = (await querier(sqlFind, [playerId])).rows;
+            if (response === undefined) {
+                return null;
+            }
+
+            return response.organization_id;
+        });
     }
 
     /**
@@ -40,9 +61,10 @@ export default class PlayerDAO {
      * @param player - Player object to be added
      * @returns - Player object or null
      */
-    async createPlayerByOrganizationId(player: Player): Promise<Player | null> {
+    async createPlayerByOrganizationId(player: Player, orgId: string): Promise<Player | null> {
         logger.verbose("Entering method createPlayerByOrganizationId()", {
             class: this.className,
+            values: { player, orgId },
         });
 
         return withClient(async (querier) => {
@@ -61,7 +83,7 @@ export default class PlayerDAO {
                 player.getVisibility(),
                 player.getGraduationTerm(),
                 player.getImage(),
-                player.getOrganizationId(),
+                orgId,
             ]);
 
             const [results] = response.rows;
@@ -76,7 +98,7 @@ export default class PlayerDAO {
                 lastName: results.last_name,
                 language: results.language,
                 emailAddress: results.email_address,
-                role: null,
+                // role: null,
                 gender: results.gender,
                 dob: results.dob,
                 visibility: results.visibility,
@@ -84,7 +106,7 @@ export default class PlayerDAO {
                 image: results.image,
                 status: results.status,
                 dateCreated: results.date_created,
-                organizationId: results.organization_id,
+                // organizationId: results.organization_id,
             });
         });
     }
@@ -129,7 +151,7 @@ export default class PlayerDAO {
                 lastName: results.last_name,
                 language: results.language,
                 emailAddress: results.email_address,
-                role: null,
+                // role: null,
                 gender: results.gender,
                 dob: results.dob,
                 visibility: results.visibility,
@@ -137,7 +159,7 @@ export default class PlayerDAO {
                 image: results.image,
                 status: results.status,
                 dateCreated: results.date_created,
-                organizationId: results.organization_id,
+                // organizationId: results.organization_id,
             });
         });
     }
@@ -192,7 +214,7 @@ export default class PlayerDAO {
                 lastName: results.last_name,
                 language: results.language,
                 emailAddress: results.email_address,
-                role: null,
+                // role: null,
                 gender: results.gender,
                 dob: results.dob,
                 visibility: results.visibility,
@@ -200,15 +222,16 @@ export default class PlayerDAO {
                 image: results.image,
                 status: results.status,
                 dateCreated: results.date_created,
-                organizationId: results.organization_id,
+                // organizationId: results.organization_id,
             });
         });
     }
 
     /**
-     * Finds all players in entire database, sudo method
+     * Finds all players in entire database
      * @returns - list of Player objects
      */
+    // todo: add paging in future to reduce returned content
     async findAllPlayers(): Promise<Player[]> {
         logger.verbose("Entering method findPlayers()", {
             class: this.className,
@@ -228,7 +251,7 @@ export default class PlayerDAO {
                         lastName: player.last_name,
                         language: player.language,
                         emailAddress: player.email_address,
-                        role: null,
+                        // role: null,
                         gender: player.gender,
                         dob: player.dob,
                         visibility: player.visibility,
@@ -236,7 +259,7 @@ export default class PlayerDAO {
                         image: player.image,
                         status: player.status,
                         dateCreated: player.date_created,
-                        organizationId: player.organization_id,
+                        // organizationId: player.organization_id,
                     })
             );
         });
@@ -247,7 +270,7 @@ export default class PlayerDAO {
      * @param orgId - organization id to look for players under
      * @returns - List of Player objects
      */
-    async findPlayersByOrganizationId(orgId: string): Promise<Player[]> {
+    async findAllPlayersByOrganizationId(orgId: string): Promise<Player[]> {
         logger.verbose("Entering method findPlayersByOrganizationId()", {
             class: this.className,
         });
@@ -266,7 +289,6 @@ export default class PlayerDAO {
                         lastName: player.last_name,
                         language: player.language,
                         emailAddress: player.email_address,
-                        role: null,
                         gender: player.gender,
                         dob: player.dob,
                         visibility: player.visibility,
@@ -274,7 +296,7 @@ export default class PlayerDAO {
                         image: player.image,
                         status: player.status,
                         dateCreated: player.date_created,
-                        organizationId: player.organization_id,
+                        // organizationId: player.organization_id,
                     })
             );
         });
@@ -329,7 +351,7 @@ export default class PlayerDAO {
                 lastName: results.last_name,
                 language: results.language,
                 emailAddress: results.email_address,
-                role: null,
+                // role: null,
                 gender: results.gender,
                 dob: results.dob,
                 visibility: results.visibility,
@@ -337,7 +359,7 @@ export default class PlayerDAO {
                 image: results.image,
                 status: results.status,
                 dateCreated: results.date_created,
-                organizationId: results.organization_id,
+                // organizationId: results.organization_id,
             });
         });
     }
@@ -384,6 +406,7 @@ export default class PlayerDAO {
     ): Promise<[playerId: string, inviteDate: Date] | null> {
         logger.verbose("Entering method createPlayerInvite()", {
             class: this.className,
+            values: { requestingId, inviteeId, teamId, inviteExpirationDate },
         });
 
         const sqlInvite =
@@ -393,31 +416,36 @@ export default class PlayerDAO {
         const findTeamName = "SELECT NAME FROM team WHERE ID = $1";
 
         return withClient(async (querier) => {
-            const responseOne = await querier(findPlayerName, [requestingId]);
-            const [player] = responseOne.rows;
-            const responseTwo = await querier(findTeamName, [teamId]);
-            const [team] = responseTwo.rows;
+            // finds the player who created the invite and adds their name to the invite
+            // also finds the team and adds it to the invite
+            const [player] = (await querier(findPlayerName, [requestingId])).rows;
+            const [team] = (await querier(findTeamName, [teamId])).rows;
 
-            const response = await querier(sqlInvite, [
-                inviteeId,
-                teamId,
-                `${player.first_name} ${player.last_name}`,
-                team.name,
-                inviteExpirationDate,
-            ]);
-
-            const [results] = response.rows;
-            if (results === undefined) {
+            if (player === undefined || team === undefined) {
                 return null;
             }
 
-            return [results.player_auth_id, results.time_sent];
+            const [invite] = (
+                await querier(sqlInvite, [
+                    inviteeId,
+                    teamId,
+                    `${player.first_name} ${player.last_name}`,
+                    team.name,
+                    inviteExpirationDate,
+                ])
+            ).rows;
+
+            if (invite === undefined) {
+                return null;
+            }
+
+            return [invite.player_auth_id, invite.time_sent];
         });
     }
 
     /**
      * Removes invite from the players invites. With both ids combined every row in this table should be
-     * combined. If an error occurs the ids more than likely were incorrect
+     * unique. If an error occurs the ids more than likely were incorrect
      * @param playerId - id of the player
      * @param teamId - team id
      * @returns - authId of the player on invite
@@ -448,30 +476,13 @@ export default class PlayerDAO {
 
 const test = new PlayerDAO();
 
-const player = new Player({
-    authId: "test4947",
-    firstName: "",
-    lastName: "",
-    language: null,
-    emailAddress: "michaelbittner@hotmail.com",
-    role: null,
-    gender: null,
-    dob: null,
-    visibility: Visibility.CLOSED,
-    graduationTerm: "SPRING_2025",
-    image: "",
-    status: Status.INCOMPLETE,
-    dateCreated: null,
-    organizationId: "ea9dc7a5-5e40-4715-b8d9-4b7acf4a2291",
-});
-
 testFunc();
 
 async function testFunc() {
     // console.log(await test.deletePlayerInvite("player4", 12));
     // console.log(await test.createPlayerInvite("player1", "player4", 12));
     // console.log(await test.deletePlayerById("player4"));
-    // test.findTeamsByPlayerId("player1");
+    // test.findTeamsByPlayerId("auth0|62760b4733c477006f82c56d");
     // await test.findPlayerById("player12");
     // console.log(
     //     await test.createPlayerByOrganizationId(player, "03503875-f4a2-49f6-bb9f-e9a22fb852d4")

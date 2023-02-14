@@ -1,4 +1,4 @@
-import { Sport } from "../utilities/enums";
+import { Sport } from "../utilities/enums/commonEnum";
 import { DivisionNewInterface } from "./Division";
 
 export interface LeagueNewInterface {

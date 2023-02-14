@@ -1,18 +1,21 @@
-import { Language, Role, Status } from "../utilities/enums";
+import { AdminRole, AdminStatus, Language } from "../utilities/enums/userEnum";
 import { User } from "./User";
 
 export class Admin extends User {
-    // eslint-disable-next-line no-useless-constructor
+    private role;
+
+    private status;
+
     constructor(props: {
-        authId: string | null;
+        authId: string;
         firstName: string;
         lastName: string;
         language: Language | null;
         emailAddress: string;
-        role: Role | null;
+        role: AdminRole | null;
         dateCreated: Date | null;
-        status: Status | null;
-        organizationId: string;
+        status: AdminStatus | null;
+        // organizationId: string;
     }) {
         super(
             props.authId,
@@ -20,10 +23,28 @@ export class Admin extends User {
             props.lastName,
             props.language,
             props.emailAddress,
-            props.role,
-            props.dateCreated,
-            props.status,
-            props.organizationId
+            props.dateCreated
+            // props.status
+            // props.organizationId
         );
+
+        this.role = props.role;
+        this.status = props.status;
+    }
+
+    getRole(): AdminRole | null {
+        return this.role;
+    }
+
+    setRole(role: AdminRole): void {
+        this.role = role;
+    }
+
+    getStatus(): AdminStatus | null {
+        return this.status;
+    }
+
+    setStatus(status: AdminStatus | null) {
+        this.status = status;
     }
 }

@@ -1,4 +1,4 @@
-import { Status } from "../utilities/enums";
+import { OrganizationStatus } from "../utilities/enums/commonEnum";
 
 export class Organization {
     private id: string;
@@ -11,7 +11,7 @@ export class Organization {
 
     private mainColor: string;
 
-    private approvalStatus: Status | null;
+    private approvalStatus: OrganizationStatus | null;
 
     private dateCreated: Date | null;
 
@@ -21,7 +21,7 @@ export class Organization {
         image: string;
         info: string;
         mainColor: string;
-        approvalStatus: Status | null;
+        approvalStatus: OrganizationStatus | null;
         dateCreated: Date | null;
     }) {
         this.id = props.id;
@@ -73,11 +73,11 @@ export class Organization {
         this.mainColor = mainColor;
     }
 
-    getApprovalStatus(): Status | null {
+    getApprovalStatus(): OrganizationStatus | null {
         return this.approvalStatus;
     }
 
-    setApprovalStatus(approvalStatus: Status | null): void {
+    setApprovalStatus(approvalStatus: OrganizationStatus | null): void {
         this.approvalStatus = approvalStatus;
     }
 

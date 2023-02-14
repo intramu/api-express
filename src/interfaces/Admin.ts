@@ -1,4 +1,4 @@
-import { Language, Role, Status } from "../utilities/enums";
+import { Language, AdminRole, AdminStatus } from "../utilities/enums/userEnum";
 
 export interface AdminDatabaseInterface {
     auth_id: string;
@@ -6,9 +6,9 @@ export interface AdminDatabaseInterface {
     last_name: string;
     language: Language;
     email_address: string;
-    role: Role;
+    role: AdminRole;
     date_created: Date;
-    status: Status;
+    status: AdminStatus;
     organization_id: string;
 }
 

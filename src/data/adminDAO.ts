@@ -6,9 +6,16 @@ import { AdminDatabaseInterface } from "../interfaces/Admin";
 export default class AdminDAO {
     readonly className = this.constructor.name;
 
+    /**
+     * Creates new admin under organization
+     * @param admin - admin details to be aded
+     * @param organizationId - id of organization admin will be created under
+     * @returns - newly created admin or null
+     */
     async createAdminByOrganizationId(admin: Admin, organizationId: string): Promise<Admin | null> {
         logger.verbose("Entering method createAdminByOrganizationId()", {
             class: this.className,
+            values: { admin, organizationId },
         });
 
         const sqlCreate =
@@ -36,14 +43,13 @@ export default class AdminDAO {
                 role: result.role,
                 dateCreated: result.date_created,
                 status: result.status,
-                organizationId: result.organization_id,
+                // organizationId: result.organization_id,
             });
         });
     }
 
     // todo:patchAdmin method() to replace updateAdmin()
 
-    // eslint-disable-next-line consistent-return
     async updateAdmin(admin: Admin) {
         logger.verbose("Entering method updateAdmin()", {
             class: this.className,
@@ -106,8 +112,43 @@ export default class AdminDAO {
                 role: admin.role,
                 dateCreated: admin.date_created,
                 status: admin.status,
-                organizationId: admin.organization_id,
+                // organizationId: admin.organization_id,
             });
+        });
+    }
+
+    /**
+     * Returns list of all admins in organization
+     * @param orgId - id to search in organization with
+     * @returns - list of admins
+     */
+    async findAllAdminsByOrganizationId(orgId: string): Promise<Admin[]> {
+        logger.verbose("Entering method findAllAdminsByOrganizationId()", {
+            class: this.className,
+            values: orgId,
+        });
+
+        const sqlFind = "SELECT * FROM admin WHERE organization_id = $1";
+        return withClient(async (querier) => {
+            const admins = (await querier<AdminDatabaseInterface>(sqlFind, [orgId])).rows;
+
+            if (admins.length === 0) {
+                return [];
+            }
+            return admins.map(
+                (admin) =>
+                    new Admin({
+                        authId: admin.auth_id,
+                        firstName: admin.first_name,
+                        lastName: admin.last_name,
+                        language: admin.language,
+                        emailAddress: admin.email_address,
+                        role: admin.role,
+                        dateCreated: admin.date_created,
+                        status: admin.status,
+                        // organizationId: admin.organization_id,
+                    })
+            );
         });
     }
 }
@@ -148,6 +189,8 @@ const test = new AdminDAO();
 //     new Date(),
 //     "VALID"
 // );
+
+// test.findAllAdminsByOrganizationId("dab32727-cb7c-4320-8865-6f1b842785ed");
 
 // test.updateAdmin(admin)
 // test.findAllAdminsInOrganization("92181711-98ed-48c7-9cc6-75afaf2ba728")

@@ -1,7 +1,3 @@
-// import mysql2 from "mysql2/promise";
-// import "dotenv/config";
-// import logger from "../utilities/winstonConfig";
-// import { LeagueCompetitionModel } from "../models/LeagueCompetition";
 import format from "pg-format";
 import { BracketDatabaseInterface } from "../interfaces/Bracket";
 import { ContestDatabaseInterface } from "../interfaces/Contest";
@@ -14,13 +10,18 @@ import { TimeSlot } from "../models/competition/TimeSlot";
 import { Tournament } from "../models/competition/Tournament";
 import { TournamentGame } from "../models/competition/TournamentGame";
 import { Team } from "../models/Team";
-import { TournamentStatus } from "../utilities/enums";
+import { TournamentGameStatus } from "../utilities/enums/competitionEnum";
 import logger from "../utilities/winstonConfig";
 import { IsRollback, withClient, withClientRollback } from "./database";
 
 export default class CompetitionDAO {
     private readonly className = this.constructor.name;
 
+    /**
+     * Will create new tournament object in database without games
+     * @param tournament - tournament object to be added to database
+     * @returns - returns the tournament details or null
+     */
     async createTournament(tournament: Tournament): Promise<Tournament | null> {
         logger.verbose("Entering method createTournament()", {
             class: this.className,
@@ -65,6 +66,11 @@ export default class CompetitionDAO {
         });
     }
 
+    /**
+     * Returns list of games in tournament
+     * @param tournamentId - id to search by
+     * @returns - Tournament details or null
+     */
     async findTournamentByIdWithGames(tournamentId: number): Promise<Tournament | null> {
         logger.verbose("Entering method findTournamentId()", {
             class: this.className,
@@ -128,6 +134,11 @@ export default class CompetitionDAO {
         });
     }
 
+    /**
+     * Patches tournament details rather than completely updating object
+     * @param tournament - tournament details to be changed
+     * @returns - updated tournament details
+     */
     async patchTournament(tournament: Tournament): Promise<Tournament | null> {
         logger.verbose("Entering method createTournamentGame()", {
             class: this.className,
@@ -173,6 +184,11 @@ export default class CompetitionDAO {
         });
     }
 
+    /**
+     * Adds new tournament games to an existing tournament
+     * @param games - list of games that will be created in tournament
+     * @returns - returns list of the games just added
+     */
     async createTournamentGames(games: TournamentGame[]): Promise<TournamentGame[]> {
         logger.verbose("Entering method createTournamentGames()", {
             class: this.className,
@@ -232,6 +248,11 @@ export default class CompetitionDAO {
         });
     }
 
+    /**
+     * Creates new contest to setup league play
+     * @param contest - contest details to be added to database
+     * @returns - returns contest details or null
+     */
     async createContest(contest: Contest): Promise<Contest | null> {
         logger.verbose("Entering method createContest()", {
             class: this.className,
@@ -279,6 +300,11 @@ export default class CompetitionDAO {
         });
     }
 
+    /**
+     * Creates new leagues without divisions or brackets
+     * @param leagues - list of leagues to be created
+     * @returns - returns list of leagues just created
+     */
     async createLeagues(leagues: League[]): Promise<League[]> {
         logger.verbose("Entering method createLeagues()", {
             class: this.className,
@@ -320,6 +346,15 @@ export default class CompetitionDAO {
         });
     }
 
+    /**
+     * Due to the nested nature of this data, there will many queries on the database
+     * A single connection is used to enter all data into the database, preventing
+     * the need to drop and acquire connections for every object
+     * @param leagues - list of leagues with divisions and brackets
+     * @param orgId - organization to create leagues under, ? may not be needed in future
+     * @param contestId - contest to put leagues under
+     * @returns - returns true or false for success and failure
+     */
     async createLeaguesAndChildren(
         leagues: League[],
         orgId: string,
@@ -390,6 +425,10 @@ export default class CompetitionDAO {
             // i'm not feeling this. It causes a lot of query operations on the database
             // won't be run that often. Creating leagues only happens twice a semester at
             // GCU at least. Fetching this list on the other hand may be slow. We will see
+
+            // foreach league we enter in the details then use the returned id to enter
+            // in divisions. This pattern continues all the way down the tree to the
+            // timeslots for brackets
             leagues.forEach(async (league) => {
                 const [returnedLeague] = (
                     await querier(sqlLeague, [
@@ -465,6 +504,11 @@ export default class CompetitionDAO {
         return result;
     }
 
+    /**
+     * Finds all leagues under a contest along with its children
+     * @param contestId - id to fetch leagues with
+     * @returns - returns list of leagues, division, and brackets
+     */
     async findLeaguesAndChildrenByContestId(contestId: number): Promise<League[]> {
         logger.verbose("Entering method findLeaguesAndChildrenByContestId()", {
             class: this.className,
@@ -477,8 +521,7 @@ export default class CompetitionDAO {
         const sqlTimeSlot = "SELECT * FROM bracket_time_slots WHERE bracket_id IN (%L)";
         const sqlTeams = "SELECT * FROM team WHERE bracket_id IN (%L)";
 
-        // this is all so gross
-
+        // set of queries creates lists of leagues, divisions, and brackets that are unsorted
         const result = await withClientRollback(async (querier) => {
             const leagues = (await querier<LeagueDatabaseInterface>(sqlLeague, [contestId])).rows;
 
@@ -501,16 +544,17 @@ export default class CompetitionDAO {
                 return IsRollback;
             }
 
-            console.log("throw");
-
             /** My thought process here was to reverse the process for the insert function
-             * above. It relies on querying the database for every single league, division,
-             * bracket, etc. With this one it only queries once for each object, then
+             * above. The insert relies on querying the database for every single league, division,
+             * bracket, etc. With this method it only queries once for each object, then
              * relies on server power to sort the results into objects. This retrieve
              * function is going to be used a lot, so we will keep an eye on its performance
              */
             const formattedLeagues = leagues.map((league) => {
                 const divisionList = divisions
+                    // every division is sorted out first by checking if the foreign key
+                    // on the division matches the league id
+                    // this pattern continues for the other objects
                     .filter((division) => division.league_id === league.id)
                     .map((division) => {
                         const bracketList = brackets
@@ -594,6 +638,11 @@ export default class CompetitionDAO {
         return result;
     }
 
+    /**
+     * Returns contest details by using the id
+     * @param contestId - id to search for contest
+     * @returns - contest object or null
+     */
     async findContestById(contestId: number): Promise<Contest | null> {
         logger.verbose("Entering method findContest()", {
             class: this.className,
@@ -626,8 +675,13 @@ export default class CompetitionDAO {
         });
     }
 
-    async findBracketId(bracketId: number): Promise<Bracket | null> {
-        logger.verbose("Entering method findBracketId()", {
+    /**
+     * Returns bracket object along with timeslots
+     * @param bracketId - id to search for bracket with
+     * @returns - Bracket object or null
+     */
+    async findBracketById(bracketId: number): Promise<Bracket | null> {
+        logger.verbose("Entering method findBracketById()", {
             class: this.className,
             values: bracketId,
         });
@@ -670,7 +724,7 @@ export default class CompetitionDAO {
 
     /**
      * This method works its way up the tree starting with the bracket. Will create
-     * nested object list from contest all the way to the bracket it started with.
+     * nested object list from bracket all the way to the contest.
      *
      * @param bracketId - Bracket id to search with
      * @returns - returns a Contest object with the tree to the bracket
@@ -746,49 +800,48 @@ export default class CompetitionDAO {
         });
     }
 
-    // async patchBracket(bracket: Bracket): Promise<Bracket[] | null>{    }
-    // async findLeagues() {}
+    // todo: async patchBracket(bracket: Bracket): Promise<Bracket[] | null>{    }
 }
 
 const test = new CompetitionDAO();
-const list: TournamentGame[] = [
-    new TournamentGame({
-        id: null,
-        dateCreated: null,
-        gameDate: null,
-        location: "GCU",
-        locationDetails: "",
-        scoreHome: 0,
-        scoreAway: 0,
-        seedHome: 1,
-        seedAway: 2,
-        statusHome: TournamentStatus.NOTPLAYED,
-        statusAway: TournamentStatus.NOTPLAYED,
-        level: 1,
-        round: 1,
-        homeTeamId: 4,
-        awayTeamId: 10,
-        tournamentId: 2,
-    }),
-    new TournamentGame({
-        id: null,
-        dateCreated: null,
-        gameDate: null,
-        location: "GCU",
-        locationDetails: "",
-        scoreHome: 0,
-        scoreAway: 0,
-        seedHome: 1,
-        seedAway: 2,
-        statusHome: TournamentStatus.NOTPLAYED,
-        statusAway: TournamentStatus.NOTPLAYED,
-        level: 1,
-        round: 2,
-        homeTeamId: 4,
-        awayTeamId: 10,
-        tournamentId: 2,
-    }),
-];
+// const list: TournamentGame[] = [
+//     new TournamentGame({
+//         id: null,
+//         dateCreated: null,
+//         gameDate: null,
+//         location: "GCU",
+//         locationDetails: "",
+//         scoreHome: 0,
+//         scoreAway: 0,
+//         seedHome: 1,
+//         seedAway: 2,
+//         statusHome: TournamentStatus.NOTPLAYED,
+//         statusAway: TournamentStatus.NOTPLAYED,
+//         level: 1,
+//         round: 1,
+//         homeTeamId: 4,
+//         awayTeamId: 10,
+//         tournamentId: 2,
+//     }),
+//     new TournamentGame({
+//         id: null,
+//         dateCreated: null,
+//         gameDate: null,
+//         location: "GCU",
+//         locationDetails: "",
+//         scoreHome: 0,
+//         scoreAway: 0,
+//         seedHome: 1,
+//         seedAway: 2,
+//         statusHome: TournamentStatus.NOTPLAYED,
+//         statusAway: TournamentStatus.NOTPLAYED,
+//         level: 1,
+//         round: 2,
+//         homeTeamId: 4,
+//         awayTeamId: 10,
+//         tournamentId: 2,
+//     }),
+// ];
 
 testFunc();
 

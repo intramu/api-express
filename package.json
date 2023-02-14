@@ -5,7 +5,7 @@
     "main": "index.ts",
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
-        "dev": "concurrently \"npx tsc --watch \" \"nodemon -q dist/server/newIndex.js\""
+        "dev": "concurrently \"npx tsc --watch \" \"nodemon -q dist/api/index.js\""
     },
     "author": "",
     "license": "ISC",

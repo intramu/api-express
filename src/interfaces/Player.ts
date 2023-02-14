@@ -1,4 +1,9 @@
-import { Gender, Language, Role, Status, Visibility } from "../utilities/enums";
+import {
+    PlayerGender,
+    Language,
+    PlayerStatus,
+    PlayerVisibility,
+} from "../utilities/enums/userEnum";
 
 export interface PlayerNew {
     authId: string;
@@ -6,12 +11,21 @@ export interface PlayerNew {
     lastName: string;
     language: Language;
     emailAddress: string;
-    role: Role;
-    gender: Gender;
-    dob: Date;
-    visibility: Visibility;
+    gender: PlayerGender;
+    dateOfBirth: Date;
+    visibility: PlayerVisibility;
     graduationTerm: string;
     image: string;
-    status: Status;
+    status: PlayerStatus;
     organizationId: string;
+}
+
+export interface PlayerTeam {
+    authId: string;
+    role: string;
+    firstName: string;
+    lastName: string;
+    gender: string;
+    status: string;
+    image: string;
 }

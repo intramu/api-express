@@ -1,4 +1,4 @@
-import { Sport } from "../../utilities/enums";
+import { Sport } from "../../utilities/enums/commonEnum";
 import { Division } from "./Division";
 
 export class League {

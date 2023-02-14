@@ -1,10 +1,10 @@
 import {
     ContestType,
     PlayoffSeedingType,
-    Status,
+    CompetitionStatus,
     TournamentType,
-    Visibility,
-} from "../../utilities/enums";
+    CompetitionVisibility,
+} from "../../utilities/enums/competitionEnum";
 import { League } from "./League";
 
 export class Contest {
@@ -35,8 +35,8 @@ export class Contest {
     constructor(props: {
         id: number;
         name: string | null;
-        visibility: Visibility | null;
-        status: Status | null;
+        visibility: CompetitionVisibility | null;
+        status: CompetitionStatus | null;
         dateCreated: Date | null;
         startDate: Date | null;
         endDate: Date | null;
@@ -77,19 +77,19 @@ export class Contest {
         this.name = name;
     }
 
-    public getVisibility(): Visibility | null {
+    public getVisibility(): CompetitionVisibility | null {
         return this.visibility;
     }
 
-    public setVisibility(visibility: Visibility): void {
+    public setVisibility(visibility: CompetitionVisibility): void {
         this.visibility = visibility;
     }
 
-    public getStatus(): Status | null {
+    public getStatus(): CompetitionStatus | null {
         return this.status;
     }
 
-    public setStatus(status: Status): void {
+    public setStatus(status: CompetitionStatus): void {
         this.status = status;
     }
 

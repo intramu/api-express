@@ -3,28 +3,27 @@ import express from "express";
 import { body, ValidationChain, validationResult } from "express-validator";
 import { APIResponse } from "../models/APIResponse";
 import { graduationTerms } from "./constantsThatNeedAHome";
+import { Sport } from "./enums/commonEnum";
 import {
-    Gender,
-    Language,
-    Sport,
-    Visibility,
-    DivisionType,
-    DivisionLevel,
-    Status,
-    TournamentType,
-    PlayoffSeedingType,
+    CompetitionStatus,
+    CompetitionVisibility,
     ContestType,
-} from "./enums";
+    DivisionLevel,
+    DivisionType,
+    PlayoffSeedingType,
+    TournamentType,
+} from "./enums/competitionEnum";
+import { Language, PlayerGender, PlayerStatus, PlayerVisibility } from "./enums/userEnum";
 
 // utility methods
-const printEnums = (values: any, type: string) => {
+const printEnums = (enumValue: any, enumName: string) => {
     // adds values of enum to list spacing out each value, then converts into string
-    const list = Object.values(values)
+    const list = Object.values(enumValue)
         .map((value) => ` ${value}`)
         .toString();
 
     // rips of last comma on list of options
-    return `valid ${type} options are [${list.substring(0, list.length)} ]`;
+    return `valid ${enumName} options are [${list.substring(0, list.length)} ]`;
 };
 
 const listEnums = (enumValue: any) => Object.values(enumValue).map((value: any) => value);
@@ -32,6 +31,14 @@ const listEnums = (enumValue: any) => Object.values(enumValue).map((value: any) 
 // schemas
 export const newPersonSchema = () => {
     return [
+        body("authId").optional().trim().escape(),
+        body("status")
+            .optional()
+            .trim()
+            .escape()
+            .toUpperCase()
+            .isIn(listEnums(PlayerStatus))
+            .withMessage(printEnums(PlayerStatus, "status")),
         body("firstName")
             .notEmpty()
             .withMessage("value 'firstName' is missing")
@@ -58,40 +65,41 @@ export const newPersonSchema = () => {
             .withMessage("value 'dateOfBirth' is missing")
             .isDate({ format: "YYYY-MM-DD", strictMode: true })
             .withMessage("dateOfBirth is required in format YYYY-MM-DD"),
-        body("organizationId")
-            .notEmpty()
-            .withMessage("value 'organizationId' is missing")
-            .isUUID()
-            .withMessage("organizationId is not in UUID format"),
+        // body("organizationId")
+        //     .notEmpty()
+        //     .withMessage("value 'organizationId' is missing")
+        //     .isUUID()
+        //     .withMessage("organizationId is not in UUID format"),
         body("gender")
             .notEmpty()
             .withMessage("value gender is missing")
             .trim()
             .escape()
             .toUpperCase()
-            .isIn([Gender.FEMALE, Gender.MALE])
-            .withMessage(printEnums(Gender, "gender")),
+            .isIn(listEnums(PlayerGender))
+            .withMessage(printEnums(PlayerGender, "gender")),
         body("visibility")
             .notEmpty()
             .withMessage("value 'visibility' is missing")
             .trim()
             .escape()
             .toUpperCase()
-            .isIn([Visibility.CLOSED, Visibility.OPEN, Visibility.PRIVATE])
-            .withMessage(printEnums(Visibility, "visibility")),
+            .isIn(listEnums(PlayerVisibility))
+            .withMessage(printEnums(PlayerVisibility, "visibility")),
         body("language")
             .notEmpty()
             .withMessage("value language is missing")
             .trim()
             .escape()
             .toUpperCase()
-            .isIn([Language.ENGLISH])
+            .isIn(listEnums(Language))
             .withMessage(printEnums(Language, "language")),
         body("graduationTerm")
             .notEmpty()
             .withMessage("value 'graduationTerm' is missing")
             .trim()
             .escape()
+            .toUpperCase()
             .isIn([graduationTerms[0], graduationTerms[1], graduationTerms[2]])
             .withMessage(
                 `valid graudation options are ${graduationTerms[0]}, ${graduationTerms[1]}, ${graduationTerms[2]}`
@@ -123,28 +131,45 @@ export const patchPersonSchema = () => {
             .optional()
             .isDate({ format: "YYY-MM-DD", strictMode: true })
             .withMessage("dateOfBirth is required in format YYYY-MM-DD"),
-        body("organizationId").isUUID().withMessage("organizationId is not in UUID format"),
+        // body("organizationId").isUUID().withMessage("organizationId is not in UUID format"),
         body("gender")
             .optional()
             .trim()
             .escape()
             .toUpperCase()
-            .isIn([Gender.FEMALE, Gender.MALE])
-            .withMessage(printEnums(Gender, "gender")),
+            .isIn(listEnums(PlayerGender))
+            .withMessage(printEnums(PlayerGender, "gender")),
         body("visibility")
             .optional()
             .trim()
             .escape()
             .toUpperCase()
-            .isIn([Visibility.CLOSED, Visibility.OPEN, Visibility.PRIVATE])
-            .withMessage(printEnums(Visibility, "visibility")),
+            .isIn(listEnums(PlayerVisibility))
+            .withMessage(printEnums(PlayerVisibility, "visibility")),
         body("language")
             .optional()
             .trim()
             .escape()
             .toUpperCase()
-            .isIn([Language.ENGLISH])
+            .isIn(listEnums(Language))
             .withMessage(printEnums(Language, "language")),
+        body("status")
+            .optional()
+            .trim()
+            .escape()
+            .toUpperCase()
+            .isIn(listEnums(PlayerStatus))
+            .withMessage(printEnums(PlayerStatus, "status")),
+        body("image").optional().trim().escape(),
+        body("graduationTerm")
+            .optional()
+            .trim()
+            .escape()
+            .toUpperCase()
+            .isIn([graduationTerms[0], graduationTerms[1], graduationTerms[2]])
+            .withMessage(
+                `valid graudation options are ${graduationTerms[0]}, ${graduationTerms[1]}, ${graduationTerms[2]}`
+            ),
     ];
 };
 
@@ -191,23 +216,23 @@ export const finishProfileSchema = () => {
             .trim()
             .escape()
             .toUpperCase()
-            .isIn([Gender.FEMALE, Gender.MALE])
-            .withMessage(printEnums(Gender, "gender")),
+            .isIn(listEnums(PlayerGender))
+            .withMessage(printEnums(PlayerGender, "gender")),
         body("visibility")
             .notEmpty()
             .withMessage("value 'visibility' is missing")
             .trim()
             .escape()
             .toUpperCase()
-            .isIn([Visibility.CLOSED, Visibility.OPEN, Visibility.PRIVATE])
-            .withMessage(printEnums(Visibility, "visibility")),
+            .isIn(listEnums(PlayerVisibility))
+            .withMessage(printEnums(PlayerVisibility, "visibility")),
         body("language")
             .notEmpty()
             .withMessage("value 'language is missing")
             .trim()
             .escape()
             .toUpperCase()
-            .isIn([Language.ENGLISH])
+            .isIn(listEnums(Language))
             .withMessage(printEnums(Language, "language")),
         body("graduationTerm")
             .notEmpty()
@@ -409,17 +434,15 @@ export const newContestSchema = () => {
             .withMessage("value 'visibility' is missing")
             .trim()
             .toUpperCase()
-            .isIn([Visibility.OPEN, Visibility.PRIVATE])
-            .withMessage(
-                `valid visibility options are [ ${Visibility.OPEN}, ${Visibility.PRIVATE} ]`
-            ),
+            .isIn(listEnums(CompetitionVisibility))
+            .withMessage(printEnums(CompetitionVisibility, "visibility")),
         body("status")
             .notEmpty()
             .withMessage("value 'status' is missing")
             .trim()
             .toUpperCase()
-            .isIn([Status.ACTIVE, Status.INACTIVE])
-            .withMessage(`valid status options are [ ${Status.ACTIVE}, ${Status.INACTIVE} ]`),
+            .isIn(listEnums(CompetitionStatus))
+            .withMessage(printEnums(CompetitionStatus, "status")),
         body("startDate")
             .notEmpty()
             .withMessage("value 'startDate' is missing")

@@ -1,7 +1,14 @@
-import { Gender, Language, Role, Status, Visibility } from "../utilities/enums";
+import {
+    Language,
+    PlayerGender,
+    PlayerStatus,
+    PlayerVisibility,
+} from "../utilities/enums/userEnum";
 import { User } from "./User";
 
 export class Player extends User {
+    protected status;
+
     protected gender;
 
     protected dob;
@@ -15,20 +22,20 @@ export class Player extends User {
     protected phoneNumber: string;
 
     constructor(props: {
-        authId: string | null;
+        authId: string;
         firstName: string;
         lastName: string;
         language: Language | null;
         emailAddress: string;
-        role: Role | null;
-        gender: Gender | null;
+        // role: Role | null;
+        gender: PlayerGender | null;
         dob: Date | null;
-        visibility: Visibility | null;
+        visibility: PlayerVisibility | null;
         graduationTerm: string;
         image: string;
-        status: Status | null;
+        status: PlayerStatus | null;
         dateCreated: Date | null;
-        organizationId: string;
+        // organizationId: string;
     }) {
         super(
             props.authId,
@@ -36,13 +43,14 @@ export class Player extends User {
             props.lastName,
             props.language,
             props.emailAddress,
-            props.role,
-            props.dateCreated,
-            props.status,
-            props.organizationId
+            // props.role,
+            props.dateCreated
+            // props.status
+            // props.organizationId
         );
 
         this.phoneNumber = "";
+        this.status = props.status;
         this.gender = props.gender;
         this.dob = props.dob;
         this.visibility = props.visibility;
@@ -58,11 +66,11 @@ export class Player extends User {
         this.phoneNumber = phoneNumber;
     }
 
-    getGender(): Gender | null {
+    getGender(): PlayerGender | null {
         return this.gender;
     }
 
-    setGender(gender: Gender): void {
+    setGender(gender: PlayerGender): void {
         this.gender = gender;
     }
 
@@ -74,11 +82,11 @@ export class Player extends User {
         this.dob = dob;
     }
 
-    getVisibility(): Visibility | null {
+    getVisibility(): PlayerVisibility | null {
         return this.visibility;
     }
 
-    setVisibility(visibility: Visibility): void {
+    setVisibility(visibility: PlayerVisibility): void {
         this.visibility = visibility;
     }
 
@@ -96,6 +104,14 @@ export class Player extends User {
 
     setImage(image: string): void {
         this.image = image;
+    }
+
+    getStatus(): PlayerStatus | null {
+        return this.status;
+    }
+
+    setStatus(status: PlayerStatus | null) {
+        this.status = status;
     }
 
     // Constructors

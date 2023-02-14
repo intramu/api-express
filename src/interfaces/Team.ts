@@ -16,3 +16,10 @@ export interface TeamDatabaseInterface {
     organization_id: string;
     bracket_id: number;
 }
+
+export interface TeamNew {
+    name: string;
+    image: string;
+    visibility: Visibility;
+    sport: Sport;
+}

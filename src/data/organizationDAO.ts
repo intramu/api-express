@@ -8,6 +8,11 @@ import { IsRollback, withClient, withClientRollback } from "./database";
 export default class OrganizationDAO {
     private readonly className = this.constructor.name;
 
+    /**
+     * Returns organization details using id
+     * @param orgId - id to search for organization with
+     * @returns - Organization object or null
+     */
     async findOrganizationById(orgId: string): Promise<Organization | null> {
         logger.verbose("Entering method findOrganizationById()", {
             class: this.className,
@@ -37,6 +42,11 @@ export default class OrganizationDAO {
         });
     }
 
+    /**
+     * Completely replaces all info with new organization details
+     * @param org - organization details to update with
+     * @returns - newly updated organization
+     */
     async updateOrganization(org: Organization): Promise<Organization | null> {
         logger.verbose("Entering method updateOrganization()", {
             class: this.className,
@@ -73,6 +83,10 @@ export default class OrganizationDAO {
         });
     }
 
+    /**
+     * Returns list of all organizations in database
+     * @returns - list of organizations
+     */
     async findAllOrganizations(): Promise<Organization[]> {
         logger.verbose("Entering method findAllOrganizations()", {
             class: this.className,
@@ -122,6 +136,7 @@ export default class OrganizationDAO {
             "INSERT INTO admin (auth_id, first_name, last_name, language, email_address, role, status, organization_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)";
 
         const result = await withClientRollback(async (querier) => {
+            // organization is first created
             const [organization] = (
                 await querier<OrganizationDatabaseInterface>(sqlCreate, [
                     org.getName(),
@@ -136,6 +151,7 @@ export default class OrganizationDAO {
                 return IsRollback;
             }
 
+            // next master admin is created with previously created organization id
             const [administrator] = (
                 await querier<AdminDatabaseInterface>(sqlAddAdmin, [
                     admin.getAuthId(),
@@ -153,6 +169,7 @@ export default class OrganizationDAO {
                 return IsRollback;
             }
 
+            // if any error occur transaction is rolled back to prevent admin-less organizations
             const responseObject = {
                 admin: new Admin({
                     authId: administrator.auth_id,
@@ -163,7 +180,7 @@ export default class OrganizationDAO {
                     role: administrator.role,
                     status: administrator.status,
                     dateCreated: administrator.date_created,
-                    organizationId: administrator.organization_id,
+                    // organizationId: administrator.organization_id,
                 }),
                 organization: new Organization({
                     id: organization.id,
@@ -185,66 +202,80 @@ export default class OrganizationDAO {
         return result;
     }
 
-    async findAllAdminsByOrganizationId(orgId: string): Promise<Admin[]> {
-        logger.verbose("Entering method findAllAdminsByOrganizationId()", {
+    /**
+     * Returns organization details by searching with admin id
+     * @param adminId - id of admin to search for organization with
+     * @returns - organization object or null
+     */
+    async findOrganizationByAdminId(adminId: string): Promise<Organization | null> {
+        logger.verbose("Entering method findOrganizationByAdminId()", {
             class: this.className,
         });
 
-        const sqlAll = "SELECT * FROM admin WHERE organization_id=$1";
+        const sqlFind =
+            "SELECT organization.id, organization.name, organization.image, organization.info, organization.main_color, organization.approval_status, organization.date_created FROM admin INNER JOIN organization ON organization.id = admin.organization_id WHERE auth_id = $1";
 
         return withClient(async (querier) => {
-            // const response = await querier(sqlAll, [orgId]);
-            // const results = response.rows;
+            const [response] = (await querier<OrganizationDatabaseInterface>(sqlFind, [adminId]))
+                .rows;
 
-            // console.log(results);
+            if (response === undefined) {
+                return null;
+            }
 
-            throw new Error("Method not implemented.");
-        });
-    }
-
-    async findAllPlayersByOrganizationId(orgId: string) {
-        logger.verbose("Entering method findAllPlayersByOrganizationId()", {
-            class: this.className,
-        });
-
-        const sqlAll = "SELECT * FROM admin WHERE organization_id=$1";
-
-        return withClient(async (querier) => {
-            // const response = await querier(sqlAll, [orgId]);
-            // const results = response.rows;
-
-            // console.log(results);
-
-            throw new Error("Method not implemented.");
-        });
-    }
-
-    async findAllTeamsByOrganizationId() {
-        logger.verbose("Entering method findAllPlayersByOrganizationId()", {
-            class: this.className,
-        });
-
-        const sqlAll = "SELECT * FROM admin WHERE organization_id=$1";
-
-        return withClient(async (querier) => {
-            // const response = await querier(sqlAll, [orgId]);
-            // const results = response.rows;
-
-            // console.log(results);
-
-            throw new Error("Method not implemented.");
+            return new Organization({
+                id: response.id,
+                name: response.name,
+                image: response.image,
+                info: response.info,
+                mainColor: response.main_color,
+                approvalStatus: response.approval_status,
+                dateCreated: response.date_created,
+            });
         });
     }
 
     /**
-     * Probably don't need delete method until much later. There should be other alternatives rather then completely deleting the organization. Will have to orchestrate what gets deleted.
+     * Returns organization details by searching with admin id
+     * @param playerId - id of player to search for organization with
+     * @returns - organization object or null
      */
-}
+    async findOrganizationByPlayerId(playerId: string): Promise<Organization | null> {
+        logger.verbose("Entering method findOrganizationByPlayerId()", {
+            class: this.className,
+        });
 
+        const sqlSelect =
+            "SELECT organization.id, organization.name, organization.image, organization.info, organization.main_color, organization.approval_status, organization.date_created FROM player INNER JOIN organization ON organization.id = player.organization_id WHERE auth_id = $1";
+
+        return withClient(async (querier) => {
+            const [response] = (await querier<OrganizationDatabaseInterface>(sqlSelect, [playerId]))
+                .rows;
+
+            if (response === undefined) {
+                return null;
+            }
+
+            return new Organization({
+                id: response.id,
+                name: response.name,
+                image: response.image,
+                info: response.info,
+                mainColor: response.main_color,
+                approvalStatus: response.approval_status,
+                dateCreated: response.date_created,
+            });
+        });
+    }
+
+    // Probably don't need delete method until much later. There should be other alternatives rather
+    // then completely deleting the organization. Will have to orchestrate what gets deleted.
+}
 const test = new OrganizationDAO();
 
 async function asyncFunc() {
     // console.log(await test.findAllOrganizations());
+    // await test.findOrganizationByAdminId("test1");
 }
 
 asyncFunc();

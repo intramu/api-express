@@ -1,6 +1,6 @@
 import { Admin } from "../models/Admin";
 import { Organization } from "../models/Organization";
-import { Status } from "../utilities/enums";
+import { OrganizationStatus } from "../utilities/enums/commonEnum";
 
 export interface OrganizationDatabaseInterface {
     id: string;
@@ -8,7 +8,7 @@ export interface OrganizationDatabaseInterface {
     image: string;
     info: string;
     main_color: string;
-    approval_status: Status;
+    approval_status: OrganizationStatus;
     date_created: Date;
 }
 

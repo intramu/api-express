@@ -1,4 +1,4 @@
-import { DivisionLevel, DivisionType } from "../../utilities/enums";
+import { DivisionLevel, DivisionType } from "../../utilities/enums/competitionEnum";
 import { Bracket } from "./Bracket";
 
 export class Division {

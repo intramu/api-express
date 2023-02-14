@@ -1,39 +1,12 @@
-export enum Gender {
-    MALE = "MALE",
-    FEMALE = "FEMALE",
-}
-
-export enum Language {
-    ENGLISH = "ENGLISH",
-}
-
-export enum Sport {
-    SOCCER = "SOCCER",
-    BASKETBALL = "BASKETBALL",
-    FLAGFOOTBALL = "FLAGFOOTBALL",
-}
-
-export enum Role {
-    CAPTAIN = "CAPTAIN",
-    COCAPTAIN = "COCAPTAIN",
-    PLAYER = "PLAYER",
-    MASTER = "MASTER",
-    WORKER = "WORKER",
-}
-
-export enum Visibility {
+/** Enums related to competitions */
+export enum CompetitionVisibility {
     PRIVATE = "PRIVATE",
-    OPEN = "OPEN",
-    CLOSED = "CLOSED",
+    PUBLIC = "PUBLIC",
 }
 
-export enum Status {
+export enum CompetitionStatus {
     ACTIVE = "ACTIVE",
     INACTIVE = "INACTIVE",
-    INCOMPLETE = "INCOMPLETE",
-    BANNED = "BANNED",
-    GRADUATED = "GRADUATED",
-    WAITING = "WAITING",
 }
 
 export enum TournamentType {
@@ -46,8 +19,7 @@ export enum TournamentSeedType {
     POINTS = "POINTS",
     RANDOM = "RANDOM",
 }
-
-export enum TournamentStatus {
+export enum TournamentGameStatus {
     NOTPLAYED = "NOTPLAYED",
     TOBEDETERMINED = "TOBEDETERMINED",
     WON = "WON",
@@ -62,18 +34,15 @@ export enum TournamentStatus {
 export enum ContestType {
     POINTS = "POINTS",
 }
-
 export enum PlayoffSeedingType {
     CROSS = "CROSS",
     INDEPENDENT = "INDEPENDENT",
 }
-
 export enum DivisionType {
     MENS = "MENS",
     WOMENS = "WOMENS",
     COED = "COED",
 }
-
 export enum DivisionLevel {
     A = "A",
     B = "B",

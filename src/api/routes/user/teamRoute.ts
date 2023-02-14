@@ -1,11 +1,11 @@
 import express from "express";
 import { auth } from "express-oauth2-jwt-bearer";
 import { body, param, validationResult } from "express-validator";
-import { PlayerBusinessService } from "../../business/PlayerBusinessService";
-import { APIResponse } from "../../models/APIResponse";
-import { Team } from "../../models/Team";
-import { Visibility } from "../../utilities/enums";
-import { validate } from "../../utilities/validationSchemas";
+import { PlayerBusinessService } from "../../../business/user/PlayerBusinessService";
+import { TeamBusinessService } from "../../../business/user/TeamBusinessService";
+import { APIResponse } from "../../../models/APIResponse";
+import { TeamVisibility } from "../../../utilities/enums/teamEnum";
+import { validate } from "../../../utilities/validationSchemas";
 
 const router = express.Router();
 
@@ -15,6 +15,7 @@ const checkJwt = auth({
 });
 
 const playerService = new PlayerBusinessService();
+const teamService = new TeamBusinessService();
 
 /**
  * possibly use query parameter to filter for active teams
@@ -30,7 +31,7 @@ router.get(
             return res.status(400).json(APIResponse[400](errorResponse));
         }
 
-        const response = await playerService.findAllTeamsByOrganizationId(req.params?.id);
+        const response = await teamService.findAllTeamsByOrganizationId(req.params?.id);
 
         if (response instanceof APIResponse) {
             return res.status(response.statusCode).json(response);
@@ -51,7 +52,7 @@ router.get(
             return res.status(400).json(APIResponse[400](errorResponse));
         }
 
-        const response = await playerService.findAllActiveTeams(req.params?.id);
+        const response = await teamService.findAllActiveTeams(req.params?.id);
 
         if (response instanceof APIResponse) {
             return res.status(response.statusCode).json(response);
@@ -62,7 +63,7 @@ router.get(
 );
 
 router.put(
-    "/join",
+    "/:id/join",
     validate([
         body("teamId").notEmpty().withMessage("value 'teamId' is missing").trim().escape().toInt(),
     ]),
@@ -73,7 +74,7 @@ router.put(
         const { teamId } = req.body;
         const { sub } = req.auth.payload;
 
-        const response = await playerService.joinTeam(sub!, Number(teamId));
+        const response = await teamService.joinTeam(sub!, Number(teamId));
 
         if (response instanceof APIResponse) {
             return res.status(response.statusCode).json(response);
@@ -83,7 +84,7 @@ router.put(
     }
 );
 router.put(
-    "/accept",
+    "/:id/accept",
     validate([
         body("requesteeId")
             .notEmpty()
@@ -100,7 +101,7 @@ router.put(
         const { requesteeId, teamId } = req.params;
         const { sub } = req.auth.payload;
 
-        const response = playerService.acceptJoinRequest(requesteeId, sub!, Number(teamId));
+        const response = teamService.acceptJoinRequest(requesteeId, sub!, Number(teamId));
 
         if (response instanceof APIResponse) {
             return res.status(response.statusCode).json(response);
@@ -111,7 +112,7 @@ router.put(
 );
 
 router.post(
-    "/request",
+    "/:id/request",
     validate([
         body("teamId").notEmpty().withMessage("value 'teamId' is missing").trim().escape().toInt(),
     ]),
@@ -123,7 +124,7 @@ router.post(
         const { teamId } = req.body;
         const { sub } = req.auth.payload;
 
-        const response = await playerService.requestToJoinTeam(sub!, Number(teamId));
+        const response = await teamService.requestToJoinTeam(sub!, Number(teamId));
 
         if (response instanceof APIResponse) {
             return res.status(response.statusCode).json(response);
@@ -133,12 +134,25 @@ router.post(
     }
 );
 
-// router.get("/:id", param("id").toInt(), async (req, res) => {
-//     if (isNaN(req.params?.id)) {
-//         return APIResponse[400]("id is not a number");
-//     }
+router.get("/:id", param("id").toInt(), async (req, res) => {
+    // eslint-disable-next-line no-restricted-globals
+    if (isNaN(req.params?.id)) {
+        return APIResponse[400]("id is not a number");
+    }
 
-//     const response = await playerService.findTeamById(req.params?.id);
+    const response = await teamService.findTeamById(req.params?.id);
+
+    if (response instanceof APIResponse) {
+        return res.status(response.statusCode).json(response);
+    }
+
+    return res.status(200).json(response);
+});
+
+// router.get("/", async (req, res) => {
+//     const { sub } = req.auth!.payload;
+
+//     const response = await playerService.findAllActiveTeams();
 
 //     if (response instanceof APIResponse) {
 //         return res.status(response.statusCode).json(response);
@@ -160,9 +174,9 @@ router.post(
             .notEmpty()
             .withMessage("value 'visibility' is missing")
             .toUpperCase()
-            .isIn([Visibility.OPEN, Visibility.CLOSED, Visibility.PRIVATE])
+            .isIn([TeamVisibility.PUBLIC, TeamVisibility.PRIVATE])
             .withMessage(
-                `valid visibility options are [${Visibility.CLOSED}, ${Visibility.OPEN}, ${Visibility.PRIVATE}]`
+                `valid visibility options are [${TeamVisibility.PUBLIC}, ${TeamVisibility.PRIVATE} ]`
             ),
         body("sport").notEmpty().withMessage("sport is missing").trim().escape(),
     ]),
@@ -180,7 +194,7 @@ router.post(
             visibility,
             sport,
         };
-        const response = await playerService.createTeam(newTeam, sub!);
+        const response = await teamService.createTeam(newTeam, sub!);
 
         if (response instanceof APIResponse) {
             return response;

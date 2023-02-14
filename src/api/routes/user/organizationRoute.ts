@@ -1,35 +1,30 @@
 import express from "express";
 import { requiredScopes } from "express-oauth2-jwt-bearer";
-import { check, param } from "express-validator";
-import { OrganizationBusinessService } from "../../business/OrganizationBusinessService";
-import { PlayerBusinessService } from "../../business/PlayerBusinessService";
-import { APIResponse } from "../../models/APIResponse";
-import { Bracket } from "../../models/competition/Bracket";
-import { Division } from "../../models/competition/Division";
-import { League } from "../../models/competition/League";
-import { TimeSlot } from "../../models/competition/TimeSlot";
-import { BracketNewInterface } from "../../interfaces/Bracket";
-import { DivisionNewInterface } from "../../interfaces/Division";
-import { LeagueNewInterface } from "../../interfaces/League";
-import { TimeSlotInterface } from "../../interfaces/TimeSlot";
-import {
-    newContestSchema,
-    newLeagueSchema,
-    newOrganizationSchema,
-    validate,
-} from "../../utilities/validationSchemas";
+import { check } from "express-validator";
+import { OrganizationBusinessService } from "../../../business/user/OrganizationBusinessService";
+import { PlayerBusinessService } from "../../../business/user/PlayerBusinessService";
+import { APIResponse } from "../../../models/APIResponse";
+import { Bracket } from "../../../models/competition/Bracket";
+import { Division } from "../../../models/competition/Division";
+import { League } from "../../../models/competition/League";
+import { TimeSlot } from "../../../models/competition/TimeSlot";
+import { BracketNewInterface } from "../../../interfaces/Bracket";
+import { DivisionNewInterface } from "../../../interfaces/Division";
+import { LeagueNewInterface } from "../../../interfaces/League";
+import { TimeSlotInterface } from "../../../interfaces/TimeSlot";
+import { newContestSchema, newLeagueSchema, validate } from "../../../utilities/validationSchemas";
 
-import { Organization } from "../../models/Organization";
-import { Admin } from "../../models/Admin";
-import { Contest } from "../../models/competition/Contest";
+import { Organization } from "../../../models/Organization";
+import { Contest } from "../../../models/competition/Contest";
+import { CompetitionBusinessService } from "../../../business/user/CompetitionBusinessService";
 
 const router = express.Router();
 
 const organizationService = new OrganizationBusinessService();
 const playerService = new PlayerBusinessService();
+const competitionService = new CompetitionBusinessService();
 
 const adminScoped = requiredScopes("all: organization");
-const sudoScoped = requiredScopes("all: application");
 
 router.post("/contest", validate(newContestSchema()), async (req, res) => {
     const {
@@ -60,7 +55,7 @@ router.post("/contest", validate(newContestSchema()), async (req, res) => {
         leagues: [],
         organizationId: "",
     });
-    const response = await organizationService.createContest(contest, "test1");
+    const response = await competitionService.createContest(contest, "test1");
 
     if (response instanceof APIResponse) {
         return res.status(response.statusCode).json(response);
@@ -125,7 +120,7 @@ router.post("/leagues", validate(newLeagueSchema()), async (req, res) => {
         });
     });
 
-    const response = await organizationService.createLeagues(leagueList, contestId, "test1");
+    const response = await competitionService.createLeagues(leagueList, contestId, "test1");
     if (response instanceof APIResponse) {
         return res.status(response.statusCode).json(response);
     }
@@ -141,7 +136,7 @@ router.get("/contest/:id/leagues", check("id"), async (req, res) => {
     }
     // const { sub } = req.auth!.payload;
 
-    const response = await organizationService.findLeaguesByContestId(Number(id), "test1");
+    const response = await competitionService.findLeaguesByContestId(Number(id), "test1");
     if (response instanceof APIResponse) {
         return res.status(response.statusCode).json(response);
     }
@@ -149,63 +144,17 @@ router.get("/contest/:id/leagues", check("id"), async (req, res) => {
     return res.status(200).json(response);
 });
 
-// sudo scoped
-router
-    .route("/")
-    .post(validate(newOrganizationSchema()), async (req, res) => {
-        const {
-            admin: { firstName, lastName, language, emailAddress },
-            organization: { name, info, mainColor },
-        } = req.body;
-
-        const organization = new Organization({
-            id: "",
-            name,
-            image: "",
-            info,
-            mainColor,
-            approvalStatus: null,
-            dateCreated: null,
-        });
-
-        const admin = {
-            firstName,
-            lastName,
-            language,
-            emailAddress,
-        };
-
-        const response = await organizationService.createOrganizationWithAuth0Account(
-            organization,
-            admin
-        );
+// REVISIT - will only be one method to return names and ids of organizations
+router.route("/").get(
+    // checkJwt,
+    async (req, res) => {
+        const response = await playerService.findOrganizationList();
 
         if (response instanceof APIResponse) {
-            return res.status(response.statusCode).send(response);
+            return res.status(response.statusCode).json(response);
         }
-
-        return res.status(201).json(response);
-    })
-    .get(
-        // checkJwt,
-        async (req, res) => {
-            const response = await playerService.findOrganizationList();
-
-            if (response instanceof APIResponse) {
-                return res.status(response.statusCode).json(response);
-            }
-            return res.status(200).json(response);
-        }
-    )
-    .patch(
-        // do some type of schema check for patching the organization
-        async (req, res) => {
-            res.status(501).json(APIResponse[501]());
-        }
-    );
-
-router.get("/id/:id", async (req, res) => {
-    res.status(501).json(APIResponse[501]());
-});
+        return res.status(200).json(response);
+    }
+);
 
 export default router;

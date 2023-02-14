@@ -1,7 +1,7 @@
-import { Language, Role, Status } from "../utilities/enums";
+import { AdminStatus, Language, PlayerStatus } from "../utilities/enums/userEnum";
 
 export abstract class User {
-    protected id: string | null;
+    protected authId: string;
 
     protected firstName: string;
 
@@ -11,42 +11,42 @@ export abstract class User {
 
     protected emailAddress: string;
 
-    protected role: Role | null;
+    // protected role: Role | null;
 
     protected dateCreated: Date | null;
 
-    protected status: Status | null;
+    // protected status: PlayerStatus | AdminStatus | null;
 
-    protected organizationId: string;
+    // protected organizationId: string;
 
     constructor(
-        authId: string | null,
+        authId: string,
         firstName: string,
         lastName: string,
         language: Language | null,
         emailAddress: string,
-        role: Role | null,
-        dateCreated: Date | null,
-        status: Status | null,
-        organizationId: string
+        // role: Role | null,
+        dateCreated: Date | null
+        // status: PlayerStatus | null
+        // organizationId: string
     ) {
-        this.id = authId;
+        this.authId = authId;
         this.firstName = firstName;
         this.lastName = lastName;
         this.language = language;
         this.emailAddress = emailAddress;
-        this.role = role;
+        // this.role = role;
         this.dateCreated = dateCreated;
-        this.status = status;
-        this.organizationId = organizationId;
+        // this.status = status;
+        // this.organizationId = organizationId;
     }
 
-    getAuthId(): string | null {
-        return this.id;
+    getAuthId(): string {
+        return this.authId;
     }
 
     setAuthId(authId: string): void {
-        this.id = authId;
+        this.authId = authId;
     }
 
     getFirstName(): string {
@@ -81,13 +81,13 @@ export abstract class User {
         this.emailAddress = emailAddress;
     }
 
-    getRole(): Role | null {
-        return this.role;
-    }
+    // getRole(): Role | null {
+    //     return this.role;
+    // }
 
-    setRole(role: Role | null): void {
-        this.role = role;
-    }
+    // setRole(role: Role | null): void {
+    //     this.role = role;
+    // }
 
     getDateCreated(): Date | null {
         return this.dateCreated;
@@ -97,21 +97,21 @@ export abstract class User {
         this.dateCreated = dateCreated;
     }
 
-    getStatus(): Status | null {
-        return this.status;
-    }
+    // getStatus(): PlayerStatus | null {
+    //     return this.status;
+    // }
 
-    setStatus(status: Status | null) {
-        this.status = status;
-    }
+    // setStatus(status: PlayerStatus | null) {
+    //     this.status = status;
+    // }
 
-    getOrganizationId(): string {
-        return this.organizationId;
-    }
+    // getOrganizationId(): string {
+    //     return this.organizationId;
+    // }
 
-    setOrganizationId(organizationId: string): void {
-        this.organizationId = organizationId;
-    }
+    // setOrganizationId(organizationId: string): void {
+    //     this.organizationId = organizationId;
+    // }
 
     // protected universityId!: number;
 }
