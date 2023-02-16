@@ -92,7 +92,7 @@ export default class PlayerDAO {
                 return null;
             }
 
-            return new Player({
+            return Player.Player({
                 authId: results.auth_id,
                 firstName: results.first_name,
                 lastName: results.last_name,
@@ -145,7 +145,7 @@ export default class PlayerDAO {
                 return null;
             }
 
-            return new Player({
+            return Player.Player({
                 authId: results.auth_id,
                 firstName: results.first_name,
                 lastName: results.last_name,
@@ -208,7 +208,7 @@ export default class PlayerDAO {
                 return null;
             }
 
-            return new Player({
+            return Player.Player({
                 authId: results.auth_id,
                 firstName: results.first_name,
                 lastName: results.last_name,
@@ -243,24 +243,23 @@ export default class PlayerDAO {
             const response = await querier(sqlAll);
             const results = response.rows;
 
-            return results.map(
-                (player) =>
-                    new Player({
-                        authId: player.auth_id,
-                        firstName: player.first_name,
-                        lastName: player.last_name,
-                        language: player.language,
-                        emailAddress: player.email_address,
-                        // role: null,
-                        gender: player.gender,
-                        dob: player.dob,
-                        visibility: player.visibility,
-                        graduationTerm: player.graduation_term,
-                        image: player.image,
-                        status: player.status,
-                        dateCreated: player.date_created,
-                        // organizationId: player.organization_id,
-                    })
+            return results.map((player) =>
+                Player.Player({
+                    authId: player.auth_id,
+                    firstName: player.first_name,
+                    lastName: player.last_name,
+                    language: player.language,
+                    emailAddress: player.email_address,
+                    // role: null,
+                    gender: player.gender,
+                    dob: player.dob,
+                    visibility: player.visibility,
+                    graduationTerm: player.graduation_term,
+                    image: player.image,
+                    status: player.status,
+                    dateCreated: player.date_created,
+                    // organizationId: player.organization_id,
+                })
             );
         });
     }
@@ -281,23 +280,22 @@ export default class PlayerDAO {
             const response = await querier(sqlSelect, [orgId]);
             const results = response.rows;
 
-            return results.map(
-                (player) =>
-                    new Player({
-                        authId: player.auth_id,
-                        firstName: player.first_name,
-                        lastName: player.last_name,
-                        language: player.language,
-                        emailAddress: player.email_address,
-                        gender: player.gender,
-                        dob: player.dob,
-                        visibility: player.visibility,
-                        graduationTerm: player.graduation_term,
-                        image: player.image,
-                        status: player.status,
-                        dateCreated: player.date_created,
-                        // organizationId: player.organization_id,
-                    })
+            return results.map((player) =>
+                Player.Player({
+                    authId: player.auth_id,
+                    firstName: player.first_name,
+                    lastName: player.last_name,
+                    language: player.language,
+                    emailAddress: player.email_address,
+                    gender: player.gender,
+                    dob: player.dob,
+                    visibility: player.visibility,
+                    graduationTerm: player.graduation_term,
+                    image: player.image,
+                    status: player.status,
+                    dateCreated: player.date_created,
+                    // organizationId: player.organization_id,
+                })
             );
         });
     }
@@ -345,7 +343,7 @@ export default class PlayerDAO {
                 return null;
             }
 
-            return new Player({
+            return Player.Player({
                 authId: results.auth_id,
                 firstName: results.first_name,
                 lastName: results.last_name,

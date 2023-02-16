@@ -6,7 +6,7 @@ export enum CompetitionVisibility {
 
 export enum CompetitionStatus {
     ACTIVE = "ACTIVE",
-    INACTIVE = "INACTIVE",
+    DISABLED = "DISABLED",
 }
 
 export enum TournamentType {

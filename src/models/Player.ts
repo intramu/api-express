@@ -7,21 +7,68 @@ import {
 import { User } from "./User";
 
 export class Player extends User {
-    protected status;
+    protected status: PlayerStatus | null;
 
-    protected gender;
+    protected gender: PlayerGender | null;
 
-    protected dob;
+    protected dob: Date | null;
 
-    protected visibility;
+    protected visibility: PlayerVisibility | null;
 
-    protected graduationTerm;
+    protected graduationTerm: string;
 
-    protected image;
+    protected image: string;
 
     protected phoneNumber: string;
 
-    constructor(props: {
+    constructor() {
+        super("", "", "", null, "", null);
+        this.status = null;
+        this.gender = null;
+        this.dob = null;
+        this.visibility = null;
+        this.graduationTerm = "";
+        this.image = "";
+        this.phoneNumber = "";
+    }
+    // constructor(props: {
+    //     authId: string;
+    //     firstName: string;
+    //     lastName: string;
+    //     language: Language | null;
+    //     emailAddress: string;
+    //     // role: Role | null;
+    //     gender: PlayerGender | null;
+    //     dob: Date | null;
+    //     visibility: PlayerVisibility | null;
+    //     graduationTerm: string;
+    //     image: string;
+    //     status: PlayerStatus | null;
+    //     dateCreated: Date | null;
+    //     // organizationId: string;
+    // }) {
+    //     super(
+    //         props.authId,
+    //         props.firstName,
+    //         props.lastName,
+    //         props.language,
+    //         props.emailAddress,
+    //         // props.role,
+    //         props.dateCreated
+    //         // props.status
+    //         // props.organizationId
+    //     );
+
+    //     this.phoneNumber = "";
+    //     this.status = props.status;
+    //     this.gender = props.gender;
+    //     this.dob = props.dob;
+    //     this.visibility = props.visibility;
+    //     this.graduationTerm = props.graduationTerm;
+    //     this.image = props.image;
+    // }
+
+    public static Player(props: {
         authId: string;
         firstName: string;
         lastName: string;
@@ -37,25 +84,49 @@ export class Player extends User {
         dateCreated: Date | null;
         // organizationId: string;
     }) {
-        super(
-            props.authId,
-            props.firstName,
-            props.lastName,
-            props.language,
-            props.emailAddress,
-            // props.role,
-            props.dateCreated
-            // props.status
-            // props.organizationId
-        );
+        const obj = new Player();
 
-        this.phoneNumber = "";
-        this.status = props.status;
-        this.gender = props.gender;
-        this.dob = props.dob;
-        this.visibility = props.visibility;
-        this.graduationTerm = props.graduationTerm;
-        this.image = props.image;
+        obj.authId = props.authId;
+        obj.firstName = props.firstName;
+        obj.lastName = props.lastName;
+        obj.language = props.language;
+        obj.emailAddress = props.emailAddress;
+        obj.gender = props.gender;
+        obj.dob = props.dob;
+        obj.visibility = props.visibility;
+        obj.graduationTerm = props.graduationTerm;
+        obj.status = props.status;
+        obj.dateCreated = props.dateCreated;
+        obj.image = props.image;
+
+        return obj;
+    }
+
+    public static PlayerNew(props: {
+        authId: string;
+        firstName: string;
+        lastName: string;
+        language: Language;
+        emailAddress: string;
+        gender: PlayerGender;
+        dob: Date;
+        visibility: PlayerVisibility;
+        graduationTerm: string;
+        image: string;
+    }) {
+        const obj = new Player();
+        obj.authId = props.authId;
+        obj.firstName = props.firstName;
+        obj.lastName = props.lastName;
+        obj.language = props.language;
+        obj.emailAddress = props.emailAddress;
+        obj.gender = props.gender;
+        obj.dob = props.dob;
+        obj.visibility = props.visibility;
+        obj.graduationTerm = props.graduationTerm;
+        obj.image = props.image;
+
+        return obj;
     }
 
     getPhoneNumber(): string | null {

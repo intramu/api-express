@@ -28,7 +28,7 @@ router.post("/organization/:id", checkJwt, async (req, res) => {
     const reqBody = req.body;
 
     const response = await playerService.completePlayerProfile(
-        new Player({
+        Player.PlayerNew({
             authId: sub!,
             firstName: reqBody.firstName,
             lastName: reqBody.lastName,
@@ -39,8 +39,6 @@ router.post("/organization/:id", checkJwt, async (req, res) => {
             visibility: reqBody.visibility,
             graduationTerm: reqBody.graduationTerm,
             image: reqBody.image,
-            status: reqBody.status,
-            dateCreated: null,
         }),
         id
     );

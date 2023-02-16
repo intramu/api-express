@@ -113,7 +113,7 @@ router
         const b = <PlayerNew>req.body;
 
         const response = await organizationService.createPlayerByOrganizationId(
-            new Player({
+            Player.PlayerNew({
                 authId: b.authId,
                 firstName: b.firstName,
                 lastName: b.lastName,
@@ -123,8 +123,6 @@ router
                 gender: b.gender,
                 graduationTerm: b.graduationTerm,
                 visibility: b.visibility,
-                status: b.status,
-                dateCreated: null,
                 image: b.image,
             }),
             id
@@ -142,7 +140,7 @@ router
         const b = <PlayerNew>req.body;
 
         const response = await organizationService.patchPlayer(
-            new Player({
+            Player.Player({
                 authId: b.authId,
                 firstName: b.firstName,
                 lastName: b.lastName,

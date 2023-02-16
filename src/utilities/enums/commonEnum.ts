@@ -12,7 +12,7 @@ export enum Sport {
 
 export enum OrganizationStatus {
     APPROVED = "APPROVED",
-    UNAPPROVED = "UNAPPROVED",
+    REGISTERED = "REGISTERED",
     CLOSING = "CLOSING",
-    BANNED = "BANNED",
+    DISABLED = "DISABLED",
 }

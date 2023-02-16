@@ -7,7 +7,7 @@ import { Admin } from "../../models/Admin";
 import { APIResponse } from "../../models/APIResponse";
 import { Organization } from "../../models/Organization";
 import { Player } from "../../models/Player";
-import { AdminRole, AdminStatus, PlayerStatus } from "../../utilities/enums/userEnum";
+import { AdminRole, AdminStatus } from "../../utilities/enums/userEnum";
 import { auth0 } from "../../utilities/ManagementApiTokenGen";
 import logger from "../../utilities/winstonConfig";
 

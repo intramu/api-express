@@ -8,16 +8,12 @@ const playerDatabase = new PlayerDAO();
 export class PlayerBusinessService {
     private readonly className = this.constructor.name;
 
-    async findAllPlayers(): Promise<APIResponse | Player[]> {
+    async findAllPlayers(): Promise<Player[]> {
         logger.verbose("Entering method findAllPlayers()", {
             class: this.className,
         });
 
         const players = await playerDatabase.findAllPlayers();
-        if (players.length === 0) {
-            return APIResponse[404](`No players found`);
-        }
-
         return players;
     }
 
