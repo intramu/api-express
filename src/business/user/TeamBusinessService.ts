@@ -171,7 +171,7 @@ export class TeamBusinessService {
             values: { playerId, teamId, authorizingId },
         });
 
-        const players = await playerDatabase.findPlayersByTeamId(teamId);
+        const players = await teamDatabase.findAllPlayersByTeamId(teamId);
 
         // checks if team exists, then if authorizing id is a captain or co-captain,
         // then if player was even on team

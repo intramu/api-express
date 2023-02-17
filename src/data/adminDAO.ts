@@ -12,7 +12,7 @@ export default class AdminDAO {
      * @param organizationId - id of organization admin will be created under
      * @returns - newly created admin or null
      */
-    async createAdminByOrganizationId(admin: Admin, organizationId: string): Promise<Admin | null> {
+    async createAdminByOrganizationId(admin: Admin, organizationId: string): Promise<Admin> {
         logger.verbose("Entering method createAdminByOrganizationId()", {
             class: this.className,
             values: { admin, organizationId },
@@ -72,8 +72,8 @@ export default class AdminDAO {
         });
     }
 
-    async deleteAdminById(adminId: string): Promise<string | null> {
-        logger.verbose("Entering method deleteAdminById()", {
+    async removeAdminById(adminId: string): Promise<string | null> {
+        logger.verbose("Entering method removeAdminById()", {
             class: this.className,
         });
 
@@ -131,6 +131,35 @@ export default class AdminDAO {
         const sqlFind = "SELECT * FROM admin WHERE organization_id = $1";
         return withClient(async (querier) => {
             const admins = (await querier<AdminDatabaseInterface>(sqlFind, [orgId])).rows;
+
+            if (admins.length === 0) {
+                return [];
+            }
+            return admins.map(
+                (admin) =>
+                    new Admin({
+                        authId: admin.auth_id,
+                        firstName: admin.first_name,
+                        lastName: admin.last_name,
+                        language: admin.language,
+                        emailAddress: admin.email_address,
+                        role: admin.role,
+                        dateCreated: admin.date_created,
+                        status: admin.status,
+                        // organizationId: admin.organization_id,
+                    })
+            );
+        });
+    }
+
+    async findAllAdmins(): Promise<Admin[]> {
+        logger.verbose("Entering method findAllAdmins()", {
+            class: this.className,
+        });
+
+        const sqlFind = "SELECT * FROM admin";
+        return withClient(async (querier) => {
+            const admins = (await querier<AdminDatabaseInterface>(sqlFind)).rows;
 
             if (admins.length === 0) {
                 return [];

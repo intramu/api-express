@@ -2,11 +2,7 @@ import express from "express";
 import { auth } from "express-oauth2-jwt-bearer";
 import cors from "cors";
 
-import player from "./routes/user/playerRoute";
-import playerService from "./routes/service/playerRoute";
-import team from "./routes/user/teamRoute";
-import organization from "./routes/user/organizationRoute";
-import organizationService from "./routes/service/organizationRoute";
+import serviceIndex from "./routes/service/serviceIndex";
 import { APIResponse } from "../models/APIResponse";
 
 const app = express();
@@ -23,24 +19,14 @@ app.use(express.json());
 // needed to make cross origin requests to this server
 app.use(cors());
 
-// app.use("/api/player", checkJwt, player);
-// app.use("/api/team", team);
-// app.use("/api/organization", organization);
+// import for service api
+app.use("/api/v1", serviceIndex);
 
-// app.use("/service/organization", organizationService);
-// app.use(playerService);
-app.get("/test", (req, res) => {
-    res.send("bad company");
-});
-
-app.all("*", async (req, res) => {
-    console.log("404 Not Found | Request URL: ", req.url);
-    // res.status(404).send("404 Not Found. Sorry not sure what you were looking for");
-    return res.send("wowowowow");
-});
-
+// 404 handler when no endpoint is found
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 app.use((req, res, next) => {
-    res.status(404).json("wowowow");
+    console.log("404 Not Found | Request URL: ", req.url);
+    res.status(404).send("404 Not Found. Sorry not sure what you were looking for");
 });
 
 // General error handler

@@ -169,22 +169,21 @@ export default class PlayerDAO {
      * @param playerId - id of player
      * @returns - id of player or null
      */
-    async deletePlayerById(playerId: string): Promise<string | null> {
+    async deletePlayerById(playerId: string): Promise<boolean> {
         logger.verbose("Entering method deletePlayerById()", {
             class: this.className,
         });
 
-        const sqlDelete = "DELETE FROM player WHERE auth_id=$1 RETURNING auth_id";
+        const sqlDelete = "DELETE FROM player WHERE auth_id=$1";
 
         return withClient(async (querier) => {
-            const response = await querier(sqlDelete, [playerId]);
-            const [results] = response.rows;
+            const [response] = (await querier(sqlDelete, [playerId])).rows;
 
-            if (results === undefined) {
-                return null;
+            if (response === undefined) {
+                return false;
             }
 
-            return results.auth_id;
+            return true;
         });
     }
 
@@ -359,40 +358,6 @@ export default class PlayerDAO {
                 dateCreated: results.date_created,
                 // organizationId: results.organization_id,
             });
-        });
-    }
-
-    /**
-     * Finds all players in team roster
-     * @param teamId - team id to search with
-     * @returns - List of PlayerSmall objects. Returns limited details on players
-     */
-    async findPlayersByTeamId(teamId: number): Promise<PlayerSmall[] | null> {
-        logger.verbose("Entering method findPlayersByTeamId()", {
-            class: this.className,
-        });
-
-        const sqlJoin =
-            "SELECT team_roster.role, player.auth_id, player.first_name, player.last_name, player.gender, player.status, player.image FROM team_roster JOIN player ON team_roster.player_AUTH_ID = player.auth_ID WHERE team_roster.team_ID = $1";
-
-        return withClient(async (querier) => {
-            const response = await querier(sqlJoin, [teamId]);
-            const results = response.rows;
-
-            const playerList = results.map(
-                (result) =>
-                    new PlayerSmall(
-                        result.auth_id,
-                        result.role,
-                        result.first_name,
-                        result.last_name,
-                        result.gender,
-                        result.status,
-                        result.image
-                    )
-            );
-
-            return playerList;
         });
     }
 

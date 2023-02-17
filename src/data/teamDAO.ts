@@ -1,5 +1,4 @@
 import format from "pg-format";
-import { PlayerTeam } from "../interfaces/Player";
 import { TeamDatabaseInterface } from "../interfaces/Team";
 import { PlayerSmall } from "../models/PlayerSmall";
 import { Team } from "../models/Team";
@@ -123,7 +122,7 @@ export default class TeamDAO {
      * Finds all teams in organization, ignores any status
      * @returns - list of teams
      */
-    async findAllTeams(): Promise<Team[] | null> {
+    async findAllTeams(): Promise<Team[]> {
         logger.verbose("Entering method findAllTeams()", {
             class: this.className,
         });
@@ -131,12 +130,9 @@ export default class TeamDAO {
         const sqlAll = "SELECT * FROM team";
 
         return withClient(async (querier) => {
-            const response = await querier<Team>(sqlAll);
-            const results = response.rows;
+            const teams = (await querier<Team>(sqlAll)).rows;
 
-            console.log(results);
-
-            return results;
+            return teams;
         });
     }
 
@@ -215,16 +211,15 @@ export default class TeamDAO {
     async findTeamById(teamId: number): Promise<Team | null> {
         logger.verbose("Entering method findTeamById()", {
             class: this.className,
+            values: teamId,
         });
 
         const sqlFind = "SELECT * FROM team WHERE id = $1";
 
         return withClient(async (querier) => {
-            const response = await querier(sqlFind, [teamId]);
+            const [team] = (await querier(sqlFind, [teamId])).rows;
 
-            const [team] = response.rows;
-
-            if (response === undefined) {
+            if (team === undefined) {
                 return null;
             }
 
@@ -248,13 +243,31 @@ export default class TeamDAO {
         });
     }
 
+    async removeTeamById(teamId: number): Promise<boolean> {
+        logger.verbose("Entering method removeTeamById()", {
+            class: this.className,
+            values: teamId,
+        });
+
+        const sqlDelete = "DELETE FROM team WHERE id = $1";
+
+        return withClient(async (querier) => {
+            const response = await querier(sqlDelete, [teamId]);
+            if (response.rowCount === 0) {
+                return false;
+            }
+
+            return true;
+        });
+    }
+
     /**
      * Patches team in database, only changing variables that are different
      * @param team - team object to be patched
      * @returns - newly patched team object or null
      */
     async patchTeam(team: Team): Promise<Team | null> {
-        logger.verbose("Entering method updateTeam()", {
+        logger.verbose("Entering method patchTeam()", {
             class: this.className,
             values: team,
         });
@@ -511,7 +524,7 @@ export default class TeamDAO {
             values: { teamId, playerId, role },
         });
 
-        const sqlUpdate = "UPDATE team_roster SET ROLE=$1 WHERE team_ID=$2, AND player_AUTH_ID=$3";
+        const sqlUpdate = "UPDATE team_roster SET ROLE=$1 WHERE team_ID=$2 AND player_AUTH_ID=$3";
 
         return withClient(async (querier) => {
             const response = await querier(sqlUpdate, [role, teamId, playerId]);
@@ -597,6 +610,37 @@ export default class TeamDAO {
             }
 
             return true;
+        });
+    }
+
+    /**
+     * Finds all players on team roster
+     * @param teamId - team id to search with
+     * @returns - List of PlayerSmall objects. Returns limited details on players
+     */
+    async findAllPlayersByTeamId(teamId: number): Promise<PlayerSmall[]> {
+        logger.verbose("Entering method findAllPlayersByTeamId()", {
+            class: this.className,
+        });
+
+        const sqlJoin =
+            "SELECT team_roster.role, player.auth_id, player.first_name, player.last_name, player.gender, player.status, player.image FROM team_roster JOIN player ON team_roster.player_AUTH_ID = player.auth_ID WHERE team_roster.team_ID = $1";
+
+        return withClient(async (querier) => {
+            const players = (await querier(sqlJoin, [teamId])).rows;
+
+            return players.map(
+                (player) =>
+                    new PlayerSmall(
+                        player.auth_id,
+                        player.role,
+                        player.first_name,
+                        player.last_name,
+                        player.gender,
+                        player.status,
+                        player.image
+                    )
+            );
         });
     }
 }

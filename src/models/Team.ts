@@ -1,4 +1,5 @@
-import { Sport, Status, Visibility } from "../utilities/enums";
+import { Sport } from "../utilities/enums/commonEnum";
+import { TeamStatus, TeamVisibility } from "../utilities/enums/teamEnum";
 import { PlayerSmall } from "./PlayerSmall";
 
 export class Team {
@@ -39,12 +40,12 @@ export class Team {
         ties: number | null;
         losses: number | null;
         image: string;
-        visibility: Visibility | null;
+        visibility: TeamVisibility | null;
         sport: Sport | null;
         dateCreated: Date | null;
         sportsmanshipScore: number | null;
-        status: Status | null;
-        maxTeamSize: number | null;
+        status: TeamStatus | null;
+        maxTeamSize: number;
         players: PlayerSmall[];
         organizationId: string;
         bracketId: number | null;
@@ -132,11 +133,11 @@ export class Team {
         this.image = image;
     }
 
-    getVisibility(): Visibility | null {
+    getVisibility(): TeamVisibility | null {
         return this.visibility;
     }
 
-    setVisibility(visibility: Visibility | null): void {
+    setVisibility(visibility: TeamVisibility | null): void {
         this.visibility = visibility;
     }
 
@@ -164,19 +165,19 @@ export class Team {
         this.sportsmanshipScore = sportsmanshipScore;
     }
 
-    getStatus(): Status | null {
+    getStatus(): TeamStatus | null {
         return this.status;
     }
 
-    setStatus(status: Status | null): void {
+    setStatus(status: TeamStatus | null): void {
         this.status = status;
     }
 
-    getMaxTeamSize(): number | null {
+    getMaxTeamSize(): number {
         return this.maxTeamSize;
     }
 
-    setMaxTeamSize(maxTeamSize: number | null): void {
+    setMaxTeamSize(maxTeamSize: number): void {
         this.maxTeamSize = maxTeamSize;
     }
 

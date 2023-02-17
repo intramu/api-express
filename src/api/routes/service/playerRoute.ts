@@ -1,23 +1,26 @@
 import express from "express";
-import { param } from "express-validator";
 import { requiredScopes } from "express-oauth2-jwt-bearer";
-
 import { OrganizationBusinessService } from "../../../business/service/OrganizationBusinessService";
-import { PlayerNew } from "../../../interfaces/Player";
 import { APIResponse } from "../../../models/APIResponse";
-import { Organization } from "../../../models/Organization";
 import { Player } from "../../../models/Player";
 import {
-    newOrganizationSchema,
+    authIdParam,
     newPersonSchema,
+    organizationIdParam,
     validate,
 } from "../../../utilities/validationSchemas";
 import { PlayerBusinessService } from "../../../business/service/PlayerBusinessService";
+import { isErrorResponse } from "../../../utilities/apiFunctions";
 
 const router = express.Router();
 
 const playerService = new PlayerBusinessService();
 const organizationService = new OrganizationBusinessService();
+
+/** feature: could be changed to allow additional sudo admins for
+ * maintenance without having too much access */
+// scope for auth0
+const sudoScoped = requiredScopes("all: application");
 
 router.route("/players").get(async (req, res, next) => {
     const response = await playerService.findAllPlayers();
@@ -34,52 +37,54 @@ router.route("/players").get(async (req, res, next) => {
     // return res.status(200).json(response);
 });
 
-// TODO: add length validation on param
-router.get("/:id", async (req, res) => {
-    const { id } = req.params;
-    const response = await playerService.findPlayerById(id);
+router
+    .route("/players/:userId")
+    .get(authIdParam, async (req, res) => {
+        const { userId } = req.params;
+        const response = await playerService.findPlayerById(userId);
 
-    return isErrorResponse(response, res);
+        return isErrorResponse(response, res);
+    })
+    .delete(authIdParam, async (req, res) => {
+        const { userId } = req.params;
+        const response = await playerService.removePlayerById(userId);
+
+        return isErrorResponse(response, res, 204);
+    })
+    .patch(authIdParam, async (req, res) => {
+        const { userId } = req.params;
+
+        const b = req.body as Player;
+        const player: Player = b;
+        player.setAuthId(userId);
+        console.log("here");
+
+        const response = await playerService.patchPlayer(player);
+        return isErrorResponse(response, res);
+    });
+
+// const post = newPersonSchema
+router
+    .route("/organizations/:orgId/players")
+    .get(organizationIdParam, async (req, res) => {
+        const { orgId } = req.params;
+        const response = await playerService.findAllPlayersByOrganizationId(orgId);
+
+        return isErrorResponse(response, res);
+    })
+    // TODO: add organization id UUID enforcement
+    .post(validate(newPersonSchema()), async (req, res) => {
+        const { orgId } = req.params;
+        // get player object
+
+        // const response = await playerService.createPlayerByOrganizationId(player, id);
+        const response = APIResponse[501]();
+        return res.status(501).json(response);
+        // return isErrorResponse(response, res, 201);
+    });
+
+router.get("/players/:userId/invites", authIdParam, (req, res) => {
+    const { userId } = req.params;
 });
-
-router.use((req, res, next) => {
-    const { response, status } = res.locals;
-    // console.log(response);
-
-    if (response instanceof APIResponse) {
-        return res.status(response.statusCode).json(response);
-    }
-
-    return res.status(status ?? 200).json(response);
-});
-
-const isErrorResponse = (response: any, res: express.Response, statusCode?: number) => {
-    if (response instanceof APIResponse) {
-        return res.status(response.statusCode).json(response);
-    }
-
-    return res.status(statusCode ?? 200).json(response);
-};
-
-router.get("*", (req, res) => {
-    console.log("404 Not Found | Request URL: ", req.url);
-    res.status(404).send("404 Not Found. Sorry not sure what you were looking for");
-});
-
-// router.use(
-//     (err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-//         console.log("now", err);
-
-//         if (res.headersSent) {
-//             return next(err);
-//         }
-
-//         if (err instanceof APIResponse) {
-//             return res.status(err.statusCode).send(err);
-//         }
-
-//         return res.status(500).json(APIResponse[500](err.message));
-//     }
-// );
 
 export default router;

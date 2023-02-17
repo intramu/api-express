@@ -1,3 +1,4 @@
+import { IPlayerProps } from "../interfaces/Player";
 import {
     Language,
     PlayerGender,
@@ -21,9 +22,21 @@ export class Player extends User {
 
     protected phoneNumber: string;
 
-    constructor() {
-        super("", "", "", null, "", null);
-        this.status = null;
+    // constructor() {
+    //     super("", "", "", null, "", null);
+    //     this.status = null;
+    //     this.gender = null;
+    //     this.dob = null;
+    //     this.visibility = null;
+    //     this.graduationTerm = "";
+    //     this.image = "";
+    //     this.phoneNumber = "";
+    // }
+
+    constructor(props: Partial<IPlayerProps>) {
+        const { status = null } = props;
+        super();
+        this.status = status;
         this.gender = null;
         this.dob = null;
         this.visibility = null;
@@ -68,22 +81,7 @@ export class Player extends User {
     //     this.image = props.image;
     // }
 
-    public static Player(props: {
-        authId: string;
-        firstName: string;
-        lastName: string;
-        language: Language | null;
-        emailAddress: string;
-        // role: Role | null;
-        gender: PlayerGender | null;
-        dob: Date | null;
-        visibility: PlayerVisibility | null;
-        graduationTerm: string;
-        image: string;
-        status: PlayerStatus | null;
-        dateCreated: Date | null;
-        // organizationId: string;
-    }) {
+    public static Player(player: Player) {
         const obj = new Player();
 
         obj.authId = props.authId;

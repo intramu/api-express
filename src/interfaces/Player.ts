@@ -5,19 +5,20 @@ import {
     PlayerVisibility,
 } from "../utilities/enums/userEnum";
 
-export interface PlayerNew {
+export interface IPlayerProps {
     authId: string;
     firstName: string;
     lastName: string;
     language: Language;
     emailAddress: string;
     gender: PlayerGender;
-    dateOfBirth: Date;
+    dob: Date;
     visibility: PlayerVisibility;
     graduationTerm: string;
     image: string;
     status: PlayerStatus;
-    organizationId: string;
+    // organizationId: string;
+    dateCreated: Date;
 }
 
 export interface PlayerTeam {
