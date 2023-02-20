@@ -3,6 +3,7 @@ import { auth } from "express-oauth2-jwt-bearer";
 import cors from "cors";
 
 import serviceIndex from "./routes/service/serviceIndex";
+import userIndex from "./routes/user/userIndex";
 import { APIResponse } from "../models/APIResponse";
 
 const app = express();
@@ -21,6 +22,7 @@ app.use(cors());
 
 // import for service api
 app.use("/api/v1", serviceIndex);
+app.use("/user/v1", userIndex);
 
 // 404 handler when no endpoint is found
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

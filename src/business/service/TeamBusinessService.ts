@@ -38,12 +38,12 @@ export class TeamBusinessService {
 
         const org = await organizationDatabase.findOrganizationById(orgId);
         if (org === null) {
-            return APIResponse[404](`No organization found with id: ${orgId}`);
+            return APIResponse.NotFound(`No organization found with id: ${orgId}`);
         }
 
         const response = await teamDatabase.findAllTeamsByOrganizationId(orgId);
         if (response.length === 0) {
-            return APIResponse[404](`No teams found with organization id: ${orgId}`);
+            return APIResponse.NotFound(`No teams found with organization id: ${orgId}`);
         }
 
         return response;
@@ -57,7 +57,7 @@ export class TeamBusinessService {
 
         const team = await teamDatabase.findTeamById(teamId);
         if (team === null) {
-            return APIResponse[404](`No team found with id: ${teamId}`);
+            return APIResponse.NotFound(`No team found with id: ${teamId}`);
         }
 
         return team;
@@ -71,7 +71,7 @@ export class TeamBusinessService {
 
         const team = await teamDatabase.removeTeamById(teamId);
         if (!team) {
-            return APIResponse[404](`No team found with id: ${teamId}`);
+            return APIResponse.NotFound(`No team found with id: ${teamId}`);
         }
 
         return true;
@@ -89,7 +89,7 @@ export class TeamBusinessService {
         // one player should always be on team, if no players were found, team doesn't exist
         const players = await teamDatabase.findAllPlayersByTeamId(teamId);
         if (players.length === 0) {
-            return APIResponse[404](`No team found with id: ${teamId}`);
+            return APIResponse.NotFound(`No team found with id: ${teamId}`);
         }
 
         // IS THERE A BETTER WAY TO DO THIS?
@@ -97,19 +97,15 @@ export class TeamBusinessService {
 
         // is player on team
         if (found === undefined) {
-            return APIResponse[404](`No player on team roster with id: ${playerId}`);
+            return APIResponse.NotFound(`No player on team roster with id: ${playerId}`);
         }
 
         // is player team captain
         if (found.getRole() === TeamRole.CAPTAIN) {
-            return APIResponse[409](`Cannot remove team Captain`);
+            return APIResponse.Conflict(`Cannot remove team Captain`);
         }
 
-        const response = await teamDatabase.removeFromTeamRoster(teamId, playerId);
-        if (!response) {
-            throw new Error("Error removing player from team roster");
-        }
-
+        await teamDatabase.removeFromTeamRoster(teamId, playerId);
         return true;
     }
 
@@ -126,45 +122,38 @@ export class TeamBusinessService {
         // IS THERE A BETTER WAY TO DO ALL THIS CHECKING
         // prevent multiple captains.
         if (role === TeamRole.CAPTAIN) {
-            return APIResponse[400](`Team cannot have more than one Captain`);
+            return APIResponse.BadRequest(`Team cannot have more than one Captain`);
         }
 
-        const team = await teamDatabase.findTeamByIdWithPlayers(teamId);
+        const team = await teamDatabase.findTeamById(teamId);
         // does team exist
         if (team === null) {
-            return APIResponse[404](`No team found with id: ${teamId}`);
+            return APIResponse.NotFound(`No team found with id: ${teamId}`);
         }
 
         // is team public
         if (team.getVisibility() === TeamVisibility.PRIVATE) {
-            return APIResponse[403](`Team visibility is Private`);
+            return APIResponse.Forbidden(`Team visibility is Private`);
         }
 
         // is team full
         if (team.getPlayers().length >= team.getMaxTeamSize()) {
-            return APIResponse[409](`Team is full`);
+            return APIResponse.Conflict(`Team is full`);
         }
 
         // is player on team already
         if (team.getPlayers().some((player) => player.getAuthId() === playerId)) {
-            return APIResponse[409](`Player ${playerId} is already on team`);
+            return APIResponse.Conflict(`Player ${playerId} is already on team`);
         }
 
         // does player id exist
         const player = await playerDatabase.findPlayerById(playerId);
         if (player === null) {
-            return APIResponse[404](`No player found with id: ${playerId}`);
+            return APIResponse.NotFound(`No player found with id: ${playerId}`);
         }
 
         // add to team roster
-        const response = await teamDatabase.addToTeamRoster(
-            teamId,
-            playerId,
-            role ?? TeamRole.PLAYER
-        );
-        if (!response) {
-            throw new Error("Error adding player to team roster");
-        }
+        await teamDatabase.addToTeamRoster(teamId, playerId, role ?? TeamRole.PLAYER);
 
         return true;
     }
@@ -181,25 +170,25 @@ export class TeamBusinessService {
 
         // prevent multiple captains.
         if (role === TeamRole.CAPTAIN) {
-            return APIResponse[400](`Team cannot have more than one Captain`);
+            return APIResponse.BadRequest(`Team cannot have more than one Captain`);
         }
 
         // does team exist
-        const team = await teamDatabase.findTeamByIdWithPlayers(teamId);
+        const team = await teamDatabase.findTeamById(teamId);
         if (team === null) {
-            return APIResponse[404](`No team found with id: ${teamId}`);
+            return APIResponse.NotFound(`No team found with id: ${teamId}`);
         }
 
         const found = team.getPlayers().find((player) => player.getAuthId() === playerId);
 
         // is player on roster
         if (found === undefined) {
-            return APIResponse[404](`No player found on team roster with id: ${playerId}`);
+            return APIResponse.NotFound(`No player found on team roster with id: ${playerId}`);
         }
 
         // is player a captain
         if (found.getRole() === TeamRole.CAPTAIN) {
-            return APIResponse[400]("Cannot change Captain's role");
+            return APIResponse.BadRequest("Cannot change Captain's role");
         }
 
         // update roster

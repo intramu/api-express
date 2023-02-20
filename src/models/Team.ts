@@ -2,88 +2,118 @@ import { Sport } from "../utilities/enums/commonEnum";
 import { TeamStatus, TeamVisibility } from "../utilities/enums/teamEnum";
 import { PlayerSmall } from "./PlayerSmall";
 
+interface ITeamProps {
+    id: number;
+    name: string;
+    wins: number;
+    ties: number;
+    losses: number;
+    image: string;
+    visibility: TeamVisibility;
+    sport: Sport;
+    dateCreated: Date;
+    sportsmanshipScore: number;
+    status: TeamStatus;
+    maxTeamSize: number;
+    players: PlayerSmall[];
+    organizationId: string;
+    bracketId: number;
+}
+
 export class Team {
-    protected id;
+    protected id: number | null;
 
-    protected name;
+    protected name: string;
 
-    protected wins;
+    protected wins: number | null;
 
-    protected ties;
+    protected ties: number | null;
 
-    protected losses;
+    protected losses: number | null;
 
-    protected image;
+    protected image: string;
 
-    protected visibility;
+    protected visibility: TeamVisibility | null;
 
-    protected sport;
+    protected sport: Sport | null;
 
-    protected dateCreated;
+    protected dateCreated: Date | null;
 
-    protected sportsmanshipScore;
+    protected sportsmanshipScore: number | null;
 
-    protected status;
+    protected status: TeamStatus | null;
 
-    protected maxTeamSize;
+    protected maxTeamSize: number;
 
-    protected players;
+    protected players: PlayerSmall[];
 
-    protected organizationId;
+    // protected     organizationId: string;
 
-    protected bracketId;
-
-    constructor(props: {
-        id: number | null;
-        name: string;
-        wins: number | null;
-        ties: number | null;
-        losses: number | null;
-        image: string;
-        visibility: TeamVisibility | null;
-        sport: Sport | null;
-        dateCreated: Date | null;
-        sportsmanshipScore: number | null;
-        status: TeamStatus | null;
-        maxTeamSize: number;
-        players: PlayerSmall[];
-        organizationId: string;
-        bracketId: number | null;
-    }) {
-        this.id = props.id;
-        this.name = props.name;
-        this.wins = props.wins;
-        this.ties = props.ties;
-        this.losses = props.losses;
-        this.image = props.image;
-        this.sport = props.sport;
-        this.dateCreated = props.dateCreated;
-        this.image = props.image;
-        this.visibility = props.visibility;
-        this.sportsmanshipScore = props.sportsmanshipScore;
-        this.status = props.status;
-        this.maxTeamSize = props.maxTeamSize;
-        this.players = props.players;
-        this.organizationId = props.organizationId;
-        this.bracketId = props.bracketId;
-    }
+    protected bracketId: number | null;
 
     /** Constructor */
-    // static CreatedTeam(
-    //     name: string;
-    //     image: string,
-    //     visibility: string,
-    //     sport: string
-    // ) {
-    //     var result = new Team();
+    constructor(props: Partial<ITeamProps>) {
+        const {
+            id = 0,
+            name = "",
+            wins = null,
+            ties = null,
+            losses = null,
+            image = "",
+            visibility = null,
+            sport = null,
+            dateCreated = null,
+            sportsmanshipScore = null,
+            status = null,
+            maxTeamSize = 0,
+            players = [],
+            bracketId = null,
+        } = props;
 
-    //     result.name = name;
-    //     result.image = image;
-    //     result.visibility = visibility;
-    //     // result.sport = sport;
+        this.id = id;
+        this.name = name;
+        this.wins = wins;
+        this.ties = ties;
+        this.losses = losses;
+        this.image = image;
+        this.sport = sport;
+        this.dateCreated = dateCreated;
+        this.image = image;
+        this.visibility = visibility;
+        this.sportsmanshipScore = sportsmanshipScore;
+        this.status = status;
+        this.maxTeamSize = maxTeamSize;
+        this.players = players;
+        // this.organizationId = organizationId;
+        this.bracketId = bracketId;
+    }
 
-    //     return result;
-    // }
+    /** Static Functions */
+    public static fromDatabase(props: {
+        id: number;
+        name: string;
+        wins: number;
+        ties: number;
+        losses: number;
+        image: string;
+        visibility: TeamVisibility;
+        sport: Sport;
+        date_created: Date;
+        sportsmanship_score: number;
+        status: TeamStatus;
+        max_team_size: number;
+        players: PlayerSmall[];
+        // organization_id: string;
+        bracket_id: number;
+    }) {
+        const obj = new Team(props);
+        obj.dateCreated = props.date_created;
+        obj.sportsmanshipScore = props.sportsmanship_score;
+        obj.maxTeamSize = props.max_team_size;
+        obj.bracketId = props.bracket_id;
+
+        return obj;
+    }
 
     getId(): number | null {
         return this.id;
@@ -189,13 +219,13 @@ export class Team {
         this.players = players;
     }
 
-    getOrganizationId(): string {
-        return this.organizationId;
-    }
+    // getOrganizationId(): string {
+    //     return this.organizationId;
+    // }
 
-    setOrganizationId(organizationId: string): void {
-        this.organizationId = organizationId;
-    }
+    // setOrganizationId(organizationId: string): void {
+    //     this.organizationId = organizationId;
+    // }
 
     getBracketId(): number | null {
         return this.bracketId;

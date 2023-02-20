@@ -1,9 +1,9 @@
 import express from "express";
 
 import { body, param, ValidationChain, validationResult } from "express-validator";
-import { APIResponse } from "../models/APIResponse";
-import { graduationTerms } from "./constantsThatNeedAHome";
-import { Sport } from "./enums/commonEnum";
+import { APIResponse } from "../../models/APIResponse";
+import { graduationTerms } from "../constantsThatNeedAHome";
+import { Sport } from "../enums/commonEnum";
 import {
     CompetitionStatus,
     CompetitionVisibility,
@@ -12,8 +12,8 @@ import {
     DivisionType,
     PlayoffSeedingType,
     TournamentType,
-} from "./enums/competitionEnum";
-import { Language, PlayerGender, PlayerStatus, PlayerVisibility } from "./enums/userEnum";
+} from "../enums/competitionEnum";
+import { Language, PlayerGender, PlayerStatus, PlayerVisibility } from "../enums/userEnum";
 
 // utility methods
 export const printEnums = (enumValue: any, enumName: string) => {
@@ -38,11 +38,13 @@ export const listEnums = (enumValue: any) => Object.values(enumValue).map((value
  */
 export const validate = (validations: ValidationChain[]) => {
     return async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+        console.log(req.url);
+
         // eslint-disable-next-line no-restricted-syntax
         for (const validation of validations) {
             // eslint-disable-next-line no-await-in-loop
             const result = await validation.run(req);
-            if (result.array().length) {
+            if (result.array().length === 0) {
                 break;
             }
         }
@@ -53,155 +55,12 @@ export const validate = (validations: ValidationChain[]) => {
         }
 
         const errorResponse = errors.array()[0].msg;
-        return res.status(400).json(APIResponse[400](errorResponse));
+        return res.status(400).json(APIResponse.BadRequest(errorResponse));
     };
 };
 
 // const test = body("authId").escape().body("test");
 // schemas
-export const newPersonSchema = () => {
-    return [
-        body("authId").optional().trim().escape(),
-        body("status")
-            .optional()
-            .trim()
-            .escape()
-            .toUpperCase()
-            .isIn(listEnums(PlayerStatus))
-            .withMessage(printEnums(PlayerStatus, "status")),
-        body("firstName")
-            .notEmpty()
-            .withMessage("value 'firstName' is missing")
-            .trim()
-            .escape()
-            .isLength({ min: 2, max: 20 })
-            .withMessage("firstName requires length from 2 to 20"),
-        body("lastName")
-            .notEmpty()
-            .withMessage("value 'lastName' is missing")
-            .trim()
-            .escape()
-            .isLength({ min: 2, max: 20 })
-            .withMessage("lastName requires length from 2 to 20"),
-        body("emailAddress")
-            .notEmpty()
-            .withMessage("value 'emailAddress' is missing")
-            .trim()
-            .escape()
-            .isEmail()
-            .withMessage("emailAddress is not correctly formatted"),
-        body("dateOfBirth")
-            .notEmpty()
-            .withMessage("value 'dateOfBirth' is missing")
-            .isDate({ format: "YYYY-MM-DD", strictMode: true })
-            .withMessage("dateOfBirth is required in format YYYY-MM-DD"),
-        // body("organizationId")
-        //     .notEmpty()
-        //     .withMessage("value 'organizationId' is missing")
-        //     .isUUID()
-        //     .withMessage("organizationId is not in UUID format"),
-        body("gender")
-            .notEmpty()
-            .withMessage("value gender is missing")
-            .trim()
-            .escape()
-            .toUpperCase()
-            .isIn(listEnums(PlayerGender))
-            .withMessage(printEnums(PlayerGender, "gender")),
-        body("visibility")
-            .notEmpty()
-            .withMessage("value 'visibility' is missing")
-            .trim()
-            .escape()
-            .toUpperCase()
-            .isIn(listEnums(PlayerVisibility))
-            .withMessage(printEnums(PlayerVisibility, "visibility")),
-        body("language")
-            .notEmpty()
-            .withMessage("value language is missing")
-            .trim()
-            .escape()
-            .toUpperCase()
-            .isIn(listEnums(Language))
-            .withMessage(printEnums(Language, "language")),
-        body("graduationTerm")
-            .notEmpty()
-            .withMessage("value 'graduationTerm' is missing")
-            .trim()
-            .escape()
-            .toUpperCase()
-            .isIn([graduationTerms[0], graduationTerms[1], graduationTerms[2]])
-            .withMessage(
-                `valid graudation options are ${graduationTerms[0]}, ${graduationTerms[1]}, ${graduationTerms[2]}`
-            ),
-    ];
-};
-
-export const patchPersonSchema = () => {
-    return [
-        body("firstName")
-            .optional()
-            .trim()
-            .escape()
-            .isLength({ min: 2, max: 20 })
-            .withMessage("firstName requires length from 2 to 20"),
-        body("lastName")
-            .optional()
-            .trim()
-            .escape()
-            .isLength({ min: 2, max: 20 })
-            .withMessage("lastName requires length from 2 to 20"),
-        body("emailAddress")
-            .optional()
-            .trim()
-            .escape()
-            .isEmail()
-            .withMessage("emailAddress is not correctly formatted"),
-        body("dateOfBirth")
-            .optional()
-            .isDate({ format: "YYY-MM-DD", strictMode: true })
-            .withMessage("dateOfBirth is required in format YYYY-MM-DD"),
-        // body("organizationId").isUUID().withMessage("organizationId is not in UUID format"),
-        body("gender")
-            .optional()
-            .trim()
-            .escape()
-            .toUpperCase()
-            .isIn(listEnums(PlayerGender))
-            .withMessage(printEnums(PlayerGender, "gender")),
-        body("visibility")
-            .optional()
-            .trim()
-            .escape()
-            .toUpperCase()
-            .isIn(listEnums(PlayerVisibility))
-            .withMessage(printEnums(PlayerVisibility, "visibility")),
-        body("language")
-            .optional()
-            .trim()
-            .escape()
-            .toUpperCase()
-            .isIn(listEnums(Language))
-            .withMessage(printEnums(Language, "language")),
-        body("status")
-            .optional()
-            .trim()
-            .escape()
-            .toUpperCase()
-            .isIn(listEnums(PlayerStatus))
-            .withMessage(printEnums(PlayerStatus, "status")),
-        body("image").optional().trim().escape(),
-        body("graduationTerm")
-            .optional()
-            .trim()
-            .escape()
-            .toUpperCase()
-            .isIn([graduationTerms[0], graduationTerms[1], graduationTerms[2]])
-            .withMessage(
-                `valid graudation options are ${graduationTerms[0]}, ${graduationTerms[1]}, ${graduationTerms[2]}`
-            ),
-    ];
-};
 
 export const finishProfileSchema = () => {
     return [
@@ -543,19 +402,3 @@ export const teamIdParam = validate([
 export const compIdParam = validate([
     param("compId").isInt({ min: 1 }).withMessage("Competition id must be a number greater than 0"),
 ]);
-
-// const date = new Date().toISOString();
-
-// NR - this parallel processes the errors
-// export const validate = (validations: ValidationChain[]) => {
-//     return async (req: express.Request, res: express.Response, next: express.NextFunction) => {
-//         await Promise.all(validations.map((validation) => validation.run(req)));
-
-//         const errors = validationResult(req);
-//         if (errors.isEmpty()) {
-//             return next();
-//         }
-
-//         return res.status(400).json({ errors: errors.array() });
-//     };
-// };

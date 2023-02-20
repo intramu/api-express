@@ -1,7 +1,7 @@
 import express from "express";
 import { CompetitionBusinessService } from "../../../business/service/CompetitionBusinessService";
-import { isErrorResponse } from "../../../utilities/apiFunctions";
-import { compIdParam, organizationIdParam } from "../../../utilities/validationSchemas";
+import { handleErrorResponse } from "../../../utilities/apiFunctions";
+import { compIdParam, organizationIdParam } from "../../../utilities/validation/validationSchemas";
 
 const competitionService = new CompetitionBusinessService();
 
@@ -13,14 +13,14 @@ router
         const { orgId } = req.params;
         // const response = await competitionService
         const response = true;
-        return isErrorResponse(response, res);
+        return handleErrorResponse(response, res);
     })
     // TODO: contest validation schema
     .post(organizationIdParam, async (req, res) => {
         const { orgId } = req.params;
         // get body for contest
         const response = true;
-        return isErrorResponse(response, res);
+        return handleErrorResponse(response, res);
     });
 
 router

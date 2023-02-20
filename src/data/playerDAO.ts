@@ -1,5 +1,5 @@
+import { IPlayerDatabase } from "../interfaces/Player";
 import { Player } from "../models/Player";
-import { PlayerSmall } from "../models/PlayerSmall";
 import logger from "../utilities/winstonConfig";
 
 import { withClient } from "./database";
@@ -92,7 +92,7 @@ export default class PlayerDAO {
                 return null;
             }
 
-            return Player.Player({
+            return new Player({
                 authId: results.auth_id,
                 firstName: results.first_name,
                 lastName: results.last_name,
@@ -125,42 +125,27 @@ export default class PlayerDAO {
             "UPDATE player SET first_name=$1, last_name=$2, language=$3, status=$4, gender=$5, email_address=$6, dob=$7, visibility=$8, graduation_term=$9, image=$10 WHERE auth_id=$11 RETURNING *";
 
         return withClient(async (querier) => {
-            const response = await querier(sqlUpdate, [
-                player.getFirstName(),
-                player.getLastName(),
-                player.getLanguage(),
-                player.getStatus(),
-                player.getGender(),
-                player.getEmailAddress(),
-                player.getDob(),
-                player.getVisibility(),
-                player.getGraduationTerm(),
-                player.getImage(),
-                player.getAuthId(),
-            ]);
+            const [response] = (
+                await querier<IPlayerDatabase>(sqlUpdate, [
+                    player.getFirstName(),
+                    player.getLastName(),
+                    player.getLanguage(),
+                    player.getStatus(),
+                    player.getGender(),
+                    player.getEmailAddress(),
+                    player.getDob(),
+                    player.getVisibility(),
+                    player.getGraduationTerm(),
+                    player.getImage(),
+                    player.getAuthId(),
+                ])
+            ).rows;
 
-            const [results] = response.rows;
-
-            if (response.rowCount === 0) {
+            if (response === undefined) {
                 return null;
             }
 
-            return Player.Player({
-                authId: results.auth_id,
-                firstName: results.first_name,
-                lastName: results.last_name,
-                language: results.language,
-                emailAddress: results.email_address,
-                // role: null,
-                gender: results.gender,
-                dob: results.dob,
-                visibility: results.visibility,
-                graduationTerm: results.graduation_term,
-                image: results.image,
-                status: results.status,
-                dateCreated: results.date_created,
-                // organizationId: results.organization_id,
-            });
+            return Player.fromDatabase(response);
         });
     }
 
@@ -200,29 +185,13 @@ export default class PlayerDAO {
         const sqlSelect = "SELECT * FROM player WHERE auth_id=$1";
 
         return withClient(async (querier) => {
-            const response = await querier(sqlSelect, [playerId]);
-            const [results] = response.rows;
+            const [response] = (await querier<IPlayerDatabase>(sqlSelect, [playerId])).rows;
 
-            if (results === undefined) {
+            if (response === undefined) {
                 return null;
             }
 
-            return Player.Player({
-                authId: results.auth_id,
-                firstName: results.first_name,
-                lastName: results.last_name,
-                language: results.language,
-                emailAddress: results.email_address,
-                // role: null,
-                gender: results.gender,
-                dob: results.dob,
-                visibility: results.visibility,
-                graduationTerm: results.graduation_term,
-                image: results.image,
-                status: results.status,
-                dateCreated: results.date_created,
-                // organizationId: results.organization_id,
-            });
+            return Player.fromDatabase(response);
         });
     }
 
@@ -239,27 +208,9 @@ export default class PlayerDAO {
         const sqlAll = "SELECT * FROM player";
 
         return withClient(async (querier) => {
-            const response = await querier(sqlAll);
-            const results = response.rows;
+            const response = (await querier<IPlayerDatabase>(sqlAll)).rows;
 
-            return results.map((player) =>
-                Player.Player({
-                    authId: player.auth_id,
-                    firstName: player.first_name,
-                    lastName: player.last_name,
-                    language: player.language,
-                    emailAddress: player.email_address,
-                    // role: null,
-                    gender: player.gender,
-                    dob: player.dob,
-                    visibility: player.visibility,
-                    graduationTerm: player.graduation_term,
-                    image: player.image,
-                    status: player.status,
-                    dateCreated: player.date_created,
-                    // organizationId: player.organization_id,
-                })
-            );
+            return response.map((player) => Player.fromDatabase(player));
         });
     }
 
@@ -276,26 +227,9 @@ export default class PlayerDAO {
         const sqlSelect = "SELECT * FROM player WHERE organization_id=$1";
 
         return withClient(async (querier) => {
-            const response = await querier(sqlSelect, [orgId]);
-            const results = response.rows;
+            const response = (await querier<IPlayerDatabase>(sqlSelect, [orgId])).rows;
 
-            return results.map((player) =>
-                Player.Player({
-                    authId: player.auth_id,
-                    firstName: player.first_name,
-                    lastName: player.last_name,
-                    language: player.language,
-                    emailAddress: player.email_address,
-                    gender: player.gender,
-                    dob: player.dob,
-                    visibility: player.visibility,
-                    graduationTerm: player.graduation_term,
-                    image: player.image,
-                    status: player.status,
-                    dateCreated: player.date_created,
-                    // organizationId: player.organization_id,
-                })
-            );
+            return response.map((player) => Player.fromDatabase(player));
         });
     }
 
@@ -323,41 +257,27 @@ export default class PlayerDAO {
             "UPDATE player SET first_name=COALESCE($1, first_name), last_name=COALESCE($2, last_name), language=COALESCE($3, language), status=COALESCE($4, status), gender=COALESCE($5, gender), email_address=COALESCE($6, email_address), dob=COALESCE($7, dob), visibility=COALESCE($8, visibility), graduation_term=COALESCE($9, graduation_term), image=COALESCE($10, image) WHERE auth_id=$11 RETURNING *";
 
         return withClient(async (querier) => {
-            const response = await querier(sqlPatch, [
-                firstName,
-                lastName,
-                player.getLanguage(),
-                player.getStatus(),
-                player.getGender(),
-                emailAddress,
-                player.getDob(),
-                player.getVisibility(),
-                graduationTerm,
-                image,
-                player.getAuthId(),
-            ]);
-            const [results] = response.rows;
+            const [response] = (
+                await querier<IPlayerDatabase>(sqlPatch, [
+                    firstName,
+                    lastName,
+                    player.getLanguage(),
+                    player.getStatus(),
+                    player.getGender(),
+                    emailAddress,
+                    player.getDob(),
+                    player.getVisibility(),
+                    graduationTerm,
+                    image,
+                    player.getAuthId(),
+                ])
+            ).rows;
 
-            if (results === undefined) {
+            if (response === undefined) {
                 return null;
             }
 
-            return Player.Player({
-                authId: results.auth_id,
-                firstName: results.first_name,
-                lastName: results.last_name,
-                language: results.language,
-                emailAddress: results.email_address,
-                // role: null,
-                gender: results.gender,
-                dob: results.dob,
-                visibility: results.visibility,
-                graduationTerm: results.graduation_term,
-                image: results.image,
-                status: results.status,
-                dateCreated: results.date_created,
-                // organizationId: results.organization_id,
-            });
+            return Player.fromDatabase(response);
         });
     }
 

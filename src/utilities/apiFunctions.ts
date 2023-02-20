@@ -17,7 +17,7 @@ import { APIResponse } from "../models/APIResponse";
 // });
 
 // method to check if response is instance of APIResponse
-export const isErrorResponse = (response: any, res: express.Response, statusCode?: number) => {
+export const handleErrorResponse = (response: any, res: express.Response, statusCode?: number) => {
     if (response instanceof APIResponse) {
         return res.status(response.statusCode).json(response);
     }

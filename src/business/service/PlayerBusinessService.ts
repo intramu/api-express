@@ -30,7 +30,7 @@ export class PlayerBusinessService {
 
         const player = await playerDatabase.findPlayerById(playerId);
         if (player === null) {
-            return APIResponse[404](`No player found with id: ${playerId}`);
+            return APIResponse.NotFound(`No player found with id: ${playerId}`);
         }
 
         return player;
@@ -45,7 +45,7 @@ export class PlayerBusinessService {
         const response = await playerDatabase.deletePlayerById(playerId);
         // const response = true;
         if (response === false) {
-            return APIResponse[404](`No player found with id: ${playerId}`);
+            return APIResponse.NotFound(`No player found with id: ${playerId}`);
         }
 
         return true;
@@ -61,7 +61,7 @@ export class PlayerBusinessService {
         // const findPlayer = await playerDatabase.findPlayerById()
         const response = await playerDatabase.patchPlayer(player);
         if (response === null) {
-            return APIResponse[500]("Not sure");
+            throw new Error(`Error patching player: ${player.getAuthId()}`);
         }
 
         return response;
@@ -80,7 +80,7 @@ export class PlayerBusinessService {
 
     //         const check = await playerDatabase.findPlayerById(player.getAuthId());
     //         if (check === null) {
-    //             return APIResponse[404](`No player found with auth id: ${player.getAuthId()}`);
+    //             return APIResponse.NotFound(`No player found with auth id: ${player.getAuthId()}`);
     //         }
     //         const response = await playerDatabase.patchPlayer(player);
     //         if (response === null) {
@@ -107,7 +107,7 @@ export class PlayerBusinessService {
 
         const organization = await organizationDatabase.findOrganizationById(orgId);
         if (organization === null) {
-            return APIResponse[404](`No Organization found with id: ${orgId}`);
+            return APIResponse.NotFound(`No Organization found with id: ${orgId}`);
         }
 
         const response = await playerDatabase.createPlayerByOrganizationId(player, orgId);
@@ -138,7 +138,7 @@ export class PlayerBusinessService {
         // check if organization exists
         const organization = await organizationDatabase.findOrganizationById(orgId);
         if (organization === null) {
-            return APIResponse[404](`No Organization found with id: ${orgId}`);
+            return APIResponse.NotFound(`No Organization found with id: ${orgId}`);
         }
 
         const newPlayer: Player = player;
@@ -231,12 +231,12 @@ export class PlayerBusinessService {
 
         const organization = await organizationDatabase.findOrganizationById(orgId);
         if (organization === null) {
-            return APIResponse[404](`No organization found with id: ${orgId}`);
+            return APIResponse.NotFound(`No organization found with id: ${orgId}`);
         }
 
         const players = await playerDatabase.findAllPlayersByOrganizationId(orgId);
         if (players === null) {
-            return APIResponse[404](`No players found with organization id: ${orgId}`);
+            return APIResponse.NotFound(`No players found with organization id: ${orgId}`);
         }
 
         return players;

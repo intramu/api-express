@@ -12,7 +12,11 @@ import { BracketNewInterface } from "../../../interfaces/Bracket";
 import { DivisionNewInterface } from "../../../interfaces/Division";
 import { LeagueNewInterface } from "../../../interfaces/League";
 import { TimeSlotInterface } from "../../../interfaces/TimeSlot";
-import { newContestSchema, newLeagueSchema, validate } from "../../../utilities/validationSchemas";
+import {
+    newContestSchema,
+    newLeagueSchema,
+    validate,
+} from "../../../utilities/validation/validationSchemas";
 
 import { Organization } from "../../../models/Organization";
 import { Contest } from "../../../models/competition/Contest";

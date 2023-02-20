@@ -22,108 +22,54 @@ export class Player extends User {
 
     protected phoneNumber: string;
 
-    // constructor() {
-    //     super("", "", "", null, "", null);
-    //     this.status = null;
-    //     this.gender = null;
-    //     this.dob = null;
-    //     this.visibility = null;
-    //     this.graduationTerm = "";
-    //     this.image = "";
-    //     this.phoneNumber = "";
-    // }
-
     constructor(props: Partial<IPlayerProps>) {
-        const { status = null } = props;
-        super();
+        const {
+            authId = "",
+            firstName = "",
+            lastName = "",
+            language = null,
+            emailAddress = "",
+            dateCreated = null,
+            status = null,
+            gender = null,
+            dob = null,
+            visibility = null,
+            graduationTerm = "",
+            image = "",
+        } = props;
+
+        super(authId, firstName, lastName, language, emailAddress, dateCreated);
         this.status = status;
-        this.gender = null;
-        this.dob = null;
-        this.visibility = null;
-        this.graduationTerm = "";
-        this.image = "";
+        this.gender = gender;
+        this.dob = dob;
+        this.visibility = visibility;
+        this.graduationTerm = graduationTerm;
+        this.image = image;
         this.phoneNumber = "";
     }
-    // constructor(props: {
-    //     authId: string;
-    //     firstName: string;
-    //     lastName: string;
-    //     language: Language | null;
-    //     emailAddress: string;
-    //     // role: Role | null;
-    //     gender: PlayerGender | null;
-    //     dob: Date | null;
-    //     visibility: PlayerVisibility | null;
-    //     graduationTerm: string;
-    //     image: string;
-    //     status: PlayerStatus | null;
-    //     dateCreated: Date | null;
-    //     // organizationId: string;
-    // }) {
-    //     super(
-    //         props.authId,
-    //         props.firstName,
-    //         props.lastName,
-    //         props.language,
-    //         props.emailAddress,
-    //         // props.role,
-    //         props.dateCreated
-    //         // props.status
-    //         // props.organizationId
-    //     );
 
-    //     this.phoneNumber = "";
-    //     this.status = props.status;
-    //     this.gender = props.gender;
-    //     this.dob = props.dob;
-    //     this.visibility = props.visibility;
-    //     this.graduationTerm = props.graduationTerm;
-    //     this.image = props.image;
-    // }
-
-    public static Player(player: Player) {
-        const obj = new Player();
-
-        obj.authId = props.authId;
-        obj.firstName = props.firstName;
-        obj.lastName = props.lastName;
-        obj.language = props.language;
-        obj.emailAddress = props.emailAddress;
-        obj.gender = props.gender;
-        obj.dob = props.dob;
-        obj.visibility = props.visibility;
-        obj.graduationTerm = props.graduationTerm;
-        obj.status = props.status;
-        obj.dateCreated = props.dateCreated;
-        obj.image = props.image;
-
-        return obj;
-    }
-
-    public static PlayerNew(props: {
-        authId: string;
-        firstName: string;
-        lastName: string;
+    // changes database snakecase to camelcase for application
+    public static fromDatabase(props: {
+        auth_id: string;
+        first_name: string;
+        last_name: string;
         language: Language;
-        emailAddress: string;
+        email_address: string;
         gender: PlayerGender;
         dob: Date;
         visibility: PlayerVisibility;
-        graduationTerm: string;
+        graduation_term: string;
         image: string;
+        status: PlayerStatus;
+        date_created: Date;
     }) {
-        const obj = new Player();
-        obj.authId = props.authId;
-        obj.firstName = props.firstName;
-        obj.lastName = props.lastName;
-        obj.language = props.language;
-        obj.emailAddress = props.emailAddress;
-        obj.gender = props.gender;
-        obj.dob = props.dob;
-        obj.visibility = props.visibility;
-        obj.graduationTerm = props.graduationTerm;
-        obj.image = props.image;
-
+        const obj = new Player(props);
+        obj.authId = props.auth_id;
+        obj.firstName = props.first_name;
+        obj.lastName = props.last_name;
+        obj.emailAddress = props.email_address;
+        obj.graduationTerm = props.graduation_term;
+        obj.dateCreated = props.date_created;
         return obj;
     }
 

@@ -12,9 +12,9 @@ import {
     newPersonSchema,
     organizationIdParam,
     validate,
-} from "../../../utilities/validationSchemas";
+} from "../../../utilities/validation/validationSchemas";
 import { Admin } from "../../../models/Admin";
-import { isErrorResponse } from "../../../utilities/apiFunctions";
+import { handleErrorResponse } from "../../../utilities/apiFunctions";
 
 const router = express.Router();
 
@@ -27,7 +27,7 @@ router
     .get(async (req, res) => {
         const response = await organizationService.findAllOrganizations();
 
-        return isErrorResponse(response, res);
+        return handleErrorResponse(response, res);
     })
     // TODO: new endpoint for creating organizations with and without auth0 account
     // REVISIT
@@ -78,7 +78,7 @@ router
         const { orgId } = req.params;
         const response = await organizationService.findOrganizationById(orgId);
 
-        return isErrorResponse(response, res);
+        return handleErrorResponse(response, res);
     })
     .patch(async (req, res) => {
         const { orgId } = req.params;

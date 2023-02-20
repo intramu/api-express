@@ -1,25 +1,27 @@
-import { Sport, Status, Visibility } from "../utilities/enums";
+import { Sport } from "../utilities/enums/commonEnum";
+import { TeamStatus, TeamVisibility } from "../utilities/enums/teamEnum";
 
-export interface TeamDatabaseInterface {
+export interface ITeamDatabase {
     id: number;
     name: string;
     wins: number;
     ties: number;
     losses: number;
     image: string;
-    visibility: Visibility;
+    visibility: TeamVisibility;
     sport: Sport;
     date_created: Date;
     sportsmanship_score: number;
-    status: Status;
+    status: TeamStatus;
     max_team_size: number;
     organization_id: string;
     bracket_id: number;
 }
 
-export interface TeamNew {
+export interface ITeamCreate {
     name: string;
     image: string;
-    visibility: Visibility;
+    visibility: TeamVisibility;
     sport: Sport;
+    bracketId: number;
 }

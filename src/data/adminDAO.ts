@@ -161,9 +161,6 @@ export default class AdminDAO {
         return withClient(async (querier) => {
             const admins = (await querier<AdminDatabaseInterface>(sqlFind)).rows;
 
-            if (admins.length === 0) {
-                return [];
-            }
             return admins.map(
                 (admin) =>
                     new Admin({

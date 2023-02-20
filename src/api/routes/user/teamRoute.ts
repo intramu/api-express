@@ -3,9 +3,13 @@ import { auth } from "express-oauth2-jwt-bearer";
 import { body, param, validationResult } from "express-validator";
 import { PlayerBusinessService } from "../../../business/user/PlayerBusinessService";
 import { TeamBusinessService } from "../../../business/user/TeamBusinessService";
+import { ITeamCreate } from "../../../interfaces/ITeam";
 import { APIResponse } from "../../../models/APIResponse";
+import { Team } from "../../../models/Team";
+import { handleErrorResponse } from "../../../utilities/apiFunctions";
 import { TeamVisibility } from "../../../utilities/enums/teamEnum";
-import { validate } from "../../../utilities/validationSchemas";
+import { authIdParam, teamRoleBody } from "../../../utilities/validation/common";
+import { teamIdParam, validate } from "../../../utilities/validation/validationSchemas";
 
 const router = express.Router();
 
@@ -16,30 +20,6 @@ const checkJwt = auth({
 
 const playerService = new PlayerBusinessService();
 const teamService = new TeamBusinessService();
-
-/**
- * possibly use query parameter to filter for active teams
- */
-router.get(
-    "/organization/:id",
-    param("id").isUUID(4).withMessage("id is not uuid format"),
-    async (req, res) => {
-        const errors = validationResult(req);
-
-        if (!errors.isEmpty()) {
-            const errorResponse = errors.array()[0].msg;
-            return res.status(400).json(APIResponse[400](errorResponse));
-        }
-
-        const response = await teamService.findAllTeamsByOrganizationId(req.params?.id);
-
-        if (response instanceof APIResponse) {
-            return res.status(response.statusCode).json(response);
-        }
-
-        return res.status(200).json(response);
-    }
-);
 
 router.get(
     "/organization/:id/active",
@@ -133,21 +113,105 @@ router.post(
         return res.status(201).json(response);
     }
 );
+router.post("/teams", checkJwt, async (req, res) => {
+    const { sub = "" } = req.auth!.payload;
+    const b = req.body as ITeamCreate;
 
-router.get("/:id", param("id").toInt(), async (req, res) => {
-    // eslint-disable-next-line no-restricted-globals
-    if (isNaN(req.params?.id)) {
-        return APIResponse[400]("id is not a number");
-    }
+    const team = new Team({
+        name: b.name,
+        image: b.image,
+        sport: b.sport,
+        visibility: b.visibility,
+        bracketId: b.bracketId,
+    });
 
-    const response = await teamService.findTeamById(req.params?.id);
+    const response = await teamService.createTeam(team, sub);
 
-    if (response instanceof APIResponse) {
-        return res.status(response.statusCode).json(response);
-    }
-
-    return res.status(200).json(response);
+    return handleErrorResponse(response, res, 201);
 });
+
+router.get("/teams/:teamId", checkJwt, teamIdParam, async (req, res) => {
+    const { teamId } = req.params;
+
+    const response = await teamService.findTeamById(Number(teamId));
+
+    return handleErrorResponse(response, res);
+});
+
+router
+    .route("/teams/:teamId/requests")
+    .get(checkJwt, teamIdParam, async (req, res) => {
+        const { teamId } = req.params;
+        const { sub = "" } = req.auth!.payload;
+
+        return res.status(501).json(APIResponse.NotImplemented());
+    })
+    .post(checkJwt, teamIdParam, async (req, res) => {
+        const { teamId } = req.params;
+        const { sub = "" } = req.auth!.payload;
+
+        const response = await teamService.requestToJoinTeam(sub, Number(teamId));
+
+        return handleErrorResponse(response, res, 201);
+    })
+    .delete(checkJwt, teamIdParam, async (req, res) => {
+        // from player
+        // check teamjoinrequests for playerId and teamId combo.
+        // if exists, delete request to join team
+        // from captain
+        // if doesn't exist, check if playerId exists on team.
+        // check if playerId is captain
+        // if all checks, delete request to join team.
+
+        const { teamId } = req.params;
+
+        // can be either requesting player or captain / co-captain, calling delete
+        const { sub = "" } = req.auth!.payload;
+
+        return res.status(501).json(APIResponse.NotImplemented());
+    });
+
+router
+    .route("/teams/:teamId/players")
+    .get(checkJwt, teamIdParam, async (req, res) => {
+        const { teamId } = req.params;
+        const { sub = "" } = req.auth!.payload;
+
+        // const response = await
+        return res.status(501).json(APIResponse.NotImplemented());
+    })
+    .post(checkJwt, teamIdParam, async (req, res) => {
+        const { teamId } = req.params;
+        const { sub = "" } = req.auth!.payload;
+
+        const response = await teamService.joinTeam(sub, Number(teamId));
+
+        return handleErrorResponse(response, res);
+    });
+
+router
+    .route("/teams/:teamId/players/:userId")
+    .delete(checkJwt, authIdParam, teamIdParam, async (req, res) => {
+        const { teamId, userId } = req.params;
+        const { sub = "" } = req.auth!.payload;
+
+        const response = await teamService.kickPlayerFromTeam(userId, Number(teamId), sub);
+        return handleErrorResponse(response, res, 204);
+    })
+    .put(checkJwt, authIdParam, teamIdParam, teamRoleBody, async (req, res) => {
+        const { teamId, userId } = req.params;
+        const { sub = "" } = req.auth!.payload;
+        const { role } = req.body;
+
+        const response = await teamService.updatePlayerRoleOnTeam(
+            userId,
+            Number(teamId),
+            sub,
+            role
+        );
+
+        return handleErrorResponse(response, res);
+    });
 
 // router.get("/", async (req, res) => {
 //     const { sub } = req.auth!.payload;
@@ -162,7 +226,7 @@ router.get("/:id", param("id").toInt(), async (req, res) => {
 // });
 
 router.put("/", async (req, res) => {
-    res.status(501).json(APIResponse[501]);
+    res.status(501).json(APIResponse.NotImplemented());
 });
 
 router.post(
@@ -188,12 +252,7 @@ router.post(
         const { name, image, visibility, sport } = req.body;
         const { sub } = req.auth.payload;
 
-        const newTeam = {
-            name,
-            image,
-            visibility,
-            sport,
-        };
+        // REVISIT
         const response = await teamService.createTeam(newTeam, sub!);
 
         if (response instanceof APIResponse) {

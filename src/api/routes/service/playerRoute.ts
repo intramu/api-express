@@ -5,12 +5,12 @@ import { APIResponse } from "../../../models/APIResponse";
 import { Player } from "../../../models/Player";
 import {
     authIdParam,
-    newPersonSchema,
     organizationIdParam,
     validate,
-} from "../../../utilities/validationSchemas";
+} from "../../../utilities/validation/validationSchemas";
 import { PlayerBusinessService } from "../../../business/service/PlayerBusinessService";
-import { isErrorResponse } from "../../../utilities/apiFunctions";
+import { handleErrorResponse } from "../../../utilities/apiFunctions";
+import { newPersonSchema } from "../../../utilities/validation/playerValidation";
 
 const router = express.Router();
 
@@ -25,7 +25,7 @@ const sudoScoped = requiredScopes("all: application");
 router.route("/players").get(async (req, res, next) => {
     const response = await playerService.findAllPlayers();
 
-    return isErrorResponse(response, res);
+    return handleErrorResponse(response, res);
     // res.locals.response = response;
 
     // return next();
@@ -43,13 +43,13 @@ router
         const { userId } = req.params;
         const response = await playerService.findPlayerById(userId);
 
-        return isErrorResponse(response, res);
+        return handleErrorResponse(response, res);
     })
     .delete(authIdParam, async (req, res) => {
         const { userId } = req.params;
         const response = await playerService.removePlayerById(userId);
 
-        return isErrorResponse(response, res, 204);
+        return handleErrorResponse(response, res, 204);
     })
     .patch(authIdParam, async (req, res) => {
         const { userId } = req.params;
@@ -60,7 +60,7 @@ router
         console.log("here");
 
         const response = await playerService.patchPlayer(player);
-        return isErrorResponse(response, res);
+        return handleErrorResponse(response, res);
     });
 
 // const post = newPersonSchema
@@ -70,17 +70,17 @@ router
         const { orgId } = req.params;
         const response = await playerService.findAllPlayersByOrganizationId(orgId);
 
-        return isErrorResponse(response, res);
+        return handleErrorResponse(response, res);
     })
     // TODO: add organization id UUID enforcement
-    .post(validate(newPersonSchema()), async (req, res) => {
+    .post(newPersonSchema, async (req, res) => {
         const { orgId } = req.params;
         // get player object
 
         // const response = await playerService.createPlayerByOrganizationId(player, id);
         const response = APIResponse[501]();
         return res.status(501).json(response);
-        // return isErrorResponse(response, res, 201);
+        // return handleErrorResponse(response, res, 201);
     });
 
 router.get("/players/:userId/invites", authIdParam, (req, res) => {

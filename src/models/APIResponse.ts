@@ -8,18 +8,24 @@ export class APIResponse {
     errorCode: string | null;
 
     public constructor(message: string, errorCode?: string | null) {
-        if (errorCode !== undefined) {
-            this.errorCode = errorCode;
-        }
-
-        this.errorCode = null;
+        this.errorCode = errorCode ?? "";
         this.message = message;
         this.statusCode = 0;
         this.error = "";
     }
 
     // Constructors
-    static 400(message: string, errorCode?: string | null) {
+    static Unauthorized(message?: string, errorCode?: string) {
+        const x = new APIResponse("", errorCode);
+
+        x.statusCode = 401;
+        x.error = "Unauthorized";
+        x.message = message ?? "Not permitted to access";
+
+        return x;
+    }
+
+    static BadRequest(message: string, errorCode?: string) {
         const x = new APIResponse(message, errorCode);
 
         x.statusCode = 400;
@@ -29,7 +35,7 @@ export class APIResponse {
         return x;
     }
 
-    static 403(message: string, errorCode?: string | null) {
+    static Forbidden(message: string, errorCode?: string) {
         const x = new APIResponse(message, errorCode);
 
         x.statusCode = 403;
@@ -38,7 +44,7 @@ export class APIResponse {
         return x;
     }
 
-    static 404(message: string, errorCode?: string | null) {
+    static NotFound(message: string, errorCode?: string) {
         const x = new APIResponse(message, errorCode);
 
         x.statusCode = 404;
@@ -47,7 +53,7 @@ export class APIResponse {
         return x;
     }
 
-    static 409(message: string, errorCode?: string | null) {
+    static Conflict(message: string, errorCode?: string) {
         const x = new APIResponse(message, errorCode);
 
         x.statusCode = 409;
@@ -56,7 +62,7 @@ export class APIResponse {
         return x;
     }
 
-    static 500(message: string, errorCode?: string | null) {
+    static InternalError(message: string, errorCode?: string) {
         const x = new APIResponse(message, errorCode);
 
         x.statusCode = 500;
@@ -65,7 +71,7 @@ export class APIResponse {
         return x;
     }
 
-    static 501() {
+    static NotImplemented() {
         const x = new APIResponse("", null);
 
         x.statusCode = 501;

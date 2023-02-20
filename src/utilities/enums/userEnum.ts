@@ -31,5 +31,5 @@ export enum AdminRole {
 
 export enum AdminStatus {
     ACTIVE = "ACTIVE",
-    INACTIVE = "INACTIVE",
+    DISABLED = "DISABLED",
 }

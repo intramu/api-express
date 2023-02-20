@@ -1,8 +1,9 @@
 import format from "pg-format";
-import { TeamDatabaseInterface } from "../interfaces/Team";
+import { ITeamDatabase } from "../interfaces/ITeam";
 import { PlayerSmall } from "../models/PlayerSmall";
 import { Team } from "../models/Team";
-import { TeamRole } from "../utilities/enums/teamEnum";
+import { Sport } from "../utilities/enums/commonEnum";
+import { TeamRole, TeamStatus, TeamVisibility } from "../utilities/enums/teamEnum";
 import logger from "../utilities/winstonConfig";
 import { IsRollback, withClient, withClientRollback } from "./database";
 
@@ -22,29 +23,9 @@ export default class TeamDAO {
         const sqlAll = "SELECT * FROM team WHERE organization_id=$1";
 
         return withClient(async (querier) => {
-            const response = await querier(sqlAll, [id]);
-            const results = response.rows;
+            const response = (await querier<ITeamDatabase>(sqlAll, [id])).rows;
 
-            return results.map(
-                (team) =>
-                    new Team({
-                        id: team.id,
-                        name: team.name,
-                        wins: team.wins,
-                        ties: team.ties,
-                        losses: team.losses,
-                        image: team.image,
-                        visibility: team.visibility,
-                        sport: team.sport,
-                        dateCreated: team.date_created,
-                        sportsmanshipScore: team.sportsmanship_score,
-                        status: team.status,
-                        maxTeamSize: team.max_team_size,
-                        players: [],
-                        organizationId: team.organization_id,
-                        bracketId: null,
-                    })
-            );
+            return response.map((team) => Team.fromDatabase({ ...team, players: [] }));
         });
     }
 
@@ -69,7 +50,7 @@ export default class TeamDAO {
 
         const result = await withClientRollback(async (querier) => {
             // first a query to find teams is performed
-            const teams = (await querier<TeamDatabaseInterface>(sqlTeam, [id])).rows;
+            const teams = (await querier<ITeamDatabase>(sqlTeam, [id])).rows;
             const teamIdList = teams.map((x) => x.id);
 
             // next using the team ids from above each player on the team is retrieved
@@ -91,23 +72,7 @@ export default class TeamDAO {
                             )
                     );
 
-                return new Team({
-                    id: team.id,
-                    name: team.name,
-                    wins: team.wins,
-                    ties: team.ties,
-                    losses: team.losses,
-                    image: team.image,
-                    visibility: team.visibility,
-                    sport: team.sport,
-                    dateCreated: team.date_created,
-                    sportsmanshipScore: team.sportsmanship_score,
-                    status: team.status,
-                    maxTeamSize: team.max_team_size,
-                    players: playerList,
-                    organizationId: team.organization_id,
-                    bracketId: null,
-                });
+                return Team.fromDatabase({ ...team, players: playerList });
             });
         });
 
@@ -119,7 +84,7 @@ export default class TeamDAO {
     }
 
     /**
-     * Finds all teams in organization, ignores any status
+     * Finds all teams, ignores any status
      * @returns - list of teams
      */
     async findAllTeams(): Promise<Team[]> {
@@ -130,9 +95,9 @@ export default class TeamDAO {
         const sqlAll = "SELECT * FROM team";
 
         return withClient(async (querier) => {
-            const teams = (await querier<Team>(sqlAll)).rows;
+            const teams = (await querier<ITeamDatabase>(sqlAll)).rows;
 
-            return teams;
+            return teams.map((team) => Team.fromDatabase({ ...team, players: [] }));
         });
     }
 
@@ -141,8 +106,8 @@ export default class TeamDAO {
      * @param teamId - id to search for team with
      * @returns - team object with players or null
      */
-    async findTeamByIdWithPlayers(teamId: number): Promise<Team | null> {
-        logger.verbose("Entering method findTeamByIdWithPlayers()", {
+    async findTeamById(teamId: number): Promise<Team | null> {
+        logger.verbose("Entering method findTeamById()", {
             class: this.className,
         });
 
@@ -152,11 +117,17 @@ export default class TeamDAO {
             "SELECT team_roster.role, player.auth_id, player.first_name, player.last_name, player.gender, player.status, player.image FROM team_roster JOIN player ON team_roster.player_AUTH_ID = player.auth_ID WHERE team_roster.team_ID = $1";
 
         const result = await withClientRollback(async (querier) => {
-            // first fetches all players on team
+            // first fetch team
+            const [team] = (await querier<ITeamDatabase>(sqlFind, [teamId])).rows;
+            if (team === undefined) {
+                return IsRollback;
+            }
+
+            // next fetche players on team
             const players = (await querier(sqlFindPlayers, [teamId])).rows;
 
             if (players.length === 0) {
-                return IsRollback;
+                throw new Error(`No players found on team id: ${teamId}`);
             }
 
             const playerList = players.map(
@@ -172,75 +143,13 @@ export default class TeamDAO {
                     )
             );
 
-            // next fetches team details then combines the two
-            const [team] = (await querier(sqlFind, [teamId])).rows;
-            if (team === undefined) {
-                return IsRollback;
-            }
-
-            return new Team({
-                id: team.id,
-                name: team.name,
-                wins: team.wins,
-                ties: team.ties,
-                losses: team.losses,
-                image: team.image,
-                visibility: team.visibility,
-                sport: team.sport,
-                dateCreated: team.date_created,
-                sportsmanshipScore: team.sportsmanship_score,
-                status: team.status,
-                maxTeamSize: team.max_team_size,
-                players: playerList,
-                organizationId: team.organization_id,
-                bracketId: null,
-            });
+            return Team.fromDatabase({ ...team, players: playerList });
         });
 
         if (result === IsRollback) {
             return null;
         }
         return result;
-    }
-
-    /**
-     * Returns team details without player list. May be removed in favor of returning team list
-     * @param teamId - id to search for team with
-     * @returns - team object or null
-     */
-    async findTeamById(teamId: number): Promise<Team | null> {
-        logger.verbose("Entering method findTeamById()", {
-            class: this.className,
-            values: teamId,
-        });
-
-        const sqlFind = "SELECT * FROM team WHERE id = $1";
-
-        return withClient(async (querier) => {
-            const [team] = (await querier(sqlFind, [teamId])).rows;
-
-            if (team === undefined) {
-                return null;
-            }
-
-            return new Team({
-                id: team.id,
-                name: team.name,
-                wins: team.wins,
-                ties: team.ties,
-                losses: team.losses,
-                image: team.image,
-                visibility: team.visibility,
-                sport: team.sport,
-                dateCreated: team.date_created,
-                sportsmanshipScore: team.sportsmanship_score,
-                status: team.status,
-                maxTeamSize: team.max_team_size,
-                players: [],
-                organizationId: team.organization_id,
-                bracketId: null,
-            });
-        });
     }
 
     async removeTeamById(teamId: number): Promise<boolean> {
@@ -253,11 +162,8 @@ export default class TeamDAO {
 
         return withClient(async (querier) => {
             const response = await querier(sqlDelete, [teamId]);
-            if (response.rowCount === 0) {
-                return false;
-            }
 
-            return true;
+            return response.rowCount > 0;
         });
     }
 
@@ -280,7 +186,7 @@ export default class TeamDAO {
 
         return withClient(async (querier) => {
             const [response] = (
-                await querier<TeamDatabaseInterface>(sqlPatch, [
+                await querier<ITeamDatabase>(sqlPatch, [
                     name,
                     team.getWins(),
                     team.getTies(),
@@ -299,23 +205,7 @@ export default class TeamDAO {
                 return null;
             }
 
-            return new Team({
-                id: response.id,
-                name: response.name,
-                wins: response.wins,
-                ties: response.ties,
-                losses: response.losses,
-                image: response.image,
-                visibility: response.visibility,
-                sport: response.sport,
-                dateCreated: response.date_created,
-                sportsmanshipScore: response.sportsmanship_score,
-                status: response.status,
-                maxTeamSize: response.max_team_size,
-                players: [],
-                organizationId: response.organization_id,
-                bracketId: response.bracket_id,
-            });
+            return Team.fromDatabase({ ...response, players: [] });
         });
     }
 
@@ -371,29 +261,33 @@ export default class TeamDAO {
     // }
 
     /**
-     * Creates new team and adds player as captain
-     * @param team - team object to be added
-     * @param playerId - creating player to make captain of team
-     * @returns - team object or null
+     * Creates new team and adds player to roster using common table expression
+     * will have to revisit performance versus two separate queries
+     * @param team entity
+     * @param playerId id of player entity
+     * @param orgId id of organization
+     * @param role role of player
+     * @returns
      */
-    async createTeam(team: Team, playerId: string): Promise<Team | null> {
+    async createTeam(team: Team, playerId: string, orgId: string, role: TeamRole): Promise<Team> {
         logger.verbose("Entering method createTeam()", {
             class: this.className,
-            values: { team, playerId },
+            values: { team, playerId, orgId, role },
         });
 
-        // todo: combine into one query
-        const sqlAdd =
-            "INSERT INTO team (name, wins, ties, losses, image, visibility, sport, sportsmanship_score, status, max_team_size, organization_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *";
+        const sqlNew = `with new_team AS (
+            INSERT INTO team (name, wins, ties, losses, image, visibility, sport, sportsmanship_score, status, max_team_size, organization_id) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *
+            ),
+            new_role AS(
+                INSERT INTO team_roster (player_auth_id, team_id, role) 
+                VALUES($12, (SELECT id FROM new_team), $13)
+            )
+            SELECT * FROM new_team`;
 
-        const sqlAddCaptain =
-            "INSERT INTO team_roster (player_auth_id, team_id, role) VALUES($1, $2, $3)";
-
-        // this is all done in a transaction
-        const result = await withClientRollback(async (querier) => {
-            // first team is created to get id
+        return withClient(async (querier) => {
             const [newTeam] = (
-                await querier<TeamDatabaseInterface>(sqlAdd, [
+                await querier<ITeamDatabase>(sqlNew, [
                     team.getName(),
                     team.getWins(),
                     team.getTies(),
@@ -404,49 +298,24 @@ export default class TeamDAO {
                     team.getSportsmanshipScore(),
                     team.getStatus(),
                     team.getMaxTeamSize(),
-                    team.getOrganizationId(),
+                    orgId,
+                    playerId,
+                    role,
                 ])
             ).rows;
 
             if (newTeam === undefined) {
-                return IsRollback;
+                logger.error("Error creating team", {
+                    class: this.className,
+                });
+                throw new Error("Error creating team");
             }
 
-            // next player is added to team roster with captain role
-            const rosterAdd = await querier(sqlAddCaptain, [
-                playerId,
-                newTeam.id,
-                TeamRole.CAPTAIN,
-            ]);
-
-            if (rosterAdd.rowCount === 0) {
-                return IsRollback;
-            }
-
-            return new Team({
-                id: newTeam.id,
-                name: newTeam.name,
-                wins: newTeam.wins,
-                ties: newTeam.ties,
-                losses: newTeam.losses,
-                image: newTeam.image,
-                visibility: newTeam.visibility,
-                sport: newTeam.sport,
-                dateCreated: newTeam.date_created,
-                sportsmanshipScore: newTeam.sportsmanship_score,
-                status: newTeam.status,
-                maxTeamSize: newTeam.max_team_size,
+            return Team.fromDatabase({
+                ...newTeam,
                 players: [],
-                organizationId: newTeam.organization_id,
-                bracketId: null,
             });
         });
-
-        if (result === IsRollback) {
-            return null;
-        }
-
-        return result;
     }
 
     /**
@@ -456,23 +325,24 @@ export default class TeamDAO {
      * @param role - role attached to player
      * @returns - true or false depending on success or failure
      */
-    async addToTeamRoster(teamId: number, playerId: string, role: TeamRole): Promise<boolean> {
+    async addToTeamRoster(teamId: number, playerId: string, role?: TeamRole): Promise<void> {
         logger.verbose("Entering method addToTeamRoster()", {
             class: this.className,
             values: { teamId, playerId },
         });
 
         const sqlAddPlayer =
-            "INSERT INTO team_roster (player_AUTH_ID, team_ID, role) VALUES ($1, $2, $3)";
+            "INSERT INTO team_roster (player_AUTH_ID, team_ID, role) VALUES ($1, $2, $3) RETURNING ";
 
         return withClient(async (querier) => {
-            const responseAdd = await querier(sqlAddPlayer, [playerId, teamId, role]);
+            const response = (await querier(sqlAddPlayer, [playerId, teamId, role])).rowCount;
 
-            if (responseAdd === null) {
-                return false;
+            if (response < 0) {
+                logger.error("Error adding player to roster", {
+                    class: this.className,
+                });
+                throw new Error("Error adding player to roster");
             }
-
-            return true;
         });
     }
 
@@ -482,7 +352,7 @@ export default class TeamDAO {
      * @param playerId - id of player to remove from team
      * @returns - true or false based on success or failure
      */
-    async removeFromTeamRoster(teamId: number, playerId: string): Promise<boolean> {
+    async removeFromTeamRoster(teamId: number, playerId: string): Promise<void> {
         logger.verbose("Entering method removeFromTeamRoster()", {
             class: this.className,
             values: { teamId, playerId },
@@ -491,13 +361,16 @@ export default class TeamDAO {
         const sqlRemove = "DELETE FROM team_roster WHERE player_AUTH_ID=$1 AND team_ID=$2";
 
         return withClient(async (querier) => {
-            const response = await querier(sqlRemove, [playerId, teamId]);
+            const response = (await querier(sqlRemove, [playerId, teamId])).rowCount;
 
-            if (response === null) {
-                return false;
+            if (response < 0) {
+                logger.error("Error removing player from team", {
+                    class: this.className,
+                });
+                throw new Error("Error removing player from team");
             }
 
-            if (response.rowCount > 1) {
+            if (response > 1) {
                 logger.error("removeFromTeamRoster deleted more than one record", {
                     class: this.className,
                     values: {
@@ -506,8 +379,6 @@ export default class TeamDAO {
                     },
                 });
             }
-
-            return true;
         });
     }
 
@@ -547,44 +418,60 @@ export default class TeamDAO {
      * @param expirationTime - expiration time of invite
      * @returns - true or false based on success or failure
      */
-    async createJoinRequest(
-        teamId: number,
-        playerId: string,
-        expirationTime: Date
-    ): Promise<boolean> {
+    async createJoinRequest(teamId: number, playerId: string, expirationTime: Date): Promise<void> {
         logger.verbose("Entering method createJoinRequest()", {
             class: this.className,
             values: { teamId, playerId, expirationTime },
         });
 
-        // todo: combine into one query
-        const sqlAdd =
-            "INSERT INTO team_join_requests (player_auth_id, team_id, requesting_player_full_name, expiration_time) VALUES ($1,$2,$3,$4) RETURNING *";
+        // CTE first queries player table for player requesting to join team
+        // Gets name passes that to second query
+        // Gets name from player and concatenates the first and last name
+        // Inserts that as the requesting_player_full_name
+        const sqlNew = `with requesting_player AS (
+            SELECT first_name, last_name FROM player WHERE auth_id = $1
+            )
+            INSERT INTO team_join_requests (player_auth_id, team_id, requesting_player_full_name, expiration_time) 
+            VALUES ($2, $3, (SELECT CONCAT(first_name, last_name) FROM requesting_player), $4)`;
 
-        const sqlPlayer = "SELECT first_name, last_name FROM player WHERE auth_id = $1";
+        // const sqlAdd =
+        //     "INSERT INTO team_join_requests (player_auth_id, team_id, requesting_player_full_name, expiration_time) VALUES ($1,$2,$3,$4) RETURNING *";
+
+        // const sqlPlayer = "SELECT first_name, last_name FROM player WHERE auth_id = $1";
 
         return withClient(async (querier) => {
-            const [player] = (await querier(sqlPlayer, [playerId])).rows;
-            if (player === undefined) {
-                return false;
+            const response = (await querier(sqlNew, [playerId, playerId, teamId, expirationTime]))
+                .rowCount;
+            // const [player] = (await querier(sqlPlayer, [playerId])).rows;
+            // if (player === undefined) {
+            //     return false;
+            // }
+
+            // const [result] = (
+            //     await querier(sqlAdd, [
+            //         playerId,
+            //         teamId,
+            //         `${player.first_name} ${player.last_name}`,
+            //         expirationTime,
+            //     ])
+            // ).rows;
+
+            if (response < 0) {
+                logger.error("Error creating request to join team", {
+                    class: this.className,
+                });
+                throw new Error("Error creating request to join team");
             }
 
-            const [result] = (
-                await querier(sqlAdd, [
-                    playerId,
-                    teamId,
-                    `${player.first_name} ${player.last_name}`,
-                    expirationTime,
-                ])
-            ).rows;
+            // if (result === undefined) {
+            //     return false;
+            // }
 
-            if (result === undefined) {
-                return false;
-            }
-
-            return true;
+            // return true;
         });
     }
+
+    async findAllJoinRequests(teamId: number): Promise<
 
     /**
      * Deletes request to join team. This request is represented simply in database, so the
@@ -650,23 +537,20 @@ const test = new TeamDAO();
 // test.findAllTeams();
 // test.findTeamById(12)
 
-// const team = new Team({
-//     id: 20,
-//     name: "Hello Barbie",
-//     wins: 0,
-//     ties: 0,
-//     losses: 0,
-//     image: "",
-//     visibility: Visibility.OPEN,
-//     sport: "Soccer",
-//     dateCreated: null,
-//     sportsmanshipScore: 4.0,
-//     status: Status.ACTIVE,
-//     maxTeamSize: 12,
-//     players: [],
-//     organizationId: "7f83b6f4-754a-4f34-913d-907c1226321f",
-//     bracketId: null,
-// });
+const team = new Team({
+    name: "Hello Barbie",
+    wins: 0,
+    ties: 0,
+    losses: 0,
+    image: "",
+    visibility: TeamVisibility.PRIVATE,
+    sport: Sport.BASKETBALL,
+    sportsmanshipScore: 4.0,
+    status: TeamStatus.ELIGIBLE,
+    maxTeamSize: 12,
+    players: [],
+    organizationId: "dab32727-cb7c-4320-8865-6f1b842785ed",
+});
 
 testFunc();
 
@@ -676,7 +560,13 @@ async function testFunc() {
     // console.log(await test.addToTeamRoster(12, "player4", Role.PLAYER))
     // console.log(await test.removeFromTeamRoster(12, "player2"));
     // const newTeam = await test.updateTeam(team);
-    // const newTeam = await test.createTeam(team)
+    // console.log(
+    //     await test.createTeam(
+    //         team,
+    //         "auth0|62760b4733c477006f82c56c",
+    //         "dab32727-cb7c-4320-8865-6f1b842785ed"
+    //     )
+    // );
     // console.log(await test.findAllTeamsByPlayerId("auth0|62760b4733c477006f82c56d"));
     // console.log(newTeam?.getId());
     // console.log(await test.findTeamById(12));
