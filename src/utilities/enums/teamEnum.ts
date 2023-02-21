@@ -16,3 +16,9 @@ export enum TeamVisibility {
     PRIVATE = "PRIVATE",
     PUBLIC = "PUBLIC",
 }
+
+export enum TeamGender {
+    MALE = "MALE",
+    FEMALE = "FEMALE",
+    COED = "COED",
+}

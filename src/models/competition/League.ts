@@ -1,41 +1,67 @@
 import { Sport } from "../../utilities/enums/commonEnum";
 import { Division } from "./Division";
 
+interface ILeagueProps {
+    id: number;
+    name: string | null;
+    sport: Sport | null;
+    startDate: Date | null;
+    endDate: Date | null;
+    divisions: Division[];
+    // contestId: number;
+    // organizationId: string;
+}
+
 export class League {
-    protected id;
+    protected id: number;
 
-    protected name;
+    protected name: string | null;
 
-    protected sport;
+    protected sport: Sport | null;
 
-    protected startDate;
+    protected startDate: Date | null;
 
-    protected endDate;
+    protected endDate: Date | null;
 
-    protected divisions;
+    protected divisions: Division[];
 
-    protected contestId;
+    // protected contestId: number;
 
-    protected organizationId;
+    // protected organizationId: string;
 
-    constructor(props: {
+    constructor(props: Partial<ILeagueProps>) {
+        const {
+            id = 0,
+            name = null,
+            sport = null,
+            startDate = null,
+            endDate = null,
+            divisions = [],
+        } = props;
+
+        this.id = id;
+        this.name = name;
+        this.sport = sport;
+        this.startDate = startDate;
+        this.endDate = endDate;
+        this.divisions = divisions;
+        // this.contestId = contestId;
+        // this.organizationId = organizationId;
+    }
+
+    public static fromDatabase(props: {
         id: number;
         name: string | null;
         sport: Sport | null;
-        startDate: Date | null;
-        endDate: Date | null;
+        start_date: Date | null;
+        end_date: Date | null;
         divisions: Division[];
-        contestId: number;
-        organizationId: string;
     }) {
-        this.id = props.id;
-        this.name = props.name;
-        this.sport = props.sport;
-        this.startDate = props.startDate;
-        this.endDate = props.endDate;
-        this.divisions = props.divisions;
-        this.contestId = props.contestId;
-        this.organizationId = props.organizationId;
+        const obj = new League(props);
+        obj.startDate = props.start_date;
+        obj.endDate = props.end_date;
+
+        return obj;
     }
 
     public getId(): number {
@@ -86,19 +112,19 @@ export class League {
         this.divisions = divisions;
     }
 
-    public getContestId(): number {
-        return this.contestId;
-    }
+    // public getContestId(): number {
+    //     return this.contestId;
+    // }
 
-    public setContestId(contestId: number): void {
-        this.contestId = contestId;
-    }
+    // public setContestId(contestId: number): void {
+    //     this.contestId = contestId;
+    // }
 
-    public getOrganizationId(): string {
-        return this.organizationId;
-    }
+    // public getOrganizationId(): string {
+    //     return this.organizationId;
+    // }
 
-    public setOrganizationId(organizationId: string): void {
-        this.organizationId = organizationId;
-    }
+    // public setOrganizationId(organizationId: string): void {
+    //     this.organizationId = organizationId;
+    // }
 }

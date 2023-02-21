@@ -114,7 +114,7 @@ router.post(
     }
 );
 router.post("/teams", checkJwt, async (req, res) => {
-    const { sub = "" } = req.auth!.payload;
+    const { sub = "" } = req.auth?.payload ?? {};
     const b = req.body as ITeamCreate;
 
     const team = new Team({

@@ -1,5 +1,7 @@
 import range from "postgres-range";
 import { withClient } from "./database";
+import { TimeRange } from "../interfaces/Bracket";
+import format from "pg-format";
 
 interface test {
     id: number;
@@ -23,7 +25,7 @@ const here = new NewTest(1, [
 ]);
 
 function hello() {
-    const sql = "INSERT INTO test_bracket_two (TIME_CHOICES) VALUES($1)";
+    const sql = "INSERT INTO test_bracket (TIME_CHOICES) VALUES($1)";
 
     // const newest = timeArray.map((time) =>
     //     // eslint-disable-next-line no-bitwise
@@ -31,6 +33,11 @@ function hello() {
     // );
 
     // original
+    const test: TimeRange[] = [
+        { startTime: new Date(), endTime: new Date() },
+        { startTime: new Date(), endTime: new Date() },
+    ];
+
     const org =
         "{['2021-10-01 06:00:00','2021-10-01 10:00:00'],['2021-10-01 14:00:00','2021-10-01 20:00:00']}";
 
@@ -42,7 +49,8 @@ function hello() {
     // console.log(newest);
 
     return withClient(async (querier) => {
-        const result = await querier(sql, [org]);
+        const timeSlots = `{${test.map((time) => `[${time.startTime}, ${time.endTime}]`)}}`;
+        const result = await querier(sql, [timeSlots]);
 
         console.log(result.rows);
     });

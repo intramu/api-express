@@ -42,6 +42,7 @@ export class TeamBusinessService {
 
         // finish, get these details from contestDAO
         newTeam.setMaxTeamSize();
+        newTeam.setGender();
         newTeam.setBracketId(bracket);
 
         // when creating team player role is set to Captain
@@ -332,6 +333,12 @@ export class TeamBusinessService {
             return APIResponse.Conflict(`Player: ${playerId} is already on team`);
         }
 
+        // check if player has already sent invite
+        const teamRequests = await teamDatabase.findAllJoinRequests(teamId);
+        if (teamRequests.find((request) => request.authId === playerId)) {
+            return APIResponse.Conflict(`Invite already exists for player`);
+        }
+
         // expiration date of invite is set one week out
         const date = new Date();
         date.setDate(date.getDate() + 7);
@@ -364,7 +371,7 @@ export class TeamBusinessService {
         // TODO: move team to bracket if they meet bracket requirements
 
         // check if team exists
-        const team = await teamDatabase.findTeamByIdWithPlayers(teamId);
+        const team = await teamDatabase.findTeamById(teamId);
         if (team === null) {
             return APIResponse.NotFound(`No team found with id: ${teamId}`);
         }

@@ -1,5 +1,5 @@
 import { Sport } from "../utilities/enums/commonEnum";
-import { TeamStatus, TeamVisibility } from "../utilities/enums/teamEnum";
+import { TeamGender, TeamStatus, TeamVisibility } from "../utilities/enums/teamEnum";
 import { PlayerSmall } from "./PlayerSmall";
 
 interface ITeamProps {
@@ -11,6 +11,7 @@ interface ITeamProps {
     image: string;
     visibility: TeamVisibility;
     sport: Sport;
+    gender: TeamGender;
     dateCreated: Date;
     sportsmanshipScore: number;
     status: TeamStatus;
@@ -37,6 +38,8 @@ export class Team {
 
     protected sport: Sport | null;
 
+    protected gender: TeamGender | null;
+
     protected dateCreated: Date | null;
 
     protected sportsmanshipScore: number | null;
@@ -62,6 +65,7 @@ export class Team {
             image = "",
             visibility = null,
             sport = null,
+            gender = null,
             dateCreated = null,
             sportsmanshipScore = null,
             status = null,
@@ -77,6 +81,7 @@ export class Team {
         this.losses = losses;
         this.image = image;
         this.sport = sport;
+        this.gender = gender;
         this.dateCreated = dateCreated;
         this.image = image;
         this.visibility = visibility;
@@ -98,6 +103,7 @@ export class Team {
         image: string;
         visibility: TeamVisibility;
         sport: Sport;
+        gender: TeamGender;
         date_created: Date;
         sportsmanship_score: number;
         status: TeamStatus;
@@ -177,6 +183,14 @@ export class Team {
 
     setSport(sport: Sport | null): void {
         this.sport = sport;
+    }
+
+    getGender(): TeamGender | null {
+        return this.gender;
+    }
+
+    setGender(gender: TeamGender | null): void {
+        this.gender = gender;
     }
 
     getDateCreated(): Date | null {

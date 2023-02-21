@@ -1,45 +1,74 @@
 import { DivisionLevel, DivisionType } from "../../utilities/enums/competitionEnum";
 import { Bracket } from "./Bracket";
 
+interface IDivisionProps {
+    id: number;
+    name: string | null;
+    type: DivisionType | null;
+    level: DivisionLevel | null;
+    maxTeamSize: number;
+    minWomenCount: number | null;
+    minMenCount: number | null;
+    brackets: Bracket[];
+    leagueId: number;
+}
 export class Division {
-    protected id;
+    protected id: number;
 
-    protected name;
+    protected name: string | null;
 
-    protected type;
+    protected type: DivisionType | null;
 
-    protected level;
+    protected level: DivisionLevel | null;
 
-    protected maxTeamSize;
+    protected maxTeamSize: number;
 
-    protected minWomenCount;
+    protected minWomenCount: number | null;
 
-    protected minMenCount;
+    protected minMenCount: number | null;
 
-    protected brackets;
+    protected brackets: Bracket[];
 
-    protected leagueId;
+    // protected leagueId: number;
 
-    constructor(props: {
+    constructor(props: Partial<IDivisionProps>) {
+        const {
+            id = 0,
+            name = null,
+            type = null,
+            level = null,
+            maxTeamSize = 0,
+            minWomenCount = null,
+            minMenCount = null,
+            brackets = [],
+        } = props;
+
+        this.id = id;
+        this.name = name;
+        this.type = type;
+        this.level = level;
+        this.maxTeamSize = maxTeamSize;
+        this.minMenCount = minMenCount;
+        this.minWomenCount = minWomenCount;
+        this.brackets = brackets;
+    }
+
+    public static fromDatabase(props: {
         id: number;
         name: string | null;
         type: DivisionType | null;
         level: DivisionLevel | null;
-        maxTeamSize: number;
-        minWomenCount: number | null;
-        minMenCount: number | null;
+        max_team_size: number;
+        min_women_count: number | null;
+        min_men_count: number | null;
         brackets: Bracket[];
-        leagueId: number;
     }) {
-        this.id = props.id;
-        this.name = props.name;
-        this.type = props.type;
-        this.level = props.level;
-        this.maxTeamSize = props.maxTeamSize;
-        this.minWomenCount = props.minWomenCount;
-        this.minMenCount = props.minMenCount;
-        this.brackets = props.brackets;
-        this.leagueId = props.leagueId;
+        const obj = new Division(props);
+        obj.maxTeamSize = props.max_team_size;
+        obj.minWomenCount = props.min_women_count;
+        obj.minMenCount = props.min_men_count;
+
+        return obj;
     }
 
     public getName(): string | null {
@@ -98,11 +127,11 @@ export class Division {
         this.brackets = brackets;
     }
 
-    public getLeagueId(): number {
-        return this.leagueId;
-    }
+    // public getLeagueId(): number {
+    //     return this.leagueId;
+    // }
 
-    public setLeagueId(leagueId: number): void {
-        this.leagueId = leagueId;
-    }
+    // public setLeagueId(leagueId: number): void {
+    //     this.leagueId = leagueId;
+    // }
 }

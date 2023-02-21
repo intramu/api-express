@@ -9,7 +9,7 @@ export interface LeagueNewInterface {
     divisions: DivisionNewInterface[];
 }
 
-export interface LeagueDatabaseInterface {
+export interface ILeagueDatabase {
     id: number;
     name: string;
     sport: Sport;

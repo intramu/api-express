@@ -7,9 +7,15 @@ export interface BracketNewInterface {
     // teams: number[];
 }
 
-export interface BracketDatabaseInterface {
+export interface TimeRange {
+    startTime: Date;
+    endTime: Date;
+}
+
+export interface IBracketDatabase {
     id: number;
     day_choices: string[];
+    time_choices: string;
     max_team_amount: number;
     division_id: number;
 }

@@ -1,15 +1,16 @@
+import { League } from "../models/competition/League";
 import {
+    CompetitionStatus,
+    CompetitionVisibility,
     ContestType,
     PlayoffSeedingType,
-    Status,
     TournamentType,
-    Visibility,
-} from "../utilities/enums";
+} from "../utilities/enums/competitionEnum";
 
 export interface ContestNew {
     name: string;
-    visibility: Visibility;
-    status: Status;
+    visibility: CompetitionVisibility;
+    status: CompetitionStatus;
     startDate: Date;
     endDate: Date;
     playoff: boolean;
@@ -18,17 +19,18 @@ export interface ContestNew {
     contestType: ContestType;
 }
 
-export interface ContestDatabaseInterface {
+export interface IContestDatabase {
     id: number;
     name: string;
-    visibility: Visibility;
+    visibility: CompetitionVisibility;
     date_created: Date;
-    status: Status;
+    status: CompetitionStatus;
     start_date: Date;
     end_date: Date;
     playoff: boolean;
     playoff_type: TournamentType;
     playoff_seeding_type: PlayoffSeedingType;
+    leagues: League[];
     contest_type: ContestType;
     organization_id: string;
 }

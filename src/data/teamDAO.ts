@@ -1,9 +1,10 @@
 import format from "pg-format";
+import { IJoinRequest } from "../interfaces/IJoinRequest";
 import { ITeamDatabase } from "../interfaces/ITeam";
 import { PlayerSmall } from "../models/PlayerSmall";
 import { Team } from "../models/Team";
 import { Sport } from "../utilities/enums/commonEnum";
-import { TeamRole, TeamStatus, TeamVisibility } from "../utilities/enums/teamEnum";
+import { TeamGender, TeamRole, TeamStatus, TeamVisibility } from "../utilities/enums/teamEnum";
 import logger from "../utilities/winstonConfig";
 import { IsRollback, withClient, withClientRollback } from "./database";
 
@@ -471,7 +472,20 @@ export default class TeamDAO {
         });
     }
 
-    async findAllJoinRequests(teamId: number): Promise<
+    async findAllJoinRequests(teamId: number): Promise<IJoinRequest[]> {
+        logger.verbose("Entering method findAllJoinRequests()", {
+            class: this.className,
+            values: { teamId },
+        });
+
+        const sql = "SELECT * FROM team_join_request WHERE team_id = $1";
+
+        return withClient(async (querier) => {
+            const response = (await querier<IJoinRequest>(sql, [teamId])).rows;
+
+            return response;
+        });
+    }
 
     /**
      * Deletes request to join team. This request is represented simply in database, so the

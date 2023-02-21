@@ -1,5 +1,5 @@
 import { Sport } from "../utilities/enums/commonEnum";
-import { TeamStatus, TeamVisibility } from "../utilities/enums/teamEnum";
+import { TeamGender, TeamStatus, TeamVisibility } from "../utilities/enums/teamEnum";
 
 export interface ITeamDatabase {
     id: number;
@@ -10,6 +10,7 @@ export interface ITeamDatabase {
     image: string;
     visibility: TeamVisibility;
     sport: Sport;
+    gender: TeamGender;
     date_created: Date;
     sportsmanship_score: number;
     status: TeamStatus;

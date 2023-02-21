@@ -15,7 +15,7 @@ router.use(
             return next(err);
         }
 
-        if (req.auth === undefined) {
+        if (!req.auth) {
             return res.status(401).json(APIResponse.Unauthorized("Token Error"));
         }
 

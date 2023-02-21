@@ -7,58 +7,103 @@ import {
 } from "../../utilities/enums/competitionEnum";
 import { League } from "./League";
 
+interface IContestProps {
+    id: number;
+    name: string | null;
+    visibility: CompetitionVisibility | null;
+    status: CompetitionStatus | null;
+    dateCreated: Date | null;
+    startDate: Date | null;
+    endDate: Date | null;
+    playoff: boolean;
+    playoffType: TournamentType | null;
+    playoffSeedingType: PlayoffSeedingType | null;
+    contestType: ContestType | null;
+    leagues: League[];
+    organizationId: string;
+}
+
 export class Contest {
-    protected id;
+    protected id: number;
 
-    protected name;
+    protected name: string | null;
 
-    protected visibility;
+    protected visibility: CompetitionVisibility | null;
 
-    protected status;
+    protected status: CompetitionStatus | null;
 
-    protected dateCreated;
+    protected dateCreated: Date | null;
 
-    protected startDate;
+    protected startDate: Date | null;
 
-    protected endDate;
+    protected endDate: Date | null;
 
-    protected playoff;
+    protected playoff: boolean;
 
-    protected playoffType;
+    protected playoffType: TournamentType | null;
 
-    protected playoffSeedingType;
+    protected playoffSeedingType: PlayoffSeedingType | null;
 
-    protected contestType;
+    protected contestType: ContestType | null;
 
-    protected organizationId;
+    protected leagues: League[];
 
-    constructor(props: {
+    // protected organizationId: string;
+
+    constructor(props: Partial<IContestProps>) {
+        const {
+            id = 0,
+            name = "",
+            visibility = null,
+            status = null,
+            dateCreated = null,
+            startDate = null,
+            endDate = null,
+            playoff = false,
+            playoffType = null,
+            playoffSeedingType = null,
+            contestType = null,
+            leagues = [],
+        } = props;
+
+        this.id = id;
+        this.name = name;
+        this.visibility = visibility;
+        this.status = status;
+        this.dateCreated = dateCreated;
+        this.startDate = startDate;
+        this.endDate = endDate;
+        this.playoff = playoff;
+        this.playoffType = playoffType;
+        this.playoffSeedingType = playoffSeedingType;
+        this.contestType = contestType;
+        this.leagues = leagues;
+        // this.organizationId = organizationId;
+    }
+
+    public static fromDatabase(props: {
         id: number;
         name: string | null;
         visibility: CompetitionVisibility | null;
         status: CompetitionStatus | null;
-        dateCreated: Date | null;
-        startDate: Date | null;
-        endDate: Date | null;
+        date_created: Date | null;
+        start_date: Date | null;
+        end_date: Date | null;
         playoff: boolean;
-        playoffType: TournamentType | null;
-        playoffSeedingType: PlayoffSeedingType | null;
-        contestType: ContestType | null;
+        playoff_type: TournamentType | null;
+        playoff_seeding_type: PlayoffSeedingType | null;
+        contest_type: ContestType | null;
         leagues: League[];
-        organizationId: string;
     }) {
-        this.id = props.id;
-        this.name = props.name;
-        this.visibility = props.visibility;
-        this.status = props.status;
-        this.dateCreated = props.dateCreated;
-        this.startDate = props.startDate;
-        this.endDate = props.endDate;
-        this.playoff = props.playoff;
-        this.playoffType = props.playoffType;
-        this.playoffSeedingType = props.playoffSeedingType;
-        this.contestType = props.contestType;
-        this.organizationId = props.organizationId;
+        const obj = new Contest(props);
+        obj.dateCreated = props.date_created;
+        obj.startDate = props.start_date;
+        obj.endDate = props.end_date;
+        obj.playoffType = props.playoff_type;
+        obj.playoffSeedingType = props.playoff_seeding_type;
+        obj.contestType = props.contest_type;
+
+        return obj;
     }
 
     public getId(): number {
@@ -149,11 +194,19 @@ export class Contest {
         this.contestType = contestType;
     }
 
-    public getOrganizationId(): string {
-        return this.organizationId;
+    public getLeagues(): League[] {
+        return this.leagues;
     }
 
-    public setOrganizationId(organizationId: string): void {
-        this.organizationId = organizationId;
+    public setLeagues(leagues: League[]): void {
+        this.leagues = leagues;
     }
+
+    // public getOrganizationId(): string {
+    //     return this.organizationId;
+    // }
+
+    // public setOrganizationId(organizationId: string): void {
+    //     this.organizationId = organizationId;
+    // }
 }

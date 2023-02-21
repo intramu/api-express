@@ -37,7 +37,7 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
         return next(err);
     }
 
-    return res.status(500).json(APIResponse[500]("Not sure what happened. We're on it!"));
+    return res.status(500).json(APIResponse.InternalError("Not sure what happened. We're on it!"));
 });
 
 app.listen(8080, () => {

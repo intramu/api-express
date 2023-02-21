@@ -1,6 +1,8 @@
 import express from "express";
 import { CompetitionBusinessService } from "../../../business/service/CompetitionBusinessService";
+import { Contest } from "../../../models/competition/Contest";
 import { handleErrorResponse } from "../../../utilities/apiFunctions";
+import { newContestSchema } from "../../../utilities/validation/competitionValidation";
 import { compIdParam, organizationIdParam } from "../../../utilities/validation/validationSchemas";
 
 const competitionService = new CompetitionBusinessService();
@@ -16,20 +18,32 @@ router
         return handleErrorResponse(response, res);
     })
     // TODO: contest validation schema
-    .post(organizationIdParam, async (req, res) => {
+    .post(organizationIdParam, newContestSchema, async (req, res) => {
         const { orgId } = req.params;
-        // get body for contest
-        const response = true;
-        return handleErrorResponse(response, res);
+        const b = req.body;
+
+        const contest = new Contest(b);
+        const response = await competitionService.createContest(contest, orgId);
+
+        return handleErrorResponse(response, res, 201);
     });
 
-router
-    .route("/contests/:compId")
-    .get(compIdParam, async (req, res) => {
-        const { compId } = req.params;
-    })
-    .patch()
-    .delete();
+router.get("/contests/:compId/leagues", async (req, res) => {
+    const { compId } = req.params;
+    const response = await competitionService.findLeaguesByContestId(Number(compId));
 
-router.route("/contests/:compId/leagues").get().post();
-router.route("/leagues/:compId").get().delete();
+    return handleErrorResponse(response, res);
+});
+
+// router
+//     .route("/contests/:compId")
+//     .get(compIdParam, async (req, res) => {
+//         const { compId } = req.params;
+//     })
+//     .patch()
+//     .delete();
+
+// router.route("/contests/:compId/leagues").get().post();
+// router.route("/leagues/:compId").get().delete();
+
+export default router;
