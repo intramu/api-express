@@ -1,8 +1,7 @@
 import AdminDAO from "../../data/adminDAO";
 import OrganizationDAO from "../../data/organizationDAO";
 import PlayerDAO from "../../data/playerDAO";
-import { AdminNew } from "../../interfaces/Admin";
-import { OrganizationWithAdmin } from "../../interfaces/Organization";
+import { IOrganizationWithAdmin } from "../../interfaces/IOrganization";
 import { Admin } from "../../models/Admin";
 import { APIResponse } from "../../models/APIResponse";
 import { Organization } from "../../models/Organization";
@@ -33,7 +32,7 @@ export class OrganizationBusinessService {
      */
     async createOrganizationWithAuth0Account(
         organization: Organization,
-        admin: AdminNew
+        admin: Admin
     ): Promise<APIResponse | string> {
         logger.verbose("Entering method createOrganizationWithAuth0Account()", {
             class: this.className,
@@ -46,15 +45,15 @@ export class OrganizationBusinessService {
         // admin is first created in auth0
         const newAuthUser = {
             // todo: be able to change blocked, verify_email, and email_verified values
-            email: admin.emailAddress,
+            email: admin.getEmailAddress(),
             user_metadata: {
                 profile_completion_status: "complete",
             },
             blocked: false,
             email_verified: false,
-            given_name: admin.firstName || `${organization.getName()} Master Administrator`,
-            family_name: admin.lastName || "",
-            name: `${admin.firstName} ${admin.lastName}`,
+            given_name: admin.getFirstName() || `${organization.getName()} Master Administrator`,
+            family_name: admin.getLastName() || "",
+            name: `${admin.getFirstName()} ${admin.getLastName()}`,
             connection: "Username-Password-Authentication",
             password: Math.random().toString(36).slice(-8).concat("1111!"),
             verify_email: true,
@@ -63,10 +62,10 @@ export class OrganizationBusinessService {
         // creates new user in auth0
         const create = await auth0.createUser(newAuthUser);
         if (create.user_id === undefined) {
-            return APIResponse[500]("Auth0 error creating user");
+            return APIResponse.InternalError("Auth0 error creating user");
         }
 
-        // assigns the master admin role to the created user
+        // assigns the master admin role in auth0, to the created user
         const auth = auth0
             .assignRolestoUser({ id: create.user_id }, { roles: [this.masterAdminRoleId] })
             .catch((err) => {
@@ -78,7 +77,7 @@ export class OrganizationBusinessService {
             });
 
         if (auth === null) {
-            return APIResponse[500]("Auth0 error assigning role to user");
+            return APIResponse.InternalError("Auth0 error assigning role to user");
         }
 
         // default values for this query give the admin a generic name if once isn't provided
@@ -86,10 +85,10 @@ export class OrganizationBusinessService {
         // status is set to active
         const newAdmin: Admin = new Admin({
             authId: create.user_id,
-            firstName: admin.firstName || `${organization.getName()} Master Administrator`,
-            lastName: admin.lastName || "",
-            language: admin.language,
-            emailAddress: admin.emailAddress,
+            firstName: admin.getFirstName() || `${organization.getName()} Master Administrator`,
+            lastName: admin.getLastName() || "",
+            language: admin.getLanguage(),
+            emailAddress: admin.getEmailAddress(),
             role: AdminRole.MASTER,
             dateCreated: null,
             status: AdminStatus.ACTIVE,
@@ -97,9 +96,6 @@ export class OrganizationBusinessService {
         });
 
         const response = await organizationDatabase.createOrganization(organization, newAdmin);
-        if (response === null) {
-            return APIResponse[500]("Error creating organization");
-        }
 
         logger.debug(
             `new admin created with temp password: ${
@@ -113,25 +109,26 @@ export class OrganizationBusinessService {
 
     /**
      * Creates organization without creating admin auth0 account. This is used for testing
-     * @param org - organization to be added
+     * @param organization - organization to be added
      * @param admin - master admin to be added under organization
      * @returns - error response or both the organization and admin details
      */
     async createOrganization(
-        org: Organization,
+        organization: Organization,
         admin: Admin
-    ): Promise<APIResponse | OrganizationWithAdmin> {
+    ): Promise<APIResponse | Object> {
         logger.verbose("Entering method createOrganization()", {
             class: this.className,
-            values: org,
+            values: { organization, admin },
         });
 
-        // this method creates both the organization and master admin in a transaction
-        const orgWithAdmin = await organizationDatabase.createOrganization(org, admin);
-        if (orgWithAdmin === null) {
-            return APIResponse[500](`Error creating organization`);
+        const lookupAdmin = await adminDatabase.findAdminById(admin.getAuthId());
+        if (lookupAdmin) {
+            return APIResponse.Conflict(`Admin: ${admin.getAuthId()} already exists`);
         }
 
+        // this method creates both the organization and master admin in a transaction
+        const orgWithAdmin = await organizationDatabase.createOrganization(organization, admin);
         return orgWithAdmin;
     }
 
@@ -148,7 +145,7 @@ export class OrganizationBusinessService {
 
         const organization = await organizationDatabase.findOrganizationById(orgId);
         if (organization === null) {
-            return APIResponse[404](`No organization found with id ${orgId}`);
+            return APIResponse.NotFound(`No organization found with id ${orgId}`);
         }
 
         return organization;
@@ -164,10 +161,6 @@ export class OrganizationBusinessService {
         });
 
         const organizations = await organizationDatabase.findAllOrganizations();
-        if (organizations.length === 0) {
-            return APIResponse[404](`No organizations found`);
-        }
-
         return organizations;
     }
 
@@ -185,7 +178,7 @@ export class OrganizationBusinessService {
         // if organization exists
         const organization = await organizationDatabase.findOrganizationById(orgId);
         if (organization === null) {
-            return APIResponse[404](`No organization found with id ${orgId}`);
+            return APIResponse.NotFound(`No organization found with id ${orgId}`);
         }
 
         // get admins
@@ -211,7 +204,7 @@ export class OrganizationBusinessService {
 
         const admin = await adminDatabase.findAdminById(adminId);
         if (admin === null) {
-            return APIResponse[404](`No admin found with id: ${adminId}`);
+            return APIResponse.NotFound(`No admin found with id: ${adminId}`);
         }
 
         return admin;
@@ -225,7 +218,7 @@ export class OrganizationBusinessService {
 
         const response = await adminDatabase.removeAdminById(adminId);
         if (response === null) {
-            return APIResponse[404](`No admin found with id: ${adminId}`);
+            return APIResponse.NotFound(`No admin found with id: ${adminId}`);
         }
 
         return true;
@@ -239,10 +232,23 @@ export class OrganizationBusinessService {
 
         const organization = await organizationDatabase.findOrganizationById(orgId);
         if (organization === null) {
-            return APIResponse[404](`No organization found with id: ${orgId}`);
+            return APIResponse.NotFound(`No organization found with id: ${orgId}`);
         }
 
-        const createdAdmin = await adminDatabase.createAdminByOrganizationId(admin, orgId);
-        return createdAdmin;
+        return await adminDatabase.createAdminByOrganizationId(admin, orgId);
+    }
+
+    async updateOrganization(organization: Organization): Promise<APIResponse | Organization> {
+        logger.verbose("Entering method patchOrganization()", {
+            class: this.className,
+            values: { organization },
+        });
+
+        const lookupOrg = await organizationDatabase.findOrganizationById(organization.getId());
+        if (lookupOrg === null) {
+            return APIResponse.NotFound(`No organization found with id:${organization.getId()}`);
+        }
+
+        return await organizationDatabase.updateOrganization(organization);
     }
 }

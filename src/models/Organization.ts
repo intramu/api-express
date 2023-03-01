@@ -1,5 +1,15 @@
 import { OrganizationStatus } from "../utilities/enums/commonEnum";
 
+interface IOrganizationProps {
+    id: string;
+    name: string;
+    image: string;
+    info: string;
+    mainColor: string;
+    approvalStatus: OrganizationStatus;
+    dateCreated: Date;
+}
+
 export class Organization {
     private id: string;
 
@@ -15,22 +25,40 @@ export class Organization {
 
     private dateCreated: Date | null;
 
-    constructor(props: {
+    constructor(props: Partial<IOrganizationProps>) {
+        const {
+            id = "",
+            name = "",
+            image = "",
+            info = "",
+            mainColor = "",
+            approvalStatus = null,
+            dateCreated = null,
+        } = props;
+
+        this.id = id;
+        this.name = name;
+        this.image = image;
+        this.info = info;
+        this.mainColor = mainColor;
+        this.approvalStatus = approvalStatus;
+        this.dateCreated = dateCreated;
+    }
+
+    public static fromDatabase(props: {
         id: string;
         name: string;
         image: string;
         info: string;
-        mainColor: string;
-        approvalStatus: OrganizationStatus | null;
-        dateCreated: Date | null;
+        main_color: string;
+        approval_status: OrganizationStatus | null;
+        date_created: Date | null;
     }) {
-        this.id = props.id;
-        this.name = props.name;
-        this.image = props.image;
-        this.info = props.info;
-        this.mainColor = props.mainColor;
-        this.approvalStatus = props.approvalStatus;
-        this.dateCreated = props.dateCreated;
+        const obj = new Organization(props);
+        obj.mainColor = props.main_color;
+        obj.approvalStatus = props.approval_status;
+        obj.dateCreated = props.date_created;
+        return obj;
     }
 
     getId(): string {

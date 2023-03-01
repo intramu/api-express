@@ -110,12 +110,7 @@ export class PlayerBusinessService {
             return APIResponse.NotFound(`No Organization found with id: ${orgId}`);
         }
 
-        const response = await playerDatabase.createPlayerByOrganizationId(player, orgId);
-        if (response === null) {
-            return APIResponse[500](`Error creating player`);
-        }
-
-        return player;
+        return await playerDatabase.createPlayerByOrganizationId(player, orgId);
     }
 
     // REVISIT - may need to be moved to other business service
@@ -141,7 +136,6 @@ export class PlayerBusinessService {
             return APIResponse.NotFound(`No Organization found with id: ${orgId}`);
         }
 
-        const newPlayer: Player = player;
         // create body for new user to be added to Auth0 system
         const newAuthUser = {
             // todo: be able to change blocked, verify_email, and email_verified values
@@ -179,13 +173,14 @@ export class PlayerBusinessService {
             });
 
         if (response === null) {
-            return APIResponse[500]("Auth0 Error");
+            return APIResponse.InternalError("Auth0 Error");
         }
 
         // const authId: string = response.user_id!;
 
         // todo: this seems unsafe. Auth0 is always guaranteed to return an authid, and if there is an error
         // the function will return before getting here, but its still seems unsafe
+        const newPlayer: Player = player;
         newPlayer.setAuthId(response.user_id!);
 
         // assign the role player to new user
@@ -204,15 +199,6 @@ export class PlayerBusinessService {
             newPlayer,
             orgId
         );
-
-        if (databaseResponse === null) {
-            logger.error("Could not add user to database", {
-                class: this.className,
-                values: newPlayer,
-            });
-
-            return APIResponse[500]("Error creating player");
-        }
 
         // returns new users password
         return newAuthUser.password;

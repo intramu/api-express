@@ -1,5 +1,4 @@
 import AdminDAO from "../../data/adminDAO";
-import CompetitionDAO from "../../data/competitionDAO";
 import OrganizationDAO from "../../data/organizationDAO";
 import { Admin } from "../../models/Admin";
 import { APIResponse } from "../../models/APIResponse";
@@ -7,7 +6,7 @@ import { Tournament } from "../../models/competition/Tournament";
 import { TournamentGame } from "../../models/competition/TournamentGame";
 import { Organization } from "../../models/Organization";
 import { getBracket } from "../../utilities/bracketGenerator";
-import { TournamentStatus, TournamentType } from "../../utilities/enums/competitionEnum";
+import { TournamentGameStatus, TournamentType } from "../../utilities/enums/competitionEnum";
 import logger from "../../utilities/winstonConfig";
 import PlayerDAO from "../../data/playerDAO";
 import { Player } from "../../models/Player";
@@ -15,7 +14,6 @@ import TeamDAO from "../../data/teamDAO";
 import { Team } from "../../models/Team";
 
 const organizationDatabase = new OrganizationDAO();
-const competitionDatabase = new CompetitionDAO();
 const adminDatabase = new AdminDAO();
 const playerDatabase = new PlayerDAO();
 const teamDatabase = new TeamDAO();
@@ -36,7 +34,7 @@ export class OrganizationBusinessService {
 
         const organization = await organizationDatabase.findOrganizationByAdminId(adminId);
         if (organization === null) {
-            return APIResponse[404](`No organization found with admin id: ${adminId}`);
+            return APIResponse.NotFound(`No organization found with admin id: ${adminId}`);
         }
 
         return organization;
@@ -55,13 +53,13 @@ export class OrganizationBusinessService {
 
         const admin = await adminDatabase.findAdminById(adminId);
         if (admin === null) {
-            return APIResponse[404](`No admin found with id: ${adminId}`);
+            return APIResponse.NotFound(`No admin found with id: ${adminId}`);
         }
 
         // need to create patch method for organization
         // const organization = await organizationDatabase.updateOrganization();
 
-        return APIResponse[501]();
+        return APIResponse.NotImplemented();
     }
 
     /**
@@ -77,12 +75,12 @@ export class OrganizationBusinessService {
 
         const organization = await organizationDatabase.findOrganizationByAdminId(adminId);
         if (organization === null) {
-            return APIResponse[404](`No organization found with admin id: ${adminId}`);
+            return APIResponse.NotFound(`No organization found with admin id: ${adminId}`);
         }
 
         const players = await playerDatabase.findAllPlayersByOrganizationId(organization.getId());
         if (players.length === 0) {
-            return APIResponse[404](
+            return APIResponse.NotFound(
                 `No players found with organization id: ${organization.getId()}`
             );
         }
@@ -103,12 +101,14 @@ export class OrganizationBusinessService {
 
         const organization = await organizationDatabase.findOrganizationByAdminId(adminId);
         if (organization === null) {
-            return APIResponse[404](`No organization found with admin id: ${adminId}`);
+            return APIResponse.NotFound(`No organization found with admin id: ${adminId}`);
         }
 
         const teams = await teamDatabase.findAllTeamsByOrganizationId(organization.getId());
         if (teams.length === 0) {
-            return APIResponse[404](`No teams found with organization id: ${organization.getId()}`);
+            return APIResponse.NotFound(
+                `No teams found with organization id: ${organization.getId()}`
+            );
         }
 
         return teams;
@@ -127,12 +127,12 @@ export class OrganizationBusinessService {
 
         const organization = await organizationDatabase.findOrganizationByAdminId(adminId);
         if (organization === null) {
-            return APIResponse[404](`No organization found with admin id: ${adminId}`);
+            return APIResponse.NotFound(`No organization found with admin id: ${adminId}`);
         }
 
         const admins = await adminDatabase.findAllAdminsByOrganizationId(organization.getId());
         if (admins.length === 0) {
-            return APIResponse[404](
+            return APIResponse.NotFound(
                 `No admins found with organization id: ${organization.getId()}`
             );
         }
@@ -156,7 +156,7 @@ export class OrganizationBusinessService {
         tournament: Tournament,
         teams: number[]
     ): Promise<Tournament | APIResponse> {
-        return APIResponse[501]();
+        return APIResponse.NotImplemented();
         // const newTournament = await competitionDatabase.createTournament(tournament);
         // if (newTournament === null) {
         //     return APIResponse[500]("Error creating tournament");
@@ -215,8 +215,8 @@ export class OrganizationBusinessService {
                             scoreAway: 0,
                             seedHome: generatedList[x][0],
                             seedAway: generatedList[x][1],
-                            statusHome: TournamentStatus.NOTPLAYED,
-                            statusAway: TournamentStatus.NOTPLAYED,
+                            statusHome: TournamentGameStatus.NOTPLAYED,
+                            statusAway: TournamentGameStatus.NOTPLAYED,
                             level: x,
                             round: 1,
                             homeTeamId: homeTeam,
@@ -243,8 +243,8 @@ export class OrganizationBusinessService {
                                 scoreAway: 0,
                                 seedHome: 0,
                                 seedAway: 0,
-                                statusHome: TournamentStatus.TOBEDETERMINED,
-                                statusAway: TournamentStatus.TOBEDETERMINED,
+                                statusHome: TournamentGameStatus.TOBEDETERMINED,
+                                statusAway: TournamentGameStatus.TOBEDETERMINED,
                                 level: x,
                                 round,
                                 homeTeamId: null,

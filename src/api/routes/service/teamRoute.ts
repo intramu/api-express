@@ -1,6 +1,7 @@
 import express from "express";
 import { body } from "express-validator";
 import { TeamBusinessService } from "../../../business/service/TeamBusinessService";
+import { ITeamCreate } from "../../../interfaces/ITeam";
 import { APIResponse } from "../../../models/APIResponse";
 import { handleErrorResponse } from "../../../utilities/apiFunctions";
 import { TeamRole } from "../../../utilities/enums/teamEnum";
@@ -43,7 +44,6 @@ router
     .delete(teamIdParam, authIdParam, async (req, res) => {
         const { teamId, userId } = req.params;
         const response = await teamService.removePlayerFromTeamRoster(Number(teamId), userId);
-        // const response = true;
 
         return handleErrorResponse(response, res, 204);
     })
@@ -85,9 +85,10 @@ router
     })
     .post(organizationIdParam, async (req, res) => {
         const { orgId } = req.params;
+        const b = req.body as ITeamCreate;
         // get body and create team
 
-        return handleErrorResponse(APIResponse[501](), res);
+        return handleErrorResponse(APIResponse.NotImplemented(), res);
     });
 
 export default router;

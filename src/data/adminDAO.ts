@@ -1,7 +1,7 @@
 import { Admin } from "../models/Admin";
 import logger from "../utilities/winstonConfig";
 import { withClient } from "./database";
-import { AdminDatabaseInterface } from "../interfaces/Admin";
+import { IAdminDatabase } from "../interfaces/IAdmin";
 
 export default class AdminDAO {
     readonly className = this.constructor.name;
@@ -23,7 +23,7 @@ export default class AdminDAO {
 
         return withClient(async (querier) => {
             const [result] = (
-                await querier<AdminDatabaseInterface>(sqlCreate, [
+                await querier<IAdminDatabase>(sqlCreate, [
                     admin.getAuthId(),
                     admin.getFirstName(),
                     admin.getLastName(),
@@ -34,17 +34,7 @@ export default class AdminDAO {
                 ])
             ).rows;
 
-            return new Admin({
-                authId: result.auth_id,
-                firstName: result.first_name,
-                lastName: result.last_name,
-                language: result.language,
-                emailAddress: result.email_address,
-                role: result.role,
-                dateCreated: result.date_created,
-                status: result.status,
-                // organizationId: result.organization_id,
-            });
+            return Admin.fromDatabase(result);
         });
     }
 
@@ -72,9 +62,10 @@ export default class AdminDAO {
         });
     }
 
-    async removeAdminById(adminId: string): Promise<string | null> {
+    async removeAdminById(adminId: string): Promise<boolean> {
         logger.verbose("Entering method removeAdminById()", {
             class: this.className,
+            values: adminId,
         });
 
         const sqlDelete = "DELETE FROM admin WHERE id=$1";
@@ -82,10 +73,10 @@ export default class AdminDAO {
         return withClient(async (querier) => {
             const response = await querier(sqlDelete, [adminId]);
             if (response.rowCount < 0) {
-                return null;
+                return false;
             }
 
-            return adminId;
+            return true;
         });
     }
 
@@ -97,23 +88,13 @@ export default class AdminDAO {
 
         const sql = "SELECT * FROM admin WHERE auth_id=$1";
         return withClient(async (querier) => {
-            const [admin] = (await querier<AdminDatabaseInterface>(sql, [adminId])).rows;
+            const [admin] = (await querier<IAdminDatabase>(sql, [adminId])).rows;
 
             if (admin === undefined) {
                 return null;
             }
 
-            return new Admin({
-                authId: admin.auth_id,
-                firstName: admin.first_name,
-                lastName: admin.last_name,
-                language: admin.language,
-                emailAddress: admin.email_address,
-                role: admin.role,
-                dateCreated: admin.date_created,
-                status: admin.status,
-                // organizationId: admin.organization_id,
-            });
+            return Admin.fromDatabase(admin);
         });
     }
 
@@ -130,25 +111,9 @@ export default class AdminDAO {
 
         const sqlFind = "SELECT * FROM admin WHERE organization_id = $1";
         return withClient(async (querier) => {
-            const admins = (await querier<AdminDatabaseInterface>(sqlFind, [orgId])).rows;
+            const admins = (await querier<IAdminDatabase>(sqlFind, [orgId])).rows;
 
-            if (admins.length === 0) {
-                return [];
-            }
-            return admins.map(
-                (admin) =>
-                    new Admin({
-                        authId: admin.auth_id,
-                        firstName: admin.first_name,
-                        lastName: admin.last_name,
-                        language: admin.language,
-                        emailAddress: admin.email_address,
-                        role: admin.role,
-                        dateCreated: admin.date_created,
-                        status: admin.status,
-                        // organizationId: admin.organization_id,
-                    })
-            );
+            return admins.map((admin) => Admin.fromDatabase(admin));
         });
     }
 
@@ -159,22 +124,9 @@ export default class AdminDAO {
 
         const sqlFind = "SELECT * FROM admin";
         return withClient(async (querier) => {
-            const admins = (await querier<AdminDatabaseInterface>(sqlFind)).rows;
+            const admins = (await querier<IAdminDatabase>(sqlFind)).rows;
 
-            return admins.map(
-                (admin) =>
-                    new Admin({
-                        authId: admin.auth_id,
-                        firstName: admin.first_name,
-                        lastName: admin.last_name,
-                        language: admin.language,
-                        emailAddress: admin.email_address,
-                        role: admin.role,
-                        dateCreated: admin.date_created,
-                        status: admin.status,
-                        // organizationId: admin.organization_id,
-                    })
-            );
+            return admins.map((admin) => Admin.fromDatabase(admin));
         });
     }
 }

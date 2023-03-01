@@ -74,7 +74,7 @@ export default class ContestDAO {
         leagues: League[],
         orgId: string,
         contestId: number
-    ): Promise<boolean> {
+    ): Promise<void> {
         logger.verbose("Entering method createLeaguesAndChildren()", {
             class: this.className,
             values: { leagues, orgId, contestId },
@@ -152,10 +152,11 @@ export default class ContestDAO {
         });
 
         if (result === IsRollback) {
-            return false;
+            logger.error("Error creating leagues with children", {
+                class: this.className,
+            });
+            throw new Error("Error creating leagues with children");
         }
-
-        return result;
     }
 
     /**
@@ -259,7 +260,7 @@ export default class ContestDAO {
      * @returns - contest object or null
      */
     async findContestById(contestId: number): Promise<Contest | null> {
-        logger.verbose("Entering method findContest()", {
+        logger.verbose("Entering method findContestById()", {
             class: this.className,
             values: contestId,
         });
@@ -272,21 +273,21 @@ export default class ContestDAO {
                 return null;
             }
 
-            return new Contest({
-                id: contest.id,
-                name: contest.name,
-                visibility: contest.visibility,
-                status: contest.status,
-                dateCreated: contest.date_created,
-                startDate: contest.start_date,
-                endDate: contest.end_date,
-                playoff: contest.playoff,
-                playoffType: contest.playoff_type,
-                playoffSeedingType: contest.playoff_seeding_type,
-                contestType: contest.contest_type,
-                leagues: [],
-                organizationId: contest.organization_id,
-            });
+            return Contest.fromDatabase(contest);
+        });
+    }
+
+    async findContestsByOrganizationId(orgId: string): Promise<Contest[]> {
+        logger.verbose("Entering method findContestByOrganizationId()", {
+            class: this.className,
+            values: orgId,
+        });
+
+        const sqlFind = "SELECT * FROM contest WHERE organization_id = $1";
+        return withClient(async (querier) => {
+            const contest = (await querier<IContestDatabase>(sqlFind, [orgId])).rows;
+
+            return contest.map((result) => Contest.fromDatabase(result));
         });
     }
 
@@ -346,9 +347,9 @@ export default class ContestDAO {
                 return null;
             }
 
-            const teams = res.teams.map((team: ITeamDatabase) => {
-                return Team.fromDatabase({ ...team, players: [] });
-            });
+            const teams = res.teams.map((team: ITeamDatabase) =>
+                Team.fromDatabase({ ...team, players: [] })
+            );
 
             const bracket = Bracket.fromDatabase({
                 id: res.bracket_id,
@@ -399,7 +400,7 @@ export default class ContestDAO {
 const test = new ContestDAO();
 
 async function testFunction() {
-    console.log(await test.findPathByBracketId(1));
+    // console.log(await test.findPathByBracketId(1));
 }
 
 testFunction();

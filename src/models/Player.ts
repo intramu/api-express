@@ -1,4 +1,4 @@
-import { IPlayerProps } from "../interfaces/Player";
+import { IPlayerProps } from "../interfaces/IPlayer";
 import {
     Language,
     PlayerGender,

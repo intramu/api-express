@@ -1,5 +1,6 @@
 import express from "express";
 import { APIResponse } from "../../../models/APIResponse";
+import organizationService from "./organizationRoute";
 import playerServiceRoute from "./playerRoute";
 import teamServiceRoute from "./teamRoute";
 import adminServiceRoute from "./adminRoute";
@@ -7,6 +8,7 @@ import contestServiceRoute from "./contestRoute";
 
 const router = express.Router();
 
+router.use(organizationService);
 router.use(playerServiceRoute);
 router.use(teamServiceRoute);
 router.use(adminServiceRoute);

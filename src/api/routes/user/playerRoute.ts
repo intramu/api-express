@@ -1,7 +1,7 @@
 import express from "express";
 import { auth } from "express-oauth2-jwt-bearer";
 import { PlayerBusinessService } from "../../../business/user/PlayerBusinessService";
-import { IPlayerProps, PlayerPatch } from "../../../interfaces/Player";
+import { IPlayerProps, PlayerPatch } from "../../../interfaces/IPlayer";
 import { APIResponse } from "../../../models/APIResponse";
 import { Player } from "../../../models/Player";
 import { handleErrorResponse } from "../../../utilities/apiFunctions";

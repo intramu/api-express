@@ -11,6 +11,7 @@ import {
 import { PlayerBusinessService } from "../../../business/service/PlayerBusinessService";
 import { handleErrorResponse } from "../../../utilities/apiFunctions";
 import { newPersonSchema } from "../../../utilities/validation/playerValidation";
+import { IPlayerProps } from "../../../interfaces/IPlayer";
 
 const router = express.Router();
 
@@ -22,19 +23,10 @@ const organizationService = new OrganizationBusinessService();
 // scope for auth0
 const sudoScoped = requiredScopes("all: application");
 
-router.route("/players").get(async (req, res, next) => {
+router.route("/players").get(async (req, res) => {
     const response = await playerService.findAllPlayers();
 
     return handleErrorResponse(response, res);
-    // res.locals.response = response;
-
-    // return next();
-
-    // if (response instanceof APIResponse) {
-    //     return res.status(response.statusCode).json(response);
-    // }
-
-    // return res.status(200).json(response);
 });
 
 router
@@ -63,7 +55,6 @@ router
         return handleErrorResponse(response, res);
     });
 
-// const post = newPersonSchema
 router
     .route("/organizations/:orgId/players")
     .get(organizationIdParam, async (req, res) => {
@@ -72,16 +63,25 @@ router
 
         return handleErrorResponse(response, res);
     })
-    // TODO: add organization id UUID enforcement
-    .post(newPersonSchema, async (req, res) => {
+    .post(organizationIdParam, newPersonSchema, async (req, res) => {
         const { orgId } = req.params;
-        // get player object
+        const b = req.body as IPlayerProps;
 
-        // const response = await playerService.createPlayerByOrganizationId(player, id);
-        const response = APIResponse[501]();
-        return res.status(501).json(response);
-        // return handleErrorResponse(response, res, 201);
+        const player = new Player(b);
+        const response = await playerService.createPlayerByOrganizationId(player, orgId);
+
+        return handleErrorResponse(response, res, 201);
     });
+
+router.post("/organizations/:orgId/players/auth0", async (req, res) => {
+    const { orgId } = req.params;
+    const b = req.body as IPlayerProps;
+
+    const player = new Player(b);
+    const response = await playerService.createPlayerWithAuth0Account(player, orgId);
+
+    return handleErrorResponse(response, res, 201);
+});
 
 router.get("/players/:userId/invites", authIdParam, (req, res) => {
     const { userId } = req.params;

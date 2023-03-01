@@ -1,8 +1,8 @@
 import AdminDAO from "../../data/adminDAO";
-import CompetitionDAO from "../../data/competitionDAO";
 import ContestDAO from "../../data/contestDAO";
 import OrganizationDAO from "../../data/organizationDAO";
 import { APIResponse } from "../../models/APIResponse";
+import { Bracket } from "../../models/competition/Bracket";
 import { Contest } from "../../models/competition/Contest";
 import { League } from "../../models/competition/League";
 import logger from "../../utilities/winstonConfig";
@@ -46,7 +46,6 @@ export class CompetitionBusinessService {
      * @param adminId - id of authorizing admin
      * @returns - error response or true if success
      */
-    // REVISIT - not separation safe across multiple organizations
     async createLeagues(
         leagues: League[],
         contestId: number,
@@ -63,23 +62,36 @@ export class CompetitionBusinessService {
             return APIResponse.NotFound(`No admin found with id: ${adminId}`);
         }
 
-        // looks to see if contest exists yet
-        const contest = await contestDatabase.findContestById(contestId);
-        if (contest === null) {
+        // check if contest exists in organization
+        const contests = await contestDatabase.findContestsByOrganizationId(org.getId());
+        if (contests.some((contest) => contest.getId() === contestId)) {
             return APIResponse.NotFound(`No contest found with id: ${contestId}`);
         }
 
+        // modifies list to add waitlist for each division
+        const leaguesWithWaitlist = this.addWaitlistBracket(leagues);
+
         // creates leagues
-        const response = await contestDatabase.createLeaguesAndChildren(
-            leagues,
-            org.getId(),
-            contest.getId()
-        );
-        if (!response) {
-            return APIResponse.InternalError("Error creating leagues");
-        }
+        await contestDatabase.createLeaguesAndChildren(leaguesWithWaitlist, org.getId(), contestId);
 
         return true;
+    }
+
+    /**
+     * loops through all divisions and adds a Waitlist bracket for every division
+     * @param leagues - list of leagues
+     * @returns - modified list with waitlist
+     */
+    private addWaitlistBracket(leagues: League[]): League[] {
+        return leagues.map((league) => {
+            league.getDivisions().map((division) => {
+                // pushes new bracket into each division
+                // has max team limit of 1000, basically unlimited
+                division.getBrackets().push(new Bracket({ maxTeamAmount: 1000 }));
+                return division;
+            });
+            return league;
+        });
     }
 
     /**
@@ -88,7 +100,6 @@ export class CompetitionBusinessService {
      * @param adminId - id of authorizing admin
      * @returns
      */
-    // REVISIT - not separation safe across multiple organizations
     async findLeaguesByContestId(
         contestId: number,
         adminId: string
@@ -98,18 +109,18 @@ export class CompetitionBusinessService {
             values: { contestId, adminId },
         });
 
-        const admin = await adminDatabase.findAdminById(adminId);
-        if (admin === null) {
+        const organization = await organizationDatabase.findOrganizationByAdminId(adminId);
+        if (organization === null) {
             return APIResponse.NotFound(`No admin found with id: ${adminId}`);
         }
 
-        const contest = await contestDatabase.findContestById(contestId);
-        if (contest === null) {
-            return APIResponse.NotFound(`No contest found with id: ${contest}`);
+        const contests = await contestDatabase.findContestsByOrganizationId(organization.getId());
+        if (contests.some((contest) => contest.getId() === contestId)) {
+            return APIResponse.Forbidden(`Cannot access contest outside organization`);
         }
 
-        const leagues = await contestDatabase.findLeaguesAndChildrenByContestId(contestId);
-
-        return leagues;
+        return await contestDatabase.findLeaguesAndChildrenByContestId(contestId);
     }
 }
+
+const test = new CompetitionBusinessService();

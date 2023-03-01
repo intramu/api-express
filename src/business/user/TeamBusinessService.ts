@@ -34,16 +34,20 @@ export class TeamBusinessService {
         }
 
         // find bracket team wants to join
-        const bracket = await contestDatabase.findPathByBracketId(team.getBracketId()!);
+        const contest = await contestDatabase.findPathByBracketId(team.getBracketId()!);
+        if (!contest) {
+            return APIResponse.NotFound(`No bracket found with id:${team.getBracketId()}`);
+        }
 
         const newTeam: Team = team;
         newTeam.setSportsmanshipScore(4.0);
         newTeam.setStatus(TeamStatus.UNELIGIBLE);
 
-        // finish, get these details from contestDAO
-        newTeam.setMaxTeamSize();
-        newTeam.setGender();
-        newTeam.setBracketId(bracket);
+        const division = contest.getLeagues()[0].getDivisions()[0];
+
+        newTeam.setMaxTeamSize(division.getMaxTeamSize());
+        newTeam.setGender(division.getType());
+        newTeam.setBracketId(division.getBrackets()[0].getId());
 
         // when creating team player role is set to Captain
         const response = await teamDatabase.createTeam(
@@ -401,12 +405,7 @@ export class TeamBusinessService {
         }
 
         // add player to team roster
-        const response = await teamDatabase.addToTeamRoster(teamId, requesteeId, TeamRole.PLAYER);
-        if (response === false) {
-            return APIResponse.InternalError(
-                `Error joining team with player: ${requesteeId} and team: ${teamId}`
-            );
-        }
+        await teamDatabase.addToTeamRoster(teamId, requesteeId, TeamRole.PLAYER);
 
         return true;
     }

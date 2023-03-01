@@ -1,5 +1,9 @@
-import { OrganizationDatabaseInterface, OrganizationWithAdmin } from "../interfaces/Organization";
-import { AdminDatabaseInterface } from "../interfaces/Admin";
+import { IAdminDatabase } from "../interfaces/IAdmin";
+import {
+    IOrganizationDatabase,
+    IOrganizationWithAdmin,
+    IOrganizationWithAdminDatabase,
+} from "../interfaces/IOrganization";
 import { Admin } from "../models/Admin";
 import { Organization } from "../models/Organization";
 import logger from "../utilities/winstonConfig";
@@ -22,23 +26,13 @@ export default class OrganizationDAO {
         const sqlSelect = "SELECT * FROM organization WHERE id=$1";
 
         return withClient(async (querier) => {
-            const [organization] = (
-                await querier<OrganizationDatabaseInterface>(sqlSelect, [orgId])
-            ).rows;
+            const [organization] = (await querier<IOrganizationDatabase>(sqlSelect, [orgId])).rows;
 
             if (organization === undefined) {
                 return null;
             }
 
-            return new Organization({
-                id: organization.id,
-                name: organization.name,
-                image: organization.image,
-                info: organization.info,
-                mainColor: organization.main_color,
-                approvalStatus: organization.approval_status,
-                dateCreated: organization.date_created,
-            });
+            return Organization.fromDatabase(organization);
         });
     }
 
@@ -47,7 +41,7 @@ export default class OrganizationDAO {
      * @param org - organization details to update with
      * @returns - newly updated organization
      */
-    async updateOrganization(org: Organization): Promise<Organization | null> {
+    async updateOrganization(org: Organization): Promise<Organization> {
         logger.verbose("Entering method updateOrganization()", {
             class: this.className,
             values: org,
@@ -58,7 +52,7 @@ export default class OrganizationDAO {
 
         return withClient(async (querier) => {
             const [organization] = (
-                await querier(sqlUpdate, [
+                await querier<IOrganizationDatabase>(sqlUpdate, [
                     org.getName(),
                     org.getImage(),
                     org.getInfo(),
@@ -68,18 +62,13 @@ export default class OrganizationDAO {
             ).rows;
 
             if (organization === undefined) {
-                return null;
+                logger.error("Error updating organization", {
+                    class: this.className,
+                });
+                throw new Error("Error updating organization");
             }
 
-            return new Organization({
-                id: organization.id,
-                name: organization.name,
-                image: organization.image,
-                info: organization.info,
-                mainColor: organization.main_color,
-                approvalStatus: organization.approval_status,
-                dateCreated: organization.date_created,
-            });
+            return Organization.fromDatabase(organization);
         });
     }
 
@@ -95,20 +84,9 @@ export default class OrganizationDAO {
         const sqlSelect = "SELECT * FROM organization";
 
         return withClient(async (querier) => {
-            const results = (await querier<OrganizationDatabaseInterface>(sqlSelect)).rows;
+            const results = (await querier<IOrganizationDatabase>(sqlSelect)).rows;
 
-            return results.map(
-                (organization) =>
-                    new Organization({
-                        id: organization.id,
-                        name: organization.name,
-                        image: organization.image,
-                        info: organization.info,
-                        mainColor: organization.main_color,
-                        approvalStatus: organization.approval_status,
-                        dateCreated: organization.date_created,
-                    })
-            );
+            return results.map((organization) => Organization.fromDatabase(organization));
         });
     }
 
@@ -119,10 +97,11 @@ export default class OrganizationDAO {
      * @param admin - details of Master Admin for organization
      * @returns - Returns organization details if successful
      */
+    // TODO: create proper return type
     async createOrganization(
         org: Organization,
         admin: Admin
-    ): Promise<OrganizationWithAdmin | null> {
+    ): Promise<IOrganizationWithAdminDatabase> {
         logger.verbose("Entering method createOrganization()", {
             class: this.className,
             values: org,
@@ -138,7 +117,7 @@ export default class OrganizationDAO {
         const result = await withClientRollback(async (querier) => {
             // organization is first created
             const [organization] = (
-                await querier<OrganizationDatabaseInterface>(sqlCreate, [
+                await querier<IOrganizationDatabase>(sqlCreate, [
                     org.getName(),
                     org.getImage(),
                     org.getInfo(),
@@ -153,7 +132,7 @@ export default class OrganizationDAO {
 
             // next master admin is created with previously created organization id
             const [administrator] = (
-                await querier<AdminDatabaseInterface>(sqlAddAdmin, [
+                await querier<IAdminDatabase>(sqlAddAdmin, [
                     admin.getAuthId(),
                     admin.getFirstName(),
                     admin.getLastName(),
@@ -171,32 +150,14 @@ export default class OrganizationDAO {
 
             // if any error occur transaction is rolled back to prevent admin-less organizations
             const responseObject = {
-                admin: new Admin({
-                    authId: administrator.auth_id,
-                    firstName: administrator.first_name,
-                    lastName: administrator.last_name,
-                    language: administrator.language,
-                    emailAddress: administrator.email_address,
-                    role: administrator.role,
-                    status: administrator.status,
-                    dateCreated: administrator.date_created,
-                    // organizationId: administrator.organization_id,
-                }),
-                organization: new Organization({
-                    id: organization.id,
-                    name: organization.name,
-                    image: organization.image,
-                    info: organization.info,
-                    mainColor: organization.main_color,
-                    approvalStatus: organization.approval_status,
-                    dateCreated: organization.date_created,
-                }),
+                admin: Admin.fromDatabase(administrator),
+                organization: Organization.fromDatabase(organization),
             };
             return responseObject;
         });
 
         if (result === IsRollback) {
-            return null;
+            throw new Error("Error creating organization with admin");
         }
 
         return result;
@@ -216,22 +177,13 @@ export default class OrganizationDAO {
             "SELECT organization.id, organization.name, organization.image, organization.info, organization.main_color, organization.approval_status, organization.date_created FROM admin INNER JOIN organization ON organization.id = admin.organization_id WHERE auth_id = $1";
 
         return withClient(async (querier) => {
-            const [response] = (await querier<OrganizationDatabaseInterface>(sqlFind, [adminId]))
-                .rows;
+            const [response] = (await querier<IOrganizationDatabase>(sqlFind, [adminId])).rows;
 
             if (response === undefined) {
                 return null;
             }
 
-            return new Organization({
-                id: response.id,
-                name: response.name,
-                image: response.image,
-                info: response.info,
-                mainColor: response.main_color,
-                approvalStatus: response.approval_status,
-                dateCreated: response.date_created,
-            });
+            return Organization.fromDatabase(response);
         });
     }
 
@@ -249,22 +201,13 @@ export default class OrganizationDAO {
             "SELECT organization.id, organization.name, organization.image, organization.info, organization.main_color, organization.approval_status, organization.date_created FROM player INNER JOIN organization ON organization.id = player.organization_id WHERE auth_id = $1";
 
         return withClient(async (querier) => {
-            const [response] = (await querier<OrganizationDatabaseInterface>(sqlSelect, [playerId]))
-                .rows;
+            const [response] = (await querier<IOrganizationDatabase>(sqlSelect, [playerId])).rows;
 
             if (response === undefined) {
                 return null;
             }
 
-            return new Organization({
-                id: response.id,
-                name: response.name,
-                image: response.image,
-                info: response.info,
-                mainColor: response.main_color,
-                approvalStatus: response.approval_status,
-                dateCreated: response.date_created,
-            });
+            return Organization.fromDatabase(response);
         });
     }
 

@@ -1,5 +1,6 @@
 import express from "express";
 import { OrganizationBusinessService } from "../../../business/service/OrganizationBusinessService";
+import { IAdminNewService } from "../../../interfaces/IAdmin";
 import { Admin } from "../../../models/Admin";
 import { handleErrorResponse } from "../../../utilities/apiFunctions";
 import { newAdminSchema, patchAdminSchema } from "../../../utilities/validation/adminValidation";
@@ -49,11 +50,9 @@ router
     // TODO: get admin working with request body
     .post(organizationIdParam, newAdminSchema, async (req, res) => {
         const { orgId } = req.params;
-        const b = req.body as Admin;
-        console.log(b);
+        const admin = new Admin(req.body as IAdminNewService);
 
-        // const response = await organizationService.createAdminByOrganizationId(b, orgId);
-        const response = true;
+        const response = await organizationService.createAdminByOrganizationId(admin, orgId);
 
         return handleErrorResponse(response, res, 201);
     });

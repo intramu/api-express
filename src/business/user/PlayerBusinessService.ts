@@ -131,11 +131,7 @@ export class PlayerBusinessService {
             );
         }
 
-        const response = await teamDatabase.addToTeamRoster(teamId, playerId, TeamRole.PLAYER);
-        if (response === false) {
-            return APIResponse.InternalError(`Error adding ${playerId} to team ${teamId}`);
-        }
-
+        await teamDatabase.addToTeamRoster(teamId, playerId, TeamRole.PLAYER);
         return true;
     }
 
@@ -178,12 +174,12 @@ export class PlayerBusinessService {
         });
 
         // check team exists and is valid for invite
-        const team = await teamDatabase.findTeamByIdWithPlayers(teamId);
-        if (team === null) {
+        const team = await teamDatabase.findTeamById(teamId);
+        if (!team) {
             return APIResponse.NotFound(`No team found with id: ${teamId}`);
         }
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        if (team.getPlayers().length >= team.getMaxTeamSize()!) {
+
+        if (team.getPlayers().length >= team.getMaxTeamSize()) {
             return APIResponse.Conflict(`Team is full`);
         }
 
@@ -204,15 +200,12 @@ export class PlayerBusinessService {
             }
         });
 
-        // add player invite to database
         // expiration date will be set to 1 week from invite.
         const date = new Date();
         date.setDate(date.getDate() + 7);
 
+        // add player invite to database
         const invite = playerDatabase.createPlayerInvite(requestingId, inviteeId, teamId, date);
-        if (invite === null) {
-            return APIResponse.InternalError("Error inviting player to team");
-        }
 
         // todo: send invitee a notification of the invite
 

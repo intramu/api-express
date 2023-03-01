@@ -2,7 +2,7 @@ import { Pool, PoolClient, QueryConfig, QueryResult, QueryResultRow } from "pg";
 import logger from "../utilities/winstonConfig";
 
 export const db = new Pool({
-    user: "noah",
+    user: "noahr",
     host: "localhost",
     database: "intramu",
     password: "root",

@@ -1,4 +1,4 @@
-import { IPlayerDatabase } from "../interfaces/Player";
+import { IPlayerDatabase } from "../interfaces/IPlayer";
 import { Player } from "../models/Player";
 import logger from "../utilities/winstonConfig";
 
@@ -61,7 +61,7 @@ export default class PlayerDAO {
      * @param player - Player object to be added
      * @returns - Player object or null
      */
-    async createPlayerByOrganizationId(player: Player, orgId: string): Promise<Player | null> {
+    async createPlayerByOrganizationId(player: Player, orgId: string): Promise<Player> {
         logger.verbose("Entering method createPlayerByOrganizationId()", {
             class: this.className,
             values: { player, orgId },
@@ -71,43 +71,31 @@ export default class PlayerDAO {
             const sqlInsert =
                 "INSERT INTO player (AUTH_ID, FIRST_NAME, LAST_NAME, LANGUAGE, STATUS, GENDER, EMAIL_ADDRESS, DOB, VISIBILITY, GRADUATION_TERM, IMAGE, organization_ID) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *";
 
-            const response = await querier(sqlInsert, [
-                player.getAuthId(),
-                player.getFirstName(),
-                player.getLastName(),
-                player.getLanguage(),
-                player.getStatus(),
-                player.getGender(),
-                player.getEmailAddress(),
-                player.getDob(),
-                player.getVisibility(),
-                player.getGraduationTerm(),
-                player.getImage(),
-                orgId,
-            ]);
+            const [response] = (
+                await querier<IPlayerDatabase>(sqlInsert, [
+                    player.getAuthId(),
+                    player.getFirstName(),
+                    player.getLastName(),
+                    player.getLanguage(),
+                    player.getStatus(),
+                    player.getGender(),
+                    player.getEmailAddress(),
+                    player.getDob(),
+                    player.getVisibility(),
+                    player.getGraduationTerm(),
+                    player.getImage(),
+                    orgId,
+                ])
+            ).rows;
 
-            const [results] = response.rows;
-
-            if (results === undefined) {
-                return null;
+            if (response === undefined) {
+                logger.error("Error creating player under organization", {
+                    class: this.className,
+                });
+                throw new Error("Error creating player under organization");
             }
 
-            return new Player({
-                authId: results.auth_id,
-                firstName: results.first_name,
-                lastName: results.last_name,
-                language: results.language,
-                emailAddress: results.email_address,
-                // role: null,
-                gender: results.gender,
-                dob: results.dob,
-                visibility: results.visibility,
-                graduationTerm: results.graduation_term,
-                image: results.image,
-                status: results.status,
-                dateCreated: results.date_created,
-                // organizationId: results.organization_id,
-            });
+            return Player.fromDatabase(response);
         });
     }
 
@@ -210,7 +198,7 @@ export default class PlayerDAO {
         return withClient(async (querier) => {
             const response = (await querier<IPlayerDatabase>(sqlAll)).rows;
 
-            return response.map((player) => Player.fromDatabase(player));
+            return response.map((player: IPlayerDatabase) => Player.fromDatabase(player));
         });
     }
 
@@ -286,12 +274,13 @@ export default class PlayerDAO {
         inviteeId: string,
         teamId: number,
         inviteExpirationDate: Date
-    ): Promise<[playerId: string, inviteDate: Date] | null> {
+    ): Promise<[playerId: string, inviteDate: Date]> {
         logger.verbose("Entering method createPlayerInvite()", {
             class: this.className,
             values: { requestingId, inviteeId, teamId, inviteExpirationDate },
         });
 
+        // TODO: combine into one query
         const sqlInvite =
             "INSERT INTO player_invites (player_AUTH_ID, team_ID, REQUESTING_PLAYER_FULL_NAME, REQUESTING_TEAM_NAME, EXPIRATION_TIME) VALUES ($1,$2,$3,$4,$5) RETURNING *";
 
@@ -305,7 +294,7 @@ export default class PlayerDAO {
             const [team] = (await querier(findTeamName, [teamId])).rows;
 
             if (player === undefined || team === undefined) {
-                return null;
+                throw new Error("No team or player found");
             }
 
             const [invite] = (
@@ -319,7 +308,10 @@ export default class PlayerDAO {
             ).rows;
 
             if (invite === undefined) {
-                return null;
+                logger.error("Error creating invite", {
+                    class: this.className,
+                });
+                throw new Error("Error creating invite");
             }
 
             return [invite.player_auth_id, invite.time_sent];

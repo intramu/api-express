@@ -1,20 +1,21 @@
 import express from "express";
 import { param } from "express-validator";
-import { requiredScopes } from "express-oauth2-jwt-bearer";
+// import { requiredScopes } from "express-oauth2-jwt-bearer";
 
 import { OrganizationBusinessService } from "../../../business/service/OrganizationBusinessService";
 import { APIResponse } from "../../../models/APIResponse";
 import { Organization } from "../../../models/Organization";
 import { Player } from "../../../models/Player";
-import {
-    newContestSchema,
-    newOrganizationSchema,
-    newPersonSchema,
-    organizationIdParam,
-    validate,
-} from "../../../utilities/validation/validationSchemas";
+import { organizationIdParam, validate } from "../../../utilities/validation/validationSchemas";
 import { Admin } from "../../../models/Admin";
 import { handleErrorResponse } from "../../../utilities/apiFunctions";
+import {
+    newOrganizationSchema,
+    newOrganizationSchemaWithAuth0,
+    updateOrganizationSchema,
+} from "../../../utilities/validation/organizationValidation";
+import { IOrganization, IOrganizationWithAdmin } from "../../../interfaces/IOrganization";
+import { IAdmin } from "../../../interfaces/IAdmin";
 
 const router = express.Router();
 
@@ -22,69 +23,60 @@ const organizationService = new OrganizationBusinessService();
 // const playerService = new PlayerBusinessService();
 
 router
-    .route("/")
+    .route("/organizations")
     // TODO: paging
     .get(async (req, res) => {
         const response = await organizationService.findAllOrganizations();
 
         return handleErrorResponse(response, res);
     })
-    // TODO: new endpoint for creating organizations with and without auth0 account
-    // REVISIT
-    .post(validate(newOrganizationSchema()), async (req, res) => {
+    .post(newOrganizationSchema, async (req, res) => {
         const {
-            admin: { firstName, lastName, language, emailAddress },
+            admin: { authId, firstName, lastName, language, emailAddress },
             organization: { name, info, mainColor },
-        } = req.body;
+        } = req.body as IOrganizationWithAdmin;
 
-        const organization = new Organization({
-            id: "",
-            name,
-            image: "",
-            info,
-            mainColor,
-            approvalStatus: null,
-            dateCreated: null,
-        });
+        const organization = new Organization({ name, info, mainColor });
+        const admin = new Admin({ authId, firstName, lastName, language, emailAddress });
 
-        const admin = {
-            firstName,
-            lastName,
-            language,
-            emailAddress,
-        };
+        const response = await organizationService.createOrganization(organization, admin);
 
-        const response = await organizationService.createOrganizationWithAuth0Account(
-            organization,
-            admin
-        );
-
-        if (response instanceof APIResponse) {
-            return res.status(response.statusCode).send(response);
-        }
-
-        return res.status(201).json(response);
-    })
-    // todo: validation schema
-    // todo: business service needs patch method
-    .patch(async (req, res) => {
-        // const response = await organizationService.
-        return res.status(501).json(APIResponse[501]());
+        return handleErrorResponse(response, res, 201);
     });
+// todo: business service needs patch method
+router.post("/organizations/auth0", newOrganizationSchemaWithAuth0, async (req, res) => {
+    const {
+        admin: { firstName, lastName, language, emailAddress },
+        organization: { name, info, mainColor },
+    } = req.body as IOrganizationWithAdmin;
+
+    const organization = new Organization({ name, info, mainColor });
+    const admin = new Admin({ firstName, lastName, language, emailAddress });
+
+    const response = await organizationService.createOrganizationWithAuth0Account(
+        organization,
+        admin
+    );
+
+    return handleErrorResponse(response, res, 201);
+});
 
 router
-    .route("/organization/:orgId")
+    .route("/organizations/:orgId")
     .get(organizationIdParam, async (req, res) => {
         const { orgId } = req.params;
         const response = await organizationService.findOrganizationById(orgId);
 
         return handleErrorResponse(response, res);
     })
-    .patch(async (req, res) => {
+    .patch(updateOrganizationSchema, async (req, res) => {
         const { orgId } = req.params;
-        // get organization from body and assign it id
+        const b = req.body as IOrganization;
 
-        return APIResponse[501]();
+        const organization = new Organization({ ...b, id: orgId });
+        const response = await organizationService.updateOrganization(organization);
+
+        return handleErrorResponse(response, res);
     });
 
 export default router;

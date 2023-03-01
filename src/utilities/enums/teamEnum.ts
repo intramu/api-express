@@ -1,3 +1,5 @@
+import { DivisionType } from "./competitionEnum";
+
 /** Enums related to team object */
 export enum TeamRole {
     CAPTAIN = "CAPTAIN",
@@ -17,8 +19,4 @@ export enum TeamVisibility {
     PUBLIC = "PUBLIC",
 }
 
-export enum TeamGender {
-    MALE = "MALE",
-    FEMALE = "FEMALE",
-    COED = "COED",
-}
+export type TeamGender = DivisionType;

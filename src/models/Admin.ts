@@ -1,35 +1,65 @@
 import { AdminRole, AdminStatus, Language } from "../utilities/enums/userEnum";
 import { User } from "./User";
 
+interface IAdminProps {
+    authId: string;
+    firstName: string;
+    lastName: string;
+    language: Language | null;
+    emailAddress: string;
+    role: AdminRole | null;
+    dateCreated: Date | null;
+    status: AdminStatus | null;
+}
+
 export class Admin extends User {
-    private role;
+    private role: AdminRole | null;
 
-    private status;
+    private status: AdminStatus | null;
 
-    constructor(props: {
-        authId: string;
-        firstName: string;
-        lastName: string;
-        language: Language | null;
-        emailAddress: string;
-        role: AdminRole | null;
-        dateCreated: Date | null;
-        status: AdminStatus | null;
-        // organizationId: string;
-    }) {
+    constructor(props: Partial<IAdminProps>) {
+        const {
+            authId = "",
+            firstName = "",
+            lastName = "",
+            language = null,
+            emailAddress = "",
+            role = null,
+            dateCreated = null,
+            status = null,
+        } = props;
+
         super(
-            props.authId,
-            props.firstName,
-            props.lastName,
-            props.language,
-            props.emailAddress,
-            props.dateCreated
-            // props.status
+            authId,
+            firstName,
+            lastName,
+            language,
+            emailAddress,
+            dateCreated
             // props.organizationId
         );
 
-        this.role = props.role;
-        this.status = props.status;
+        this.role = role;
+        this.status = status;
+    }
+
+    public static fromDatabase(props: {
+        auth_id: string;
+        first_name: string;
+        last_name: string;
+        language: Language | null;
+        email_address: string;
+        role: AdminRole | null;
+        date_created: Date | null;
+        status: AdminStatus | null;
+    }) {
+        const obj = new Admin(props);
+        obj.authId = props.auth_id;
+        obj.firstName = props.first_name;
+        obj.lastName = props.last_name;
+        obj.emailAddress = props.email_address;
+        obj.dateCreated = props.date_created;
+        return obj;
     }
 
     getRole(): AdminRole | null {

@@ -42,6 +42,7 @@ export enum DivisionType {
     MENS = "MENS",
     WOMENS = "WOMENS",
     COED = "COED",
+    WAITLIST = "WAITLIST",
 }
 export enum DivisionLevel {
     A = "A",
