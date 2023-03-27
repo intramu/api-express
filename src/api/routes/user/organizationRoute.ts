@@ -8,9 +8,9 @@ import { Bracket } from "../../../models/competition/Bracket";
 import { Division } from "../../../models/competition/Division";
 import { League } from "../../../models/competition/League";
 import { TimeSlot } from "../../../models/competition/TimeSlot";
-import { BracketNewInterface } from "../../../interfaces/Bracket";
-import { DivisionNewInterface } from "../../../interfaces/Division";
-import { LeagueNewInterface } from "../../../interfaces/League";
+import { BracketNewInterface } from "../../../interfaces/IBracket";
+import { DivisionNewInterface } from "../../../interfaces/IDivision";
+import { LeagueNewInterface } from "../../../interfaces/ILeague";
 import { TimeSlotInterface } from "../../../interfaces/TimeSlot";
 import {
     newContestSchema,
@@ -29,6 +29,11 @@ const playerService = new PlayerBusinessService();
 const competitionService = new CompetitionBusinessService();
 
 const adminScoped = requiredScopes("all: organization");
+
+router.route("/admins");
+/** Gets all admins in organization */
+// .get(async (req,res)=>{})
+// .post(async (req,res)=>)
 
 router.post("/contest", validate(newContestSchema()), async (req, res) => {
     const {

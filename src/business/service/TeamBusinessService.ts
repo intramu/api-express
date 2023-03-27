@@ -200,4 +200,43 @@ export class TeamBusinessService {
 
         return true;
     }
+
+    async createTeamJoinRequest(
+        teamId: number,
+        playerId: string,
+        expirationDate: Date
+    ): Promise<APIResponse | boolean> {
+        logger.verbose("Entering method createTeamJoinRequest()", {
+            class: this.className,
+            values: { teamId, playerId },
+        });
+
+        // fetch team with id
+        const team = await teamDatabase.findTeamById(teamId);
+
+        // does team exist
+        if (team === null) {
+            return APIResponse.NotFound(`No team found with id: ${teamId}`);
+        }
+
+        // is team full
+        if (team.getPlayers().length > team.getMaxTeamSize()) {
+            return APIResponse.Conflict(`Team is full`);
+        }
+
+        // if player is already on team
+        if (team.getPlayers().find((player) => player.getAuthId() === playerId)) {
+            return APIResponse.Conflict(`Player: ${playerId} is already on team`);
+        }
+
+        // check if player has already sent invite
+        const teamRequests = await teamDatabase.findAllJoinRequests(teamId);
+        // TODO: refresh invite rather than a confliction
+        if (teamRequests.find((request) => request.authId === playerId)) {
+            return APIResponse.Conflict(`Invite already exists for player`);
+        }
+
+        await teamDatabase.createJoinRequest(teamId, playerId, expirationDate);
+        return true;
+    }
 }

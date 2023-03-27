@@ -1,5 +1,5 @@
 import format from "pg-format";
-import { IJoinRequest } from "../interfaces/IJoinRequest";
+import { IJoinRequest } from "../interfaces/ITeamJoinRequest";
 import { ITeamDatabase } from "../interfaces/ITeam";
 import { PlayerSmall } from "../models/PlayerSmall";
 import { Team } from "../models/Team";
@@ -40,19 +40,24 @@ export default class TeamDAO {
             class: this.className,
         });
 
-        const sqlTeam = `SELECT team.ID, team.NAME, team.WINS, team.TIES, team.LOSSES, team.IMAGE, team.VISIBILITY, team.SPORT, team.SPORTSMANSHIP_SCORE, team.STATUS, team.DATE_CREATED, team.MAX_TEAM_SIZE, team.bracket_ID, team.organization_id
-        FROM team team 
-        JOIN team_roster tr on(team.ID = tr.team_ID) 
-        JOIN player player on(tr.player_AUTH_ID = player.AUTH_ID) 
-        WHERE tr.team_ID IN (SELECT team_ID FROM team_roster WHERE player_AUTH_ID = $1) ORDER BY tr.team_ID ASC`;
+        const sqlNew = `SELECT t.*
+            FROM team t 
+            JOIN team_roster tr ON tr.team_id = t.id
+            WHERE tr.player_auth_id = $1`;
 
-        const sqlFindPlayers =
-            "SELECT team_roster.team_id, team_roster.role, player.auth_id, player.first_name, player.last_name, player.gender, player.status, player.image FROM team_roster JOIN player ON team_roster.player_AUTH_ID = player.auth_ID WHERE team_roster.team_ID IN (%L)";
+        const sqlFindPlayers = `SELECT tr.team_id, tr.role, p.auth_id, p.first_name, p.last_name, p.gender, p.status, p.image 
+            FROM team_roster tr
+            JOIN player p ON p.auth_id = tr.player_auth_ID
+            WHERE tr.team_ID IN (%L)`;
 
         const result = await withClientRollback(async (querier) => {
             // first a query to find teams is performed
-            const teams = (await querier<ITeamDatabase>(sqlTeam, [id])).rows;
+            const teams = (await querier<ITeamDatabase>(sqlNew, [id])).rows;
             const teamIdList = teams.map((x) => x.id);
+
+            if (teams.length === 0) {
+                return IsRollback;
+            }
 
             // next using the team ids from above each player on the team is retrieved
             const players = (await querier(format(sqlFindPlayers, teamIdList))).rows;
@@ -194,7 +199,6 @@ export default class TeamDAO {
                     team.getLosses(),
                     image,
                     team.getVisibility(),
-                    team.getSport(),
                     team.getSportsmanshipScore(),
                     team.getStatus(),
                     team.getMaxTeamSize(),
@@ -277,7 +281,7 @@ export default class TeamDAO {
         });
 
         const sqlNew = `with new_team AS (
-            INSERT INTO team (name, wins, ties, losses, image, visibility, sport, sportsmanship_score, status, max_team_size, organization_id) 
+            INSERT INTO team (name, wins, ties, losses, image, visibility, gender, sportsmanship_score, status, max_team_size, organization_id) 
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *
             ),
             new_role AS(
@@ -295,7 +299,7 @@ export default class TeamDAO {
                     team.getLosses(),
                     team.getImage(),
                     team.getVisibility(),
-                    team.getSport(),
+                    team.getGender(),
                     team.getSportsmanshipScore(),
                     team.getStatus(),
                     team.getMaxTeamSize(),
@@ -326,14 +330,14 @@ export default class TeamDAO {
      * @param role - role attached to player
      * @returns - true or false depending on success or failure
      */
-    async addToTeamRoster(teamId: number, playerId: string, role?: TeamRole): Promise<void> {
+    async addToTeamRoster(teamId: number, playerId: string, role: TeamRole): Promise<void> {
         logger.verbose("Entering method addToTeamRoster()", {
             class: this.className,
             values: { teamId, playerId },
         });
 
         const sqlAddPlayer =
-            "INSERT INTO team_roster (player_AUTH_ID, team_ID, role) VALUES ($1, $2, $3) RETURNING ";
+            "INSERT INTO team_roster (player_AUTH_ID, team_ID, role) VALUES ($1, $2, $3)";
 
         return withClient(async (querier) => {
             const response = (await querier(sqlAddPlayer, [playerId, teamId, role])).rowCount;
@@ -478,7 +482,7 @@ export default class TeamDAO {
             values: { teamId },
         });
 
-        const sql = "SELECT * FROM team_join_request WHERE team_id = $1";
+        const sql = "SELECT * FROM team_join_requests WHERE team_id = $1";
 
         return withClient(async (querier) => {
             const response = (await querier<IJoinRequest>(sql, [teamId])).rows;
@@ -581,6 +585,7 @@ async function testFunc() {
     //         "dab32727-cb7c-4320-8865-6f1b842785ed"
     //     )
     // );
+    // console.log(await test.findAllTeamsByPlayerId("auth0|62760b4733c477006f82c56d"));
     // console.log(await test.findAllTeamsByPlayerId("auth0|62760b4733c477006f82c56d"));
     // console.log(newTeam?.getId());
     // console.log(await test.findTeamById(12));

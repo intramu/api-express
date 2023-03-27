@@ -1,4 +1,9 @@
 import { IPlayerDatabase } from "../interfaces/IPlayer";
+import {
+    convertFromDatabaseFormat,
+    IPlayerInvite,
+    IPlayerInviteDatabase,
+} from "../interfaces/IPlayerInvite";
 import { Player } from "../models/Player";
 import logger from "../utilities/winstonConfig";
 
@@ -6,32 +11,6 @@ import { withClient } from "./database";
 
 export default class PlayerDAO {
     className = this.constructor.name;
-
-    // async findTeamsByPlayerId(playerId: string) {
-    //     logger.verbose("Entering method findAllTeamsByPlayerId()", {
-    //         class: this.className,
-    //     });
-
-    //     let client = null;
-
-    //     const sql =
-    //         "SELECT team.ID as team_ID, team.NAME, team.WINS, team.TIES, team.LOSSES, team.IMAGE, team.VISIBILITY, team.SPORT, team.DATE_CREATED, team.MAX_TEAM_SIZE, tr.ROLE, tr.player_AUTH_ID, player.FIRST_NAME, player.LAST_NAME, player.GENDER FROM team team JOIN team_roster tr on(team.ID = tr.team_ID) JOIN player player on(tr.player_AUTH_ID = player.AUTH_ID) WHERE tr.team_ID IN (SELECT team_ID FROM team_roster WHERE player_AUTH_ID = ?) ORDER BY tr.team_ID ASC";
-    //     try {
-    //         client = await db.connect();
-    //         const response = await client.query(sql);
-    //         const results = response.rows;
-    //         console.log(results);
-    //         // return results
-    //     } catch (error) {
-    //         logger.error("Database Connection / Query Error", {
-    //             type: error,
-    //             class: this.className,
-    //         });
-    //         return null;
-    //     } finally {
-    //         client?.release();
-    //     }
-    // }
 
     /**
      * Returns the organization id by searching for the player
@@ -187,7 +166,7 @@ export default class PlayerDAO {
      * Finds all players in entire database
      * @returns - list of Player objects
      */
-    // todo: add paging in future to reduce returned content
+    // TODO: add paging in future to reduce returned content
     async findAllPlayers(): Promise<Player[]> {
         logger.verbose("Entering method findPlayers()", {
             class: this.className,
@@ -207,6 +186,7 @@ export default class PlayerDAO {
      * @param orgId - organization id to look for players under
      * @returns - List of Player objects
      */
+    // TODO: add paging in future to reduce returned content
     async findAllPlayersByOrganizationId(orgId: string): Promise<Player[]> {
         logger.verbose("Entering method findPlayersByOrganizationId()", {
             class: this.className,
@@ -227,7 +207,7 @@ export default class PlayerDAO {
      * @param player - player object with values
      * @returns - updated Player object or null
      */
-    async patchPlayer(player: Player): Promise<Player | null> {
+    async patchPlayer(player: Player): Promise<Player> {
         logger.verbose("Entering method patchPlayer()", {
             class: this.className,
             values: player,
@@ -262,7 +242,10 @@ export default class PlayerDAO {
             ).rows;
 
             if (response === undefined) {
-                return null;
+                logger.error(`Error patching player: ${player.getAuthId()}`, {
+                    class: this.className,
+                });
+                throw new Error(`Error patching player: ${player.getAuthId()}`);
             }
 
             return Player.fromDatabase(response);
@@ -270,39 +253,40 @@ export default class PlayerDAO {
     }
 
     async createPlayerInvite(
-        requestingId: string,
+        authorizingId: string,
         inviteeId: string,
         teamId: number,
         inviteExpirationDate: Date
-    ): Promise<[playerId: string, inviteDate: Date]> {
+    ): Promise<IPlayerInvite> {
         logger.verbose("Entering method createPlayerInvite()", {
             class: this.className,
-            values: { requestingId, inviteeId, teamId, inviteExpirationDate },
+            values: { authorizingId, inviteeId, teamId, inviteExpirationDate },
         });
 
-        // TODO: combine into one query
-        const sqlInvite =
-            "INSERT INTO player_invites (player_AUTH_ID, team_ID, REQUESTING_PLAYER_FULL_NAME, REQUESTING_TEAM_NAME, EXPIRATION_TIME) VALUES ($1,$2,$3,$4,$5) RETURNING *";
-
-        const findPlayerName = "SELECT first_name, last_name FROM player WHERE auth_ID = $1";
-        const findTeamName = "SELECT NAME FROM team WHERE ID = $1";
+        /** CTE first finds player name,
+         * then finds team name,
+         * then adds both to the invite.
+         *
+         * Will fail if no player or team is found*/
+        const sqlCte = `with player AS (
+            SELECT first_name, last_name FROM player WHERE auth_id = $1
+        ),
+        team AS (
+            SELECT name FROM team WHERE id = $2
+        )
+        INSERT INTO player_invites (player_auth_id, team_id, requesting_player_full_name, requesting_team_name, expiration_time) VALUES($3, $4, 
+            (SELECT CONCAT(first_name, ' ', last_name) FROM player), 
+            (SELECT CONCAT(name) FROM team),
+            $5) 
+            RETURNING *`;
 
         return withClient(async (querier) => {
-            // finds the player who created the invite and adds their name to the invite
-            // also finds the team and adds it to the invite
-            const [player] = (await querier(findPlayerName, [requestingId])).rows;
-            const [team] = (await querier(findTeamName, [teamId])).rows;
-
-            if (player === undefined || team === undefined) {
-                throw new Error("No team or player found");
-            }
-
             const [invite] = (
-                await querier(sqlInvite, [
+                await querier<IPlayerInviteDatabase>(sqlCte, [
+                    authorizingId,
+                    teamId,
                     inviteeId,
                     teamId,
-                    `${player.first_name} ${player.last_name}`,
-                    team.name,
                     inviteExpirationDate,
                 ])
             ).rows;
@@ -314,7 +298,7 @@ export default class PlayerDAO {
                 throw new Error("Error creating invite");
             }
 
-            return [invite.player_auth_id, invite.time_sent];
+            return convertFromDatabaseFormat(invite);
         });
     }
 
@@ -325,7 +309,7 @@ export default class PlayerDAO {
      * @param teamId - team id
      * @returns - authId of the player on invite
      */
-    async deletePlayerInvite(playerId: string, teamId: number): Promise<string | null> {
+    async deletePlayerInvite(playerId: string, teamId: number): Promise<boolean> {
         logger.verbose("Entering method deletePlayerInvite()", {
             class: this.className,
             values: {
@@ -334,17 +318,53 @@ export default class PlayerDAO {
             },
         });
 
-        const sqlDelete =
-            "DELETE FROM player_invites WHERE player_auth_id = $1 AND team_id = $2 RETURNING player_auth_id";
+        const sqlDelete = "DELETE FROM player_invites WHERE player_auth_id = $1 AND team_id = $2";
 
         return withClient(async (querier) => {
             const [results] = (await querier(sqlDelete, [playerId, teamId])).rows;
 
-            if (results.length === 0) {
-                return null;
+            if (results === undefined) {
+                return false;
             }
 
-            return results.auth_id;
+            return true;
+        });
+    }
+
+    async findAllPlayerInvitesById(authId: string): Promise<IPlayerInvite[]> {
+        logger.verbose("Entering method findAllPlayerInvitesById()", {
+            class: this.className,
+            values: { authId },
+        });
+
+        const sql = "SELECT * FROM player_invites WHERE player_auth_id = $1";
+
+        return withClient(async (querier) => {
+            const invites = (await querier<IPlayerInviteDatabase>(sql, [authId])).rows;
+
+            return invites.map((invite) => convertFromDatabaseFormat(invite));
+        });
+    }
+
+    async findPlayerByName(name: string, orgId?: string): Promise<Player[]> {
+        logger.verbose("Entering method findPlayerByName()", {
+            class: this.className,
+            values: { name },
+        });
+
+        /** Looks for all players where the provided name is like the concatted first name and last name
+         * A organization id can optionally be provided to filter more
+         */
+        const sql = `SELECT * FROM player 
+        WHERE (first_name || last_name) 
+        ILIKE $1 AND organization_id = COALESCE($2, organization_id)`;
+
+        // TODO: prob add pagination for this
+        return withClient(async (querier) => {
+            const players = (await querier<IPlayerDatabase>(sql, [`%${name}%`, orgId ?? null]))
+                .rows;
+
+            return players.map((player) => Player.fromDatabase(player));
         });
     }
 }
@@ -355,7 +375,14 @@ testFunc();
 
 async function testFunc() {
     // console.log(await test.deletePlayerInvite("player4", 12));
-    // console.log(await test.createPlayerInvite("player1", "player4", 12));
+    // console.log(
+    //     await test.createPlayerInvite(
+    //         "auth0|62760b4733c477006f82c56d",
+    //         "auth0|62760b4733c477006f82c56c",
+    //         15,
+    //         new Date()
+    //     )
+    // );
     // console.log(await test.deletePlayerById("player4"));
     // test.findTeamsByPlayerId("auth0|62760b4733c477006f82c56d");
     // await test.findPlayerById("player12");
@@ -365,4 +392,5 @@ async function testFunc() {
     // console.log(await test.findPlayersByTeamId(12));
     // console.log(await test.updatePlayer(player));
     // console.log(await test.patchPlayer(player));
+    // await test.findPlayerByName("thomas", "dab32727-cb7c-4320-8865-6f1b842785ee");
 }

@@ -4,6 +4,7 @@ import {
     CompetitionStatus,
     TournamentType,
     CompetitionVisibility,
+    CompetitionSeason,
 } from "../../utilities/enums/competitionEnum";
 import { League } from "./League";
 
@@ -12,13 +13,10 @@ interface IContestProps {
     name: string | null;
     visibility: CompetitionVisibility | null;
     status: CompetitionStatus | null;
+    season: CompetitionSeason | null;
+    term: number | null;
+    year: string | null;
     dateCreated: Date | null;
-    startDate: Date | null;
-    endDate: Date | null;
-    playoff: boolean;
-    playoffType: TournamentType | null;
-    playoffSeedingType: PlayoffSeedingType | null;
-    contestType: ContestType | null;
     leagues: League[];
     organizationId: string;
 }
@@ -32,19 +30,13 @@ export class Contest {
 
     protected status: CompetitionStatus | null;
 
+    protected season: CompetitionSeason | null;
+
+    protected term: number | null;
+
+    protected year: string | null;
+
     protected dateCreated: Date | null;
-
-    protected startDate: Date | null;
-
-    protected endDate: Date | null;
-
-    protected playoff: boolean;
-
-    protected playoffType: TournamentType | null;
-
-    protected playoffSeedingType: PlayoffSeedingType | null;
-
-    protected contestType: ContestType | null;
 
     protected leagues: League[];
 
@@ -56,13 +48,10 @@ export class Contest {
             name = "",
             visibility = null,
             status = null,
+            season = null,
+            term = null,
+            year = null,
             dateCreated = null,
-            startDate = null,
-            endDate = null,
-            playoff = false,
-            playoffType = null,
-            playoffSeedingType = null,
-            contestType = null,
             leagues = [],
         } = props;
 
@@ -70,13 +59,10 @@ export class Contest {
         this.name = name;
         this.visibility = visibility;
         this.status = status;
+        this.season = season;
+        this.term = term;
+        this.year = year;
         this.dateCreated = dateCreated;
-        this.startDate = startDate;
-        this.endDate = endDate;
-        this.playoff = playoff;
-        this.playoffType = playoffType;
-        this.playoffSeedingType = playoffSeedingType;
-        this.contestType = contestType;
         this.leagues = leagues;
         // this.organizationId = organizationId;
     }
@@ -84,24 +70,16 @@ export class Contest {
     public static fromDatabase(props: {
         id: number;
         name: string | null;
-        visibility: CompetitionVisibility | null;
-        status: CompetitionStatus | null;
-        date_created: Date | null;
-        start_date: Date | null;
-        end_date: Date | null;
-        playoff: boolean;
-        playoff_type: TournamentType | null;
-        playoff_seeding_type: PlayoffSeedingType | null;
-        contest_type: ContestType | null;
+        visibility: CompetitionVisibility;
+        status: CompetitionStatus;
+        season: CompetitionSeason | null;
+        term: number | null;
+        year: string | null;
+        date_created: Date;
         leagues: League[];
     }) {
         const obj = new Contest(props);
         obj.dateCreated = props.date_created;
-        obj.startDate = props.start_date;
-        obj.endDate = props.end_date;
-        obj.playoffType = props.playoff_type;
-        obj.playoffSeedingType = props.playoff_seeding_type;
-        obj.contestType = props.contest_type;
 
         return obj;
     }
@@ -138,60 +116,36 @@ export class Contest {
         this.status = status;
     }
 
+    public getSeason(): CompetitionSeason | null {
+        return this.season;
+    }
+
+    public setSeason(season: CompetitionSeason | null): void {
+        this.season = season;
+    }
+
+    public getTerm(): number | null {
+        return this.term;
+    }
+
+    public setTerm(term: number | null): void {
+        this.term = term;
+    }
+
+    public getYear(): string | null {
+        return this.year;
+    }
+
+    public setYear(year: string | null): void {
+        this.year = year;
+    }
+
     public getDateCreated(): Date | null {
         return this.dateCreated;
     }
 
     public setDateCreated(dateCreated: Date): void {
         this.dateCreated = dateCreated;
-    }
-
-    public getStartDate(): Date | null {
-        return this.startDate;
-    }
-
-    public setStartDate(startDate: Date | null): void {
-        this.startDate = startDate;
-    }
-
-    public getEndDate(): Date | null {
-        return this.endDate;
-    }
-
-    public setDate(endDate: Date | null): void {
-        this.endDate = endDate;
-    }
-
-    public getPlayoff(): boolean {
-        return this.playoff;
-    }
-
-    public setPlayoff(playoff: boolean): void {
-        this.playoff = playoff;
-    }
-
-    public getPlayoffType(): TournamentType | null {
-        return this.playoffType;
-    }
-
-    public setPlayoffType(playoffType: TournamentType | null): void {
-        this.playoffType = playoffType;
-    }
-
-    public getPlayoffSeedingType(): PlayoffSeedingType | null {
-        return this.playoffSeedingType;
-    }
-
-    public setPlayoffSeedingType(playoffSeedingType: PlayoffSeedingType | null): void {
-        this.playoffSeedingType = playoffSeedingType;
-    }
-
-    public getContestType(): ContestType | null {
-        return this.contestType;
-    }
-
-    public setContestType(contestType: ContestType | null): void {
-        this.contestType = contestType;
     }
 
     public getLeagues(): League[] {

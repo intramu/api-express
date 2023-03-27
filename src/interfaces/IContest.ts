@@ -1,5 +1,6 @@
 import { League } from "../models/competition/League";
 import {
+    CompetitionSeason,
     CompetitionStatus,
     CompetitionVisibility,
     ContestType,
@@ -23,14 +24,11 @@ export interface IContestDatabase {
     id: number;
     name: string;
     visibility: CompetitionVisibility;
-    date_created: Date;
     status: CompetitionStatus;
-    start_date: Date;
-    end_date: Date;
-    playoff: boolean;
-    playoff_type: TournamentType;
-    playoff_seeding_type: PlayoffSeedingType;
-    leagues: League[];
-    contest_type: ContestType;
+    season: CompetitionSeason;
+    term: number;
+    year: string;
+    date_created: Date;
+    // leagues: League[];
     organization_id: string;
 }

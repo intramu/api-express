@@ -1,3 +1,4 @@
+import { PlayerSmall } from "../models/PlayerSmall";
 import { Sport } from "../utilities/enums/commonEnum";
 import { TeamGender, TeamStatus, TeamVisibility } from "../utilities/enums/teamEnum";
 
@@ -24,5 +25,24 @@ export interface ITeamCreate {
     image: string;
     visibility: TeamVisibility;
     sport: Sport;
+    bracketId: number;
+}
+
+export interface ITeamProps {
+    id: number;
+    name: string;
+    wins: number;
+    ties: number;
+    losses: number;
+    image: string;
+    visibility: TeamVisibility;
+    sport: Sport;
+    gender: TeamGender;
+    dateCreated: Date;
+    sportsmanshipScore: number;
+    status: TeamStatus;
+    maxTeamSize: number;
+    players: PlayerSmall[];
+    organizationId: string;
     bracketId: number;
 }

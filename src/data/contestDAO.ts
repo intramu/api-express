@@ -1,9 +1,9 @@
 import format from "pg-format";
-import { IBracketDatabase } from "../interfaces/Bracket";
-import { IContestDatabase } from "../interfaces/Contest";
-import { IDivisionDatabase } from "../interfaces/Division";
+import { IBracketDatabase } from "../interfaces/IBracket";
+import { IContestDatabase } from "../interfaces/IContest";
+import { IDivisionDatabase } from "../interfaces/IDivision";
 import { ITeamDatabase } from "../interfaces/ITeam";
-import { ILeagueDatabase } from "../interfaces/League";
+import { ILeagueDatabase } from "../interfaces/ILeague";
 import { Bracket } from "../models/competition/Bracket";
 import { Contest } from "../models/competition/Contest";
 import { Division } from "../models/competition/Division";
@@ -28,7 +28,7 @@ export default class ContestDAO {
         });
 
         const sqlAdd =
-            "INSERT INTO contest (NAME, VISIBILITY, STATUS, START_DATE, END_DATE, PLAYOFF, PLAYOFF_TYPE, PLAYOFF_SEEDING_TYPE, CONTEST_TYPE, organization_Id) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *";
+            "INSERT INTO contest (NAME, VISIBILITY, STATUS, SEASON, TERM, YEAR, organization_Id) VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING *";
 
         return withClient(async (querier) => {
             const [result] = (
@@ -36,12 +36,9 @@ export default class ContestDAO {
                     contest.getName(),
                     contest.getVisibility(),
                     contest.getStatus(),
-                    contest.getStartDate(),
-                    contest.getEndDate(),
-                    contest.getPlayoff(),
-                    contest.getPlayoffType(),
-                    contest.getPlayoffSeedingType(),
-                    contest.getContestType(),
+                    contest.getSeason(),
+                    contest.getTerm(),
+                    contest.getYear(),
                     orgId,
                     // contest.getOrganizationId(),
                 ])
@@ -54,7 +51,7 @@ export default class ContestDAO {
                 throw new Error("Error creating contest");
             }
 
-            return Contest.fromDatabase(result);
+            return Contest.fromDatabase({ ...result, leagues: [] });
         });
     }
 
@@ -70,24 +67,20 @@ export default class ContestDAO {
      * @param contestId - contest to put leagues under
      * @returns - returns true or false for success and failure
      */
-    async createLeaguesAndChildren(
-        leagues: League[],
-        orgId: string,
-        contestId: number
-    ): Promise<void> {
+    async createLeaguesAndChildren(leagues: League[], contestId: number): Promise<void> {
         logger.verbose("Entering method createLeaguesAndChildren()", {
             class: this.className,
-            values: { leagues, orgId, contestId },
+            values: { leagues, contestId },
         });
 
         const sqlLeague =
-            "INSERT INTO league (NAME, SPORT, START_DATE, END_DATE, contest_ID, organization_ID) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *";
+            "INSERT INTO league (NAME, SPORT, contest_ID) VALUES ($1, $2, $3) RETURNING *";
 
         const sqlDivision =
-            "INSERT INTO division (NAME, TYPE, LEVEL, MAX_TEAM_SIZE, MIN_WOMEN_COUNT, MIN_MEN_COUNT, league_ID) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *";
+            "INSERT INTO division (NAME, TYPE, LEVEL, STATUS, MAX_TEAM_SIZE, MIN_WOMEN_COUNT, MIN_MEN_COUNT, START_DATE, END_DATE, REGISTRATION_START_DATE, REGISTRATION_END_DATE, CONTEST_TYPE, PLAYOFF_TYPE, SEEDING_TYPE, league_ID) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *";
 
         const sqlBracket =
-            "INSERT INTO bracket (DAY_CHOICES, MAX_TEAM_AMOUNT, division_ID) VALUES ($1, $2, $3) RETURNING *";
+            "INSERT INTO bracket (DAY_CHOICES, MAX_TEAM_AMOUNT, TIME_CHOICES, division_ID) VALUES ($1, $2, $3, $4) RETURNING *";
 
         const result = await withClientRollback(async (querier) => {
             // i'm not feeling this. It causes a lot of query operations on the database
@@ -99,14 +92,7 @@ export default class ContestDAO {
             // timeslots for brackets
             leagues.forEach(async (league) => {
                 const [returnedLeague] = (
-                    await querier(sqlLeague, [
-                        league.getName(),
-                        league.getSport(),
-                        league.getStartDate(),
-                        league.getEndDate(),
-                        contestId,
-                        orgId,
-                    ])
+                    await querier(sqlLeague, [league.getName(), league.getSport(), contestId])
                 ).rows;
 
                 if (returnedLeague === undefined) {
@@ -119,9 +105,17 @@ export default class ContestDAO {
                             division.getName(),
                             division.getType(),
                             division.getLevel(),
+                            division.getStatus(),
                             division.getMaxTeamSize(),
                             division.getMinWomenCount(),
                             division.getMinMenCount(),
+                            division.getStartDate(),
+                            division.getEndDate(),
+                            division.getRegistrationStartDate(),
+                            division.getRegistrationEndDate(),
+                            division.getContestType(),
+                            division.getPlayoffType(),
+                            division.getPlayoffSeedingType(),
                             returnedLeague.id,
                         ])
                     ).rows;
@@ -131,10 +125,13 @@ export default class ContestDAO {
                     }
 
                     return division.getBrackets().forEach(async (bracket) => {
+                        console.log(bracket.convertTimeSlotsToDatabaseFormat());
+
                         const [returnedBracket] = (
                             await querier(sqlBracket, [
                                 bracket.getDayChoices(),
                                 bracket.getMaxTeamAmount(),
+                                bracket.convertTimeSlotsToDatabaseFormat(),
                                 returnedDivision.id,
                             ])
                         ).rows;
@@ -185,6 +182,10 @@ export default class ContestDAO {
         const result = await withClientRollback(async (querier) => {
             const leagues = (await querier<ILeagueDatabase>(sqlLeague, [contestId])).rows;
 
+            if (leagues.length === 0) {
+                return IsRollback;
+            }
+
             // fetch divisions based on league ids
             const leagueIdList = leagues.map((x) => x.id);
             const divisions = (await querier<IDivisionDatabase>(format(sqlDivision, leagueIdList)))
@@ -197,15 +198,12 @@ export default class ContestDAO {
 
             // fetch timeSlots based on bracket ids
             const bracketIdList = brackets.map((x) => x.id);
+
             // const timeSlots = (await querier(format(sqlTimeSlot, bracketIdList)))
             //     .rows;
 
             // fetch all Teams that are part of bracket
             const teams = (await querier<ITeamDatabase>(format(sqlTeams, bracketIdList))).rows;
-
-            if (leagues.length === 0) {
-                return IsRollback;
-            }
 
             /** My thought process here was to reverse the process for the insert function
              * above. The insert relies on querying the database for every single league, division,
@@ -249,6 +247,7 @@ export default class ContestDAO {
         });
 
         if (result === IsRollback) {
+            logger.error("Rolledback");
             return [];
         }
         return result;
@@ -273,7 +272,7 @@ export default class ContestDAO {
                 return null;
             }
 
-            return Contest.fromDatabase(contest);
+            return Contest.fromDatabase({ ...contest, leagues: [] });
         });
     }
 
@@ -287,7 +286,22 @@ export default class ContestDAO {
         return withClient(async (querier) => {
             const contest = (await querier<IContestDatabase>(sqlFind, [orgId])).rows;
 
-            return contest.map((result) => Contest.fromDatabase(result));
+            return contest.map((result) => Contest.fromDatabase({ ...result, leagues: [] }));
+        });
+    }
+
+    async findContestByIdAndOrgId(contestId: number, orgId: string): Promise<Contest | null> {
+        logger.verbose("Entering method findContestByIdAndOrgId()", {
+            class: this.className,
+            values: { orgId, contestId },
+        });
+
+        const sqlFind = "SELECT * FROM contest WHERE id = $1 AND organization_id = $2";
+
+        return withClient(async (querier) => {
+            const [contest] = (await querier<IContestDatabase>(sqlFind, [contestId, orgId])).rows;
+
+            return Contest.fromDatabase({ ...contest, leagues: [] });
         });
     }
 
@@ -311,6 +325,40 @@ export default class ContestDAO {
         });
     }
 
+    async findDivisionById(divisionId: number): Promise<Division | null> {
+        logger.verbose("Entering method findDivisionById()", {
+            class: this.className,
+            values: divisionId,
+        });
+
+        const sqlDivision = "SELECT * FROM division WHERE id = $1";
+        const sqlBrackets = "SELECT * FROM bracket WHERE division_id = $1";
+
+        const result = await withClientRollback(async (querier) => {
+            const [division] = (await querier<IDivisionDatabase>(sqlDivision, [divisionId])).rows;
+            const brackets = (await querier<IBracketDatabase>(sqlBrackets, [divisionId])).rows;
+
+            if (division === undefined) {
+                return IsRollback;
+            }
+
+            const bracketList = brackets.map((bracket) =>
+                Bracket.fromDatabase({ ...bracket, teams: [] })
+            );
+
+            return Division.fromDatabase({
+                ...division,
+                brackets: bracketList,
+            });
+        });
+
+        if (result === IsRollback) {
+            return null;
+        }
+
+        return result;
+    }
+
     /**
      * This method returns the path through the contest, league, division, bracket, and
      * teams, along with all their details. Uses table joins and json functions and
@@ -329,9 +377,10 @@ export default class ContestDAO {
         // COALESCE(json_agg (json_build_object('name', t.name)) FILTER (WHERE t.id IS NOT NULL), '[]') AS teams
 
         const sqlFind = `SELECT b.id AS bracket_id, b.*, 
-        d.id AS division_id, d.name AS division_name, d.*, 
-        l.id AS league_id, l.name AS league_name, l.start_date AS league_start_date, l.end_date AS league_end_date, l.*, 
-        c.id AS contest_id, c.name AS contest_name, c.start_date AS contest_start_date, c.end_date AS contest_end_date, c.*, COALESCE(json_agg (t) FILTER (WHERE t.id IS NOT NULL), '[]') AS teams 
+        d.id AS division_id, d.name AS division_name, d.status AS division_status, d.*, 
+        l.id AS league_id, l.name AS league_name, l.*, 
+        c.id AS contest_id, c.name AS contest_name, c.*, 
+        COALESCE(json_agg (t) FILTER (WHERE t.id IS NOT NULL), '[]') AS teams 
         FROM bracket b 
         LEFT JOIN team t ON t.bracket_id = b.id
         JOIN division d ON b.division_id = d.id
@@ -364,9 +413,17 @@ export default class ContestDAO {
                 name: res.division_name,
                 type: res.type,
                 level: res.level,
+                status: res.division_status,
                 max_team_size: res.max_team_size,
                 min_women_count: res.min_women_count,
                 min_men_count: res.min_men_count,
+                start_date: res.start_date,
+                end_date: res.end_date,
+                registration_start_date: res.registration_start_date,
+                registration_end_date: res.registration_end_date,
+                contest_type: res.contest_type,
+                playoff_type: res.playoff_type,
+                playoff_seeding_type: res.playoff_seeding_type,
                 brackets: [bracket],
             });
 
@@ -374,8 +431,6 @@ export default class ContestDAO {
                 id: res.league_id,
                 name: res.league_name,
                 sport: res.sport,
-                start_date: res.league_start_date,
-                end_date: res.league_end_date,
                 divisions: [division],
             });
 
@@ -384,13 +439,10 @@ export default class ContestDAO {
                 name: res.contest_name,
                 visibility: res.visibility,
                 status: res.status,
+                season: res.season,
+                term: res.term,
+                year: res.year,
                 date_created: res.date_created,
-                start_date: res.contest_start_date,
-                end_date: res.contest_end_date,
-                playoff: res.playoff,
-                playoff_type: res.playoff_type,
-                playoff_seeding_type: res.playoff_seeding_type,
-                contest_type: res.contest_type,
                 leagues: [league],
             });
         });
@@ -400,7 +452,8 @@ export default class ContestDAO {
 const test = new ContestDAO();
 
 async function testFunction() {
-    // console.log(await test.findPathByBracketId(1));
+    // const find = await test.findPathByBracketId(1);
+    // console.log(find?.getLeagues()[0].getDivisions()[0].getBrackets()[0].getTimeChoices());
 }
 
 testFunction();

@@ -3,7 +3,6 @@ import { body, param, ValidationChain, validationResult } from "express-validato
 import { APIResponse } from "../../models/APIResponse";
 import { TeamRole } from "../enums/teamEnum";
 
-// utility methods
 export const printEnums = (enumValue: any, enumName: string) => {
     // adds values of enum to list spacing out each value, then converts into string
     const list = Object.values(enumValue)
@@ -26,9 +25,8 @@ export const listEnums = (enumValue: any) => Object.values(enumValue).map((value
  */
 export const validate = (validations: ValidationChain[]) => {
     return async (req: express.Request, res: express.Response, next: express.NextFunction) => {
-        // eslint-disable-next-line no-restricted-syntax
+        // validation check first runs on all fields and the validation chain
         for (const validation of validations) {
-            // eslint-disable-next-line no-await-in-loop
             const result = await validation.run(req);
             if (result.array().length) {
                 break;
@@ -36,13 +34,49 @@ export const validate = (validations: ValidationChain[]) => {
         }
 
         const errors = validationResult(req);
-        if (errors.isEmpty()) {
-            return next();
+
+        // if error exists return bad request
+        if (!errors.isEmpty()) {
+            const errorResponse = errors.array()[0].msg;
+            return res.status(400).json(APIResponse.BadRequest(errorResponse));
         }
 
-        const errorResponse = errors.array()[0].msg;
-        return res.status(400).json(APIResponse.BadRequest(errorResponse));
+        // // checks for extra fields
+        // const extraFields = checkIfExtraFields(validations, req);
+
+        // // if extra fields exists return bad request
+        // if (extraFields) {
+        //     return res.status(400).json(APIResponse.BadRequest("Incorrect fields"));
+        // }
+
+        // All good, pass to next middleware
+        return next();
     };
+};
+
+/**
+ * Checks for extra fields in request body and returns true if they exist
+ * @param validators - validation chain
+ * @param req - express request object
+ * @returns - boolean value if other fields were present
+ */
+const checkIfExtraFields = (validators: any[], req: express.Request) => {
+    const allowedFields = validators
+        .reduce((fields, rule) => {
+            return [...fields, ...rule.builder.fields];
+        }, [])
+        .sort();
+
+    const requestInput = { ...req.body };
+    const requestFields = Object.keys(requestInput).sort();
+
+    if (JSON.stringify(allowedFields) === JSON.stringify(requestFields)) {
+        return false;
+    }
+    // logger.error(`${req.ip} try to make a invalid request`)
+    console.log("issue here");
+
+    return true;
 };
 
 // Requires auth id param to meet the required length of 30 characters
@@ -58,6 +92,11 @@ export const authIdParam = validate([
 export const organizationIdParam = validate([
     param("orgId").isUUID().withMessage("Organization id must be in UUID format"),
 ]);
+
+// Requires organization Id param to be in UUID format
+export const organizationIdParamTemp = param("orgId")
+    .isUUID()
+    .withMessage("Organization id must be in UUID format");
 
 // Requires team id to be greater than 0
 export const teamIdParam = validate([

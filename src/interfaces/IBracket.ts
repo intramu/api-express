@@ -8,8 +8,8 @@ export interface BracketNewInterface {
 }
 
 export interface TimeRange {
-    startTime: Date;
-    endTime: Date;
+    startTime: string;
+    endTime: string;
 }
 
 export interface IBracketDatabase {

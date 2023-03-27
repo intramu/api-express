@@ -5,6 +5,7 @@ import { APIResponse } from "../../models/APIResponse";
 import { Bracket } from "../../models/competition/Bracket";
 import { Contest } from "../../models/competition/Contest";
 import { League } from "../../models/competition/League";
+import { CompetitionStatus } from "../../utilities/enums/competitionEnum";
 import logger from "../../utilities/winstonConfig";
 
 const contestDatabase = new ContestDAO();
@@ -71,8 +72,10 @@ export class CompetitionBusinessService {
         // modifies list to add waitlist for each division
         const leaguesWithWaitlist = this.addWaitlistBracket(leagues);
 
+        console.log(leaguesWithWaitlist);
+
         // creates leagues
-        await contestDatabase.createLeaguesAndChildren(leaguesWithWaitlist, org.getId(), contestId);
+        await contestDatabase.createLeaguesAndChildren(leaguesWithWaitlist, contestId);
 
         return true;
     }
@@ -87,7 +90,7 @@ export class CompetitionBusinessService {
             league.getDivisions().map((division) => {
                 // pushes new bracket into each division
                 // has max team limit of 1000, basically unlimited
-                division.getBrackets().push(new Bracket({ maxTeamAmount: 1000 }));
+                division.getBrackets().push(new Bracket({ maxTeamAmount: 0 }));
                 return division;
             });
             return league;
@@ -97,29 +100,85 @@ export class CompetitionBusinessService {
     /**
      * Finds league tree under contest
      * @param contestId - id of contest to look under
-     * @param adminId - id of authorizing admin
+     * @param playerId - id of authorizing admin
      * @returns
      */
-    async findLeaguesByContestId(
+    async findContestAndChildrenById(
         contestId: number,
-        adminId: string
-    ): Promise<APIResponse | League[]> {
-        logger.verbose("Entering method findLeaguesByContestId()", {
+        playerId: string
+    ): Promise<APIResponse | Contest> {
+        logger.verbose("Entering method findContestAndChildrenById()", {
             class: this.className,
-            values: { contestId, adminId },
+            values: { contestId, playerId },
         });
 
-        const organization = await organizationDatabase.findOrganizationByAdminId(adminId);
+        // let organization = await organizationDatabase.findOrganizationByAdminId(userId);
+        const organization = await organizationDatabase.findOrganizationByPlayerId(playerId);
         if (organization === null) {
-            return APIResponse.NotFound(`No admin found with id: ${adminId}`);
+            return APIResponse.NotFound(`No user found with id: ${playerId}`);
         }
 
-        const contests = await contestDatabase.findContestsByOrganizationId(organization.getId());
-        if (contests.some((contest) => contest.getId() === contestId)) {
-            return APIResponse.Forbidden(`Cannot access contest outside organization`);
+        const contest = await contestDatabase.findContestByIdAndOrgId(
+            contestId,
+            organization.getId()
+        );
+        if (!contest) {
+            return APIResponse.NotFound(`No contest found with id: ${contestId}`);
         }
 
-        return await contestDatabase.findLeaguesAndChildrenByContestId(contestId);
+        const leagues = await contestDatabase.findLeaguesAndChildrenByContestId(contestId);
+        contest.setLeagues(leagues);
+
+        return contest;
+    }
+
+    async findAllContests(playerId: string): Promise<APIResponse | Contest[]> {
+        logger.verbose("Entering method findAllContests()", {
+            class: this.className,
+            values: { playerId },
+        });
+
+        const org = await organizationDatabase.findOrganizationByPlayerId(playerId);
+        if (!org) {
+            return APIResponse.NotFound(`No organization found`);
+        }
+
+        const contests = (await contestDatabase.findContestsByOrganizationId(org.getId())).filter(
+            (x) => x.getStatus() === CompetitionStatus.ACTIVE
+        );
+
+        return contests;
+    }
+
+    /**
+     * Finds all contests in organization. Used to show network to players. Does not
+     * currently filter for active contests
+     * @param playerId
+     */
+    async findAllContestsAndChildren(playerId: string): Promise<APIResponse | Contest[]> {
+        logger.verbose("Entering method findAllContestsAndChildren()", {
+            class: this.className,
+            values: playerId,
+        });
+
+        const org = await organizationDatabase.findOrganizationByPlayerId(playerId);
+        if (!org) {
+            return APIResponse.NotFound(`No organization found`);
+        }
+
+        const contests = await contestDatabase.findContestsByOrganizationId(org.getId());
+
+        const list = await Promise.all(
+            contests.map(async (contest) => {
+                const leagues = await contestDatabase.findLeaguesAndChildrenByContestId(
+                    contest.getId()
+                );
+                contest.setLeagues(leagues);
+                return contest;
+            })
+        );
+
+        return list;
     }
 }
 

@@ -1,6 +1,7 @@
 import ContestDAO from "../../data/contestDAO";
 import OrganizationDAO from "../../data/organizationDAO";
 import { APIResponse } from "../../models/APIResponse";
+import { Bracket } from "../../models/competition/Bracket";
 import { Contest } from "../../models/competition/Contest";
 import { League } from "../../models/competition/League";
 import logger from "../../utilities/winstonConfig";
@@ -30,9 +31,21 @@ export class CompetitionBusinessService {
         }
 
         // add contest to database under organization
-        const contest = await contestDatabase.createContest(newContest, orgId);
+        return contestDatabase.createContest(newContest, orgId);
+    }
 
-        return contest;
+    async findContestsByOrganizationId(orgId: string): Promise<APIResponse | Contest[]> {
+        logger.verbose("Entering method findContestsByOrganizationId()", {
+            class: this.className,
+            values: orgId,
+        });
+
+        const org = await organizationDatabase.findOrganizationById(orgId);
+        if (!org) {
+            return APIResponse.NotFound(`No organization found with id: ${orgId}`);
+        }
+
+        return contestDatabase.findContestsByOrganizationId(orgId);
     }
 
     /**
@@ -42,22 +55,11 @@ export class CompetitionBusinessService {
      * @param adminId - id of authorizing admin
      * @returns - error response or true if success
      */
-    // REVISIT - not separation safe across multiple organizations
-    async createLeagues(
-        leagues: League[],
-        contestId: number,
-        orgId: string
-    ): Promise<APIResponse | boolean> {
+    async createLeagues(leagues: League[], contestId: number): Promise<APIResponse | boolean> {
         logger.verbose("Entering method createLeagues()", {
             class: this.className,
-            values: { leagues, contestId, orgId },
+            values: { leagues, contestId },
         });
-
-        // finds organization id that admin belongs too
-        const org = await organizationDatabase.findOrganizationById(orgId);
-        if (!org) {
-            return APIResponse.NotFound(`No organization found with id: ${orgId}`);
-        }
 
         // looks to see if contest exists yet
         const contest = await contestDatabase.findContestById(contestId);
@@ -65,16 +67,10 @@ export class CompetitionBusinessService {
             return APIResponse.NotFound(`No contest found with id: ${contestId}`);
         }
 
-        // creates leagues
-        const response = await contestDatabase.createLeaguesAndChildren(
-            leagues,
-            org.getId(),
-            contest.getId()
-        );
-        if (!response) {
-            return APIResponse.InternalError("Error creating leagues");
-        }
+        const leaguesWithWaitlist = this.addWaitlistBracket(leagues);
 
+        // create leagues
+        await contestDatabase.createLeaguesAndChildren(leaguesWithWaitlist, contest.getId());
         return true;
     }
 
@@ -84,9 +80,8 @@ export class CompetitionBusinessService {
      * @param adminId - id of authorizing admin
      * @returns
      */
-    // REVISIT - not separation safe across multiple organizations
-    async findLeaguesByContestId(contestId: number): Promise<APIResponse | League[]> {
-        logger.verbose("Entering method findLeaguesByContestId()", {
+    async findContestAndChildrenById(contestId: number): Promise<APIResponse | Contest> {
+        logger.verbose("Entering method findContestAndChildrenById()", {
             class: this.className,
             values: { contestId },
         });
@@ -97,8 +92,26 @@ export class CompetitionBusinessService {
         }
 
         const leagues = await contestDatabase.findLeaguesAndChildrenByContestId(contestId);
+        contest.setLeagues(leagues);
 
-        return leagues;
+        return contest;
+    }
+
+    /**
+     * loops through all divisions and adds a Waitlist bracket for every division
+     * @param leagues - list of leagues
+     * @returns - modified list with waitlist
+     */
+    private addWaitlistBracket(leagues: League[]): League[] {
+        return leagues.map((league) => {
+            league.getDivisions().map((division) => {
+                // pushes new bracket into each division
+                // has max team limit of 1000, basically unlimited
+                division.getBrackets().push(new Bracket({ maxTeamAmount: 0 }));
+                return division;
+            });
+            return league;
+        });
     }
 
     // TODO

@@ -1,11 +1,9 @@
 import { Sport } from "../utilities/enums/commonEnum";
-import { DivisionNewInterface } from "./Division";
+import { DivisionNewInterface } from "./IDivision";
 
-export interface LeagueNewInterface {
+export interface ILeagueNew {
     name: string;
     sport: Sport;
-    startDate: Date;
-    endDate: Date;
     divisions: DivisionNewInterface[];
 }
 
@@ -13,8 +11,6 @@ export interface ILeagueDatabase {
     id: number;
     name: string;
     sport: Sport;
-    start_date: Date;
-    end_date: Date;
     contest_id: number;
-    organization_id: string;
+    // organization_id: string;
 }

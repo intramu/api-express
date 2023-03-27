@@ -7,6 +7,7 @@ import TeamDAO from "../../data/teamDAO";
 import OrganizationDAO from "../../data/organizationDAO";
 import { TeamRole } from "../../utilities/enums/teamEnum";
 import { Team } from "../../models/Team";
+import { IPlayerInvite } from "../../interfaces/IPlayerInvite";
 
 const playerDatabase = new PlayerDAO();
 const teamDatabase = new TeamDAO();
@@ -27,8 +28,8 @@ export class PlayerBusinessService {
             values: { playerId, authId },
         });
 
-        // FEATURE- authId(requesting Id) can be used to prevent user's from accessing certain players
-
+        // TODO: visibility levels return different amounts of information
+        // TODO: not separation safe
         const player = await playerDatabase.findPlayerById(playerId);
         if (player === null) {
             return APIResponse.NotFound(`No player found with id: ${playerId}`);
@@ -62,13 +63,13 @@ export class PlayerBusinessService {
     }
 
     /**
-     * Player creates new account with auth0. This finishes their profile by adding details
+     * Creates new player account. This finishes their profile by adding details
      * to internal database.
      * @param player - player details to be added
      * @param orgId - id of organization to add player too
      * @returns - error response or newly created player object
      */
-    async completePlayerProfile(player: Player, orgId: string): Promise<APIResponse | Player> {
+    async createPlayer(player: Player, orgId: string): Promise<APIResponse | Player> {
         logger.verbose("Entering method completePlayerProfile", {
             class: this.className,
             values: { player, orgId },
@@ -84,23 +85,16 @@ export class PlayerBusinessService {
         newPlayer.setStatus(PlayerStatus.ACTIVE);
 
         // create new player in database
-        const response = await playerDatabase.createPlayerByOrganizationId(newPlayer, orgId);
-
-        if (response === null) {
-            return APIResponse.InternalError(`Error creating player`);
-        }
-
-        return response;
+        return playerDatabase.createPlayerByOrganizationId(newPlayer, orgId);
     }
 
-    async findPlayerTeams(authId: string): Promise<APIResponse | Team[]> {
+    async findPlayersTeams(authId: string): Promise<APIResponse | Team[]> {
         logger.verbose("Entering method findPlayerTeams()", {
             class: this.className,
             values: authId,
         });
 
-        const teams = await teamDatabase.findAllTeamsByPlayerId(authId);
-        return teams;
+        return teamDatabase.findAllTeamsByPlayerId(authId);
     }
 
     /**
@@ -111,11 +105,11 @@ export class PlayerBusinessService {
      * @returns - error response or true if success
      */
     // need to think if this performs player or team functionality
-    async acceptTeamInvite(playerId: string, teamId: number): Promise<APIResponse | true> {
+    async acceptTeamInvite(authorizingId: string, teamId: number): Promise<APIResponse | true> {
         logger.verbose("Entering method acceptTeamInvite()", {
             class: this.className,
             values: {
-                playerId,
+                authorizingId,
                 teamId,
             },
         });
@@ -124,14 +118,14 @@ export class PlayerBusinessService {
 
         // if this invite comes back as invalid, it validates that either the team id or the player id
         // was invalid
-        const inviteResponse = await playerDatabase.deletePlayerInvite(playerId, teamId);
+        const inviteResponse = await playerDatabase.deletePlayerInvite(authorizingId, teamId);
         if (inviteResponse === null) {
             return APIResponse.NotFound(
-                `No invite found with player id: ${playerId} and team id: ${teamId}`
+                `No invite found with player id: ${authorizingId} and team id: ${teamId}`
             );
         }
 
-        await teamDatabase.addToTeamRoster(teamId, playerId, TeamRole.PLAYER);
+        await teamDatabase.addToTeamRoster(teamId, authorizingId, TeamRole.PLAYER);
         return true;
     }
 
@@ -141,14 +135,7 @@ export class PlayerBusinessService {
             values: player,
         });
 
-        console.log("here", player);
-
-        const response = await playerDatabase.patchPlayer(player);
-        if (response === null) {
-            throw new Error(`Error patching player: ${player.getAuthId()}`);
-        }
-
-        return response;
+        return playerDatabase.patchPlayer(player);
     }
 
     /**
@@ -160,14 +147,14 @@ export class PlayerBusinessService {
      */
     // need to think if this performs player or team functionality
     async invitePlayerToTeam(
-        requestingId: string,
+        authorizingId: string,
         inviteeId: string,
         teamId: number
-    ): Promise<APIResponse | true> {
+    ): Promise<APIResponse | IPlayerInvite> {
         logger.verbose("Entering method invitePlayerToTeam()", {
             class: this.className,
             values: {
-                requestingId,
+                authorizingId,
                 inviteeId,
                 teamId,
             },
@@ -185,14 +172,13 @@ export class PlayerBusinessService {
 
         // check requesting id is captain
         // check that invitee isnt already on team
-        // eslint-disable-next-line consistent-return
         team.getPlayers().forEach((player) => {
             if (
-                player.getAuthId() === requestingId &&
+                player.getAuthId() === authorizingId &&
                 player.getRole() === (TeamRole.CAPTAIN || TeamRole.COCAPTAIN)
             ) {
                 return APIResponse.Forbidden(
-                    `Player ${requestingId} does not possess a valid Role to perform this action`
+                    `Player ${authorizingId} does not possess a valid Role to perform this action`
                 );
             }
             if (player.getAuthId() === inviteeId) {
@@ -205,11 +191,18 @@ export class PlayerBusinessService {
         date.setDate(date.getDate() + 7);
 
         // add player invite to database
-        const invite = playerDatabase.createPlayerInvite(requestingId, inviteeId, teamId, date);
+        return playerDatabase.createPlayerInvite(authorizingId, inviteeId, teamId, date);
 
         // todo: send invitee a notification of the invite
+    }
 
-        return true;
+    async findAllPlayerInvitesById(authorizingId: string): Promise<IPlayerInvite[]> {
+        logger.verbose("Entering method invitePlayerToTeam()", {
+            class: this.className,
+            values: { authorizingId },
+        });
+
+        return playerDatabase.findAllPlayerInvitesById(authorizingId);
     }
 
     async findOrganizationList(): Promise<APIResponse | { id: string; name: string }[]> {
@@ -229,6 +222,23 @@ export class PlayerBusinessService {
                 id: organization.getId(),
             };
         });
+    }
+
+    async findAllPlayersInOrganizationByName(
+        authId: string,
+        name: string
+    ): Promise<APIResponse | Player[]> {
+        logger.verbose("Entering method findAllPlayersInOrganizationByName()", {
+            class: this.className,
+            values: { name, authId },
+        });
+
+        const org = await organizationDatabase.findOrganizationByPlayerId(authId);
+        if (org === null) {
+            return APIResponse.NotFound(`No organization found with id:${authId}`);
+        }
+
+        return playerDatabase.findPlayerByName(name, org.getId());
     }
 
     // async joinBracket(

@@ -5,7 +5,8 @@ import { ITeamCreate } from "../../../interfaces/ITeam";
 import { APIResponse } from "../../../models/APIResponse";
 import { handleErrorResponse } from "../../../utilities/apiFunctions";
 import { TeamRole } from "../../../utilities/enums/teamEnum";
-import { teamRoleBody } from "../../../utilities/validation/common";
+import { authIdBody, teamRoleBody } from "../../../utilities/validation/common";
+import { newJoinRequestSchema } from "../../../utilities/validation/teamValidation";
 import {
     authIdParam,
     organizationIdParam,
@@ -40,6 +41,15 @@ router
     });
 
 router
+    .route("/teams/:teamId/players")
+    .post(teamIdParam, teamRoleBody, authIdBody, async (req, res) => {
+        const { teamId } = req.params;
+        const { role, authId } = req.body ?? {};
+
+        const response = await teamService.addPlayerToTeamRoster(Number(teamId), authId, role);
+        return handleErrorResponse(response, res, 201);
+    });
+router
     .route("/teams/:teamId/players/:userId")
     .delete(teamIdParam, authIdParam, async (req, res) => {
         const { teamId, userId } = req.params;
@@ -47,28 +57,9 @@ router
 
         return handleErrorResponse(response, res, 204);
     })
-    .post(
-        teamIdParam,
-        authIdParam,
-        validate([
-            body("role")
-                .optional()
-                .trim()
-                .toUpperCase()
-                .isIn([TeamRole.COCAPTAIN, TeamRole.PLAYER])
-                .withMessage("valid role options are [ COCAPTAIN, PLAYER ] "),
-        ]),
-        async (req, res) => {
-            const { teamId, userId } = req.params;
-            const { role } = req.body ?? {};
-
-            const response = await teamService.addPlayerToTeamRoster(Number(teamId), userId, role);
-            return handleErrorResponse(response, res, 201);
-        }
-    )
     .put(teamIdParam, authIdParam, teamRoleBody, async (req, res) => {
         const { teamId, userId } = req.params;
-        const { role } = req.body ?? {};
+        const { role } = req.body;
 
         const response = await teamService.updatePlayerOnTeamRoster(Number(teamId), userId, role);
 
@@ -89,6 +80,20 @@ router
         // get body and create team
 
         return handleErrorResponse(APIResponse.NotImplemented(), res);
+    });
+
+router
+    .route("/teams/:teamId/requests/")
+    .post(teamIdParam, newJoinRequestSchema, async (req, res) => {
+        const { teamId } = req.params;
+        const { expirationDate, authId } = req.body;
+        const response = await teamService.createTeamJoinRequest(
+            Number(teamId),
+            authId,
+            expirationDate
+        );
+
+        return handleErrorResponse(response, res, 201);
     });
 
 export default router;

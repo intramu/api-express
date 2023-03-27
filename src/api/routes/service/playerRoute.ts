@@ -49,7 +49,6 @@ router
         const b = req.body as Player;
         const player: Player = b;
         player.setAuthId(userId);
-        console.log("here");
 
         const response = await playerService.patchPlayer(player);
         return handleErrorResponse(response, res);

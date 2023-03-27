@@ -1,5 +1,6 @@
 import range from "postgres-range";
-import { TimeRange } from "../../interfaces/Bracket";
+import { IBracketDatabase, TimeRange } from "../../interfaces/IBracket";
+import logger from "../../utilities/winstonConfig";
 import { Team } from "../Team";
 import { TimeSlot } from "./TimeSlot";
 
@@ -9,9 +10,10 @@ interface IBracketProps {
     timeChoices: TimeRange[];
     maxTeamAmount: number;
     teams: Team[];
-    divisionId: number;
+    // divisionId: number;
 }
 
+// this probably will not work in production. It is a little to strict on defining game times and day choices, but I'm going to leave it for now
 export class Bracket {
     protected id;
 
@@ -46,34 +48,99 @@ export class Bracket {
     }) {
         const obj = new Bracket(props);
         obj.dayChoices = props.day_choices;
-
-        const temp: TimeRange = { startTime: new Date(), endTime: new Date() };
-        obj.timeChoices = [temp];
+        obj.timeChoices = this.convertToTimeRanges(props.time_choices);
         obj.maxTeamAmount = props.max_team_amount;
 
         return obj;
     }
 
-    private static convertToTimeRanges(timeRanges: string) {
-        const stripped = timeRanges.substring(1, timeRanges.length - 1).match(/[^,]+,[^,]+/g);
+    // public static fromDatabaseMultiple(brackets: IBracketDatabase[]) {
+    //     console.log("ssuueze", brackets);
+
+    //     const ist = brackets.map((element) => {
+    //         return Bracket.fromDatabase({ ...element, teams: [] });
+    //     });
+
+    //     console.log("ist", ist);
+
+    //     return ist;
+    // }
+
+    private static convertToTimeRanges(timeRanges: string): TimeRange[] {
+        if (!timeRanges) {
+            return [];
+        }
+
+        const arrayReg = /[^,]+,[^,]+/g;
+
+        console.log("first", timeRanges);
+
+        const stripped = timeRanges.substring(1, timeRanges.length - 1).match(arrayReg);
+        console.log("in", stripped);
+
         if (!stripped) {
             return [];
         }
 
-        return null;
-        // return stripped.map((time) => {
-        //     const date = range.parse(time);
-        //     if (date.upper === null || date.lower === null) {
-        //         throw new Error("Dates formatted incorrectly");
-        //     }
-        //     return { startTime: date.lower, endTime: date.upper };
-        // });
+        try {
+            return stripped.map((time) => {
+                const formattedTime = range.parse(time);
+                if (!formattedTime.upper || !formattedTime.lower) {
+                    logger.error("Time formatted incorrectly", { class: "Bracket" });
+                    throw new Error("Time formatted incorrectly");
+                }
+
+                // const startTime = this.parseDate(formattedTime.lower);
+                // const endTime = this.parseDate(formattedTime.upper);
+
+                return { startTime: formattedTime.lower, endTime: formattedTime.upper };
+            });
+            // TODO: handle error
+        } catch (error) {
+            console.log(error);
+
+            return [];
+        }
     }
 
-    // private convertToDatabaseFormat(timeRanges: TimeRange[]): string {
-    //     const convertedTimes = timeRanges.map((time) => )
-    //     return
-    // };
+    private static parseDate(str: string): Date {
+        const timeReg = /(\d+)[\.|:](\d+)[\.|:](\d+)/;
+
+        const time = str.match(timeReg);
+        if (!time) {
+            logger.error("Date in incorrect format", { class: "Bracket" });
+            throw new Error("Date in incorrect format");
+        }
+
+        const date = new Date();
+        date.setHours(Number(time[1]));
+        date.setMinutes(Number(time[2]));
+        date.setSeconds(Number(time[3]));
+
+        return date;
+    }
+
+    // convertTimeSlotsToDatabaseFormat(): string {
+    //     return `{${this.timeChoices.map((range) => {
+    //         console.log(range);
+    //         `[${this.convertToTime(range.startTime)}, ${this.convertToTime(range.endTime)}]`;
+    //     })}}`;
+    // }
+
+    convertTimeSlotsToDatabaseFormat(): string {
+        const test = `{${this.timeChoices.map((range) => {
+            console.log(range);
+            return `[${range.startTime}, ${range.endTime}]`;
+        })}}`;
+
+        console.log("test", test);
+
+        return test;
+    }
+
+    private convertToTime(date: Date): string {
+        return `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
+    }
 
     public getId(): number {
         return this.id;

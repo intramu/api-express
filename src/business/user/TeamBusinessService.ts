@@ -6,6 +6,8 @@ import { APIResponse } from "../../models/APIResponse";
 import { Team } from "../../models/Team";
 import { TeamRole, TeamStatus, TeamVisibility } from "../../utilities/enums/teamEnum";
 import logger from "../../utilities/winstonConfig";
+import { IJoinRequest } from "../../interfaces/ITeamJoinRequest";
+import { Sport } from "../../utilities/enums/commonEnum";
 
 const playerDatabase = new PlayerDAO();
 const teamDatabase = new TeamDAO();
@@ -19,41 +21,64 @@ export class TeamBusinessService {
      * Creates new team, player becomes captain
      *
      * @param team - team object passed to database
+     * @param divisionId - division waitlist to place team in
      * @param playerId - player that will be set as captain of the team
      * @returns - returns single team object with added details
      */
-    async createTeam(team: Team, authorizingId: string): Promise<APIResponse | Team> {
+    async createTeam(
+        team: Team,
+        divisionId: number,
+        authorizingId: string
+    ): Promise<APIResponse | Team> {
         logger.verbose("Entering method createTeam()", {
             class: this.className,
             values: { team, authorizingId },
         });
 
         const organization = await organizationDatabase.findOrganizationByPlayerId(authorizingId);
-        if (organization === null) {
+        if (!organization) {
             return APIResponse.NotFound(`No player found with id: ${authorizingId}`);
         }
 
-        // find bracket team wants to join
-        const contest = await contestDatabase.findPathByBracketId(team.getBracketId()!);
-        if (!contest) {
-            return APIResponse.NotFound(`No bracket found with id:${team.getBracketId()}`);
+        // find division team wants to join since they can't directly join bracket until
+        // meeting minimum requirements
+        const division = await contestDatabase.findDivisionById(divisionId);
+        if (!division) {
+            return APIResponse.NotFound(`No division found with id: ${divisionId}`);
         }
 
         const newTeam: Team = team;
+
+        //setting some default team values
         newTeam.setSportsmanshipScore(4.0);
         newTeam.setStatus(TeamStatus.UNELIGIBLE);
 
-        const division = contest.getLeagues()[0].getDivisions()[0];
-
         newTeam.setMaxTeamSize(division.getMaxTeamSize());
         newTeam.setGender(division.getType());
-        newTeam.setBracketId(division.getBrackets()[0].getId());
 
-        // when creating team player role is set to Captain
+        console.log(division.getBrackets());
+
+        // search for waitlist bracket in division
+        const waitlist = division.getBrackets().find((bracket) => bracket.getMaxTeamAmount() === 0);
+        console.log(waitlist);
+
+        // if it doesn't exist this is a big error
+        if (!waitlist) {
+            logger.error(`No waitlist for division: ${divisionId}`, {
+                class: this.className,
+            });
+            throw new Error("No waitlist found");
+        }
+
+        // put the team into the waitlist bracket
+        newTeam.setBracketId(waitlist.getId());
+
+        // create team
         const response = await teamDatabase.createTeam(
             newTeam,
             authorizingId,
             organization.getId(),
+            // first player role is set to Captain
             TeamRole.CAPTAIN
         );
 
@@ -121,6 +146,7 @@ export class TeamBusinessService {
      * @returns Error Response
      * @returns boolean
      */
+    // TODO: not separation safe. are player and team in same organization
     async joinTeam(playerId: string, teamId: number): Promise<APIResponse | boolean> {
         logger.verbose("Entering method joinTeam()", {
             class: this.className,
@@ -264,6 +290,7 @@ export class TeamBusinessService {
      * @param teamId - id of team to search with
      * @returns - error response or team object
      */
+    // TODO: is requesting player in organization
     async findTeamById(teamId: number): Promise<APIResponse | Team> {
         logger.verbose("Entering method findTeamById()", {
             class: this.className,
@@ -284,6 +311,7 @@ export class TeamBusinessService {
      * @param team - new team details
      * @returns - error response or newly updated team object
      */
+    // TODO: is requesting player a captain
     async patchTeam(team: Team): Promise<APIResponse | Team> {
         logger.verbose("Entering method patchTeam()", {
             class: this.className,
@@ -339,6 +367,7 @@ export class TeamBusinessService {
 
         // check if player has already sent invite
         const teamRequests = await teamDatabase.findAllJoinRequests(teamId);
+        // TODO: refresh invite rather than a confliction
         if (teamRequests.find((request) => request.authId === playerId)) {
             return APIResponse.Conflict(`Invite already exists for player`);
         }
@@ -351,23 +380,57 @@ export class TeamBusinessService {
         return true;
     }
 
+    async findAllJoinRequests(
+        teamId: number,
+        authorizingId: string
+    ): Promise<APIResponse | IJoinRequest[]> {
+        logger.verbose("Entering method findAllJoinRequests()", {
+            class: this.className,
+            values: { teamId, authorizingId },
+        });
+
+        // does team exist
+        const team = await teamDatabase.findTeamById(teamId);
+        if (!team) {
+            return APIResponse.NotFound(`No team found with id: ${teamId}`);
+        }
+
+        // does authorizingId match anyone on team
+        if (
+            !team
+                .getPlayers()
+                .some(
+                    (player) =>
+                        (player.getAuthId() === authorizingId &&
+                            player.getRole() === TeamRole.CAPTAIN) ||
+                        player.getRole() === TeamRole.COCAPTAIN
+                )
+        ) {
+            return APIResponse.Forbidden(
+                `Player ${authorizingId} does not possess a valid Role to perform this action`
+            );
+        }
+
+        return teamDatabase.findAllJoinRequests(teamId);
+    }
+
     /**
      * Accepts invite that a player sent to join a team
      * @param requesteeId - id of player wanting to join team
-     * @param acepteeId - id of captain or co-captain accepting invite
+     * @param authorizingId - id of captain or co-captain accepting invite
      * @param teamId - id of team player is joining.
      * @returns - error response or true if success
      */
     async acceptJoinRequest(
         requesteeId: string,
-        acepteeId: string,
+        authorizingId: string,
         teamId: number
     ): Promise<APIResponse | true> {
         logger.verbose("Entering method acceptJoinRequest()", {
             class: this.className,
             values: {
                 requesteeId,
-                acepteeId,
+                authorizingId,
                 teamId,
             },
         });
@@ -385,13 +448,13 @@ export class TeamBusinessService {
                 .getPlayers()
                 .some(
                     (player) =>
-                        (player.getAuthId() === acepteeId &&
+                        (player.getAuthId() === authorizingId &&
                             player.getRole() === TeamRole.CAPTAIN) ||
                         player.getRole() === TeamRole.COCAPTAIN
                 )
         ) {
             return APIResponse.Forbidden(
-                `Player ${acepteeId} does not possess a valid Role to perform this action`
+                `Player ${authorizingId} does not possess a valid Role to perform this action`
             );
         }
 

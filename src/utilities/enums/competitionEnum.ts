@@ -6,7 +6,13 @@ export enum CompetitionVisibility {
 
 export enum CompetitionStatus {
     ACTIVE = "ACTIVE",
-    DISABLED = "DISABLED",
+    INACTIVE = "INACTIVE",
+}
+
+export enum CompetitionSeason {
+    FALL = "FALL",
+    SPRING = "SPRING",
+    SUMMER = "SUMMER",
 }
 
 export enum TournamentType {
@@ -38,10 +44,16 @@ export enum PlayoffSeedingType {
     CROSS = "CROSS",
     INDEPENDENT = "INDEPENDENT",
 }
+export enum PlayoffType {
+    SINGLE = "SINGLE",
+    DOUBLE = "DOUBLE",
+    ROUNDROBIN = "ROUND",
+    PICKFORME = "PICKFORME",
+}
 export enum DivisionType {
     MENS = "MENS",
     WOMENS = "WOMENS",
-    COED = "COED",
+    COREC = "COREC",
     WAITLIST = "WAITLIST",
 }
 export enum DivisionLevel {
@@ -49,4 +61,12 @@ export enum DivisionLevel {
     B = "B",
     C = "C",
     D = "D",
+}
+
+export enum DivisionStatus {
+    OPEN = "OPEN",
+    CLOSED = "CLOSED",
+    ADDITIONS = "ADDITIONS",
+    PLAYOFFS = "PLAYOFFS",
+    SCHEDULED = "SCHEDULED",
 }

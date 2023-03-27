@@ -6,7 +6,7 @@ import { APIResponse } from "../../../models/APIResponse";
 import { Player } from "../../../models/Player";
 import { handleErrorResponse } from "../../../utilities/apiFunctions";
 import { patchPersonSchema } from "../../../utilities/validation/playerValidation";
-import { authIdParam } from "../../../utilities/validation/validationSchemas";
+import { authIdParam, teamIdParam } from "../../../utilities/validation/validationSchemas";
 // import { finishProfileSchema } from "../../../utilities/validation/validationSchemas";
 
 const router = express.Router();
@@ -20,79 +20,119 @@ const playerService = new PlayerBusinessService();
 
 // todo: add validation schema, there should already be one
 // todo: add param for organization
-// router.post("/organization/:id", checkJwt, async (req, res) => {
-//     const { sub } = req.auth!.payload;
-//     const { id } = req.params;
+router.post("/organization/:orgId", checkJwt, async (req, res) => {
+    const { sub = "" } = req.auth?.payload ?? {};
+    const { id } = req.params;
 
-//     const reqBody = req.body;
+    const body = req.body;
+    const player = new Player(body);
 
-//     const response = await playerService.completePlayerProfile(
-//         Player.PlayerNew({
-//             authId: sub!,
-//             firstName: reqBody.firstName,
-//             lastName: reqBody.lastName,
-//             language: reqBody.language,
-//             emailAddress: reqBody.emailAddress,
-//             gender: reqBody.gender,
-//             dob: reqBody.dateOfBirth,
-//             visibility: reqBody.visibility,
-//             graduationTerm: reqBody.graduationTerm,
-//             image: reqBody.image,
-//         }),
-//         id
-//     );
+    const response = await playerService.completePlayerProfile();
 
-//     if (response instanceof APIResponse) {
-//         return res.status(response.statusCode).json(response);
-//     }
+    if (response instanceof APIResponse) {
+        return res.status(response.statusCode).json(response);
+    }
 
-//     return res.status(201).json(req.body);
-// });
+    return res.status(201).json(req.body);
+});
 
 router
     .route("/players")
     .get(checkJwt, async (req, res) => {
-        // ** i cant figure this out here **
-        const { sub = "" } = req.auth!.payload;
-
-        // i tried, but didn't work
-        // const { sub = "" } = req.auth?.payload || "";
-        //
-        // this gets mad because payload doesn't exist on {} obviously
-        // const { sub } = req.auth || {}.payload;
-        // I dont know how to get this to work
+        const { sub = "" } = req.auth?.payload ?? {};
 
         const response = await playerService.findPlayerProfile(sub);
         // const response = true;
         return handleErrorResponse(response, res);
     })
     .patch(checkJwt, patchPersonSchema, async (req, res) => {
-        const { sub = "" } = req.auth!.payload;
-        const b = req.body;
+        const { sub = "" } = req.auth?.payload ?? {};
+        const body = req.body;
+
+        console.log("body", body);
 
         // REVIST - small issue here, additional fields can be passed into the request body
-        // and change fields that are supposed to be touched
-        const player = new Player(b);
+        // and change fields that aren't supposed to be touched
+        const player = new Player(body);
         console.log("artic", player);
 
         player.setAuthId(sub);
 
         const response = await playerService.patchPlayer(player);
+        // const response = true;
 
         return handleErrorResponse(response, res);
     });
 
-router.get("/players/search/:userId", checkJwt, authIdParam, async (req, res) => {
-    const { sub = "" } = req.auth!.payload;
-    const { userId } = req.params;
+router.get("/players/requests", checkJwt, async (req, res) => {
+    const { sub = "" } = req.auth?.payload ?? {};
+    const response = await playerService.findAllPlayerInvitesById(sub);
 
-    const response = await playerService.findPlayerById(sub, userId);
     return handleErrorResponse(response, res);
 });
 
+router.post(
+    "/players/:userId/requests/teams/:teamId",
+    checkJwt,
+    teamIdParam,
+    authIdParam,
+    async (req, res) => {
+        const { userId, teamId } = req.params;
+        const { sub = "" } = req.auth?.payload ?? {};
+
+        const response = await playerService.invitePlayerToTeam(sub, userId, Number(teamId));
+        return handleErrorResponse(response, res, 201);
+    }
+);
+
+router.post("/players/requests/teams/:teamId::accept", checkJwt, teamIdParam, async (req, res) => {
+    const { teamId } = req.params;
+    const { sub = "" } = req.auth?.payload ?? {};
+
+    const response = await playerService.acceptTeamInvite(sub, Number(teamId));
+    return handleErrorResponse(response, res);
+});
+
+router.delete("/players/requests/teams/:teamId", async (req, res) => {
+    return res.status(501).json(APIResponse.NotImplemented);
+});
+
+// ######### Combine these two routes
+// router.get("/players/search/:userId", checkJwt, authIdParam, async (req, res) => {
+//     const { sub = "" } = req.auth?.payload ?? {};
+//     const { userId } = req.params;
+
+//     const response = await playerService.findPlayerById(sub, userId);
+//     return handleErrorResponse(response, res);
+// });
+
+router.get("/players/search", async (req, res) => {
+    const { name, userId } = req.query;
+    console.log(name);
+
+    if (name) {
+        const response = await playerService.findAllPlayersInOrganizationByName(
+            "auth0|62760b4733c477006f82c56d",
+            name as string
+        );
+        return res.status(200).json(response);
+    }
+
+    if (userId) {
+        const response = await playerService.findPlayerById(
+            "auth0|62760b4733c477006f82c56d",
+            userId as string
+        );
+        return res.status(200).json(response);
+    }
+
+    return res.status(400).json(APIResponse.BadRequest("No query parameters provided"));
+});
+// #############
+
 router.get("/players/teams", checkJwt, async (req, res) => {
     const { sub = "" } = req.auth!.payload;
-    const response = await playerService.findPlayerTeams(sub);
+    const response = await playerService.findPlayersTeams(sub);
 
     return handleErrorResponse(response, res);
 });
