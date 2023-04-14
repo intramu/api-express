@@ -31,23 +31,6 @@ router
         const response = await teamService.requestToJoinTeam(sub, Number(teamId));
         return handleErrorResponse(response, res, 201);
     })
-    // TODO: deletes request to join team
-    .delete(checkJwt, teamIdParam, async (req, res) => {
-        // from player
-        // check teamjoinrequests for playerId and teamId combo.
-        // if exists, delete request to join team
-        // from captain
-        // if doesn't exist, check if playerId exists on team.
-        // check if playerId is captain
-        // if all checks, delete request to join team.
-
-        const { teamId } = req.params;
-
-        // can be either requesting player or captain / co-captain, calling delete
-        const { sub = "" } = req.auth!.payload;
-
-        return res.status(501).json(APIResponse.NotImplemented());
-    })
     /** gets all join requests for team */
     .get(checkJwt, teamIdParam, async (req, res) => {
         const { teamId } = req.params;
@@ -56,6 +39,29 @@ router
         const response = await teamService.findAllJoinRequests(Number(teamId), sub);
         return handleErrorResponse(response, res);
     });
+
+router.delete(
+    "/teams/:teamId/requests/:userId",
+    checkJwt,
+    teamIdParam,
+    authIdParam,
+    async (req, res) => {
+        const { sub: authId = "" } = req.auth?.payload ?? {};
+        const { userId, teamId } = req.params;
+
+        // from player
+        // check teamjoinrequests for playerId and teamId combo.
+        // if exists, delete request to join team
+        // from captain
+        // if doesn't exist, check if playerId exists on team.
+        // check if playerId is captain
+        // if all checks, delete request to join team.
+
+        // const response = await teamService.(userId, authId, Number(teamId));
+        // return handleErrorResponse(response, res);
+        return res.status(501).json(APIResponse.NotImplemented());
+    }
+);
 
 router.post(
     "/teams/:teamId/requests/:userId::accept",
@@ -71,19 +77,12 @@ router.post(
     }
 );
 
+/** Creates new team */
 router.post("/teams", checkJwt, newTeamSchema, async (req, res) => {
     const { sub = "" } = req.auth?.payload ?? {};
-    const body = req.body as ITeamProps;
+    const body = req.body;
 
     const divisionId = req.body.divisionId;
-
-    // const team = new Team({
-    //     name: b.name,
-    //     image: b.image,
-    //     sport: b.sport,
-    //     visibility: b.visibility,
-    //     bracketId: b.bracketId,
-    // });
 
     const team = new Team(body);
     console.log("team", team);

@@ -35,7 +35,10 @@ router
         const { userId } = req.params;
         const response = await playerService.findPlayerById(userId);
 
-        return handleErrorResponse(response, res);
+        // setTimeout(() => {
+        //     return handleErrorResponse(response, res);
+        // }, 3000);
+        return res.status(500).json("error");
     })
     .delete(authIdParam, async (req, res) => {
         const { userId } = req.params;

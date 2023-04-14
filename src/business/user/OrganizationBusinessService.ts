@@ -78,14 +78,7 @@ export class OrganizationBusinessService {
             return APIResponse.NotFound(`No organization found with admin id: ${adminId}`);
         }
 
-        const players = await playerDatabase.findAllPlayersByOrganizationId(organization.getId());
-        if (players.length === 0) {
-            return APIResponse.NotFound(
-                `No players found with organization id: ${organization.getId()}`
-            );
-        }
-
-        return players;
+        return playerDatabase.findAllPlayersByOrganizationId(organization.getId());
     }
 
     /**
@@ -104,14 +97,7 @@ export class OrganizationBusinessService {
             return APIResponse.NotFound(`No organization found with admin id: ${adminId}`);
         }
 
-        const teams = await teamDatabase.findAllTeamsByOrganizationId(organization.getId());
-        if (teams.length === 0) {
-            return APIResponse.NotFound(
-                `No teams found with organization id: ${organization.getId()}`
-            );
-        }
-
-        return teams;
+        return teamDatabase.findAllTeamsByOrganizationId(organization.getId());
     }
 
     /**
@@ -119,25 +105,32 @@ export class OrganizationBusinessService {
      * @param adminId - id of admin to look for organization with
      * @returns - error response or admin list
      */
-    async findAllAdminsByAdminId(adminId: string): Promise<APIResponse | Admin[]> {
-        logger.verbose("Entering method findAllAdminsByAdminId()", {
+    async findAllAdmins(authId: string): Promise<APIResponse | Admin[]> {
+        logger.verbose("Entering method findAllAdmins()", {
             class: this.className,
-            values: adminId,
+            values: authId,
         });
 
-        const organization = await organizationDatabase.findOrganizationByAdminId(adminId);
+        const organization = await organizationDatabase.findOrganizationByAdminId(authId);
         if (organization === null) {
-            return APIResponse.NotFound(`No organization found with admin id: ${adminId}`);
+            return APIResponse.NotFound(`No organization found with admin id: ${authId}`);
         }
 
-        const admins = await adminDatabase.findAllAdminsByOrganizationId(organization.getId());
-        if (admins.length === 0) {
-            return APIResponse.NotFound(
-                `No admins found with organization id: ${organization.getId()}`
-            );
+        return adminDatabase.findAllAdminsByOrganizationId(organization.getId());
+    }
+
+    async createAdmin(admin: Admin, authId: string): Promise<APIResponse | Admin> {
+        logger.verbose("Entering method createAdmin()", {
+            class: this.className,
+            values: authId,
+        });
+
+        const organization = await organizationDatabase.findOrganizationByAdminId(authId);
+        if (organization === null) {
+            return APIResponse.NotFound(`No organization found with admin id: ${authId}`);
         }
 
-        return admins;
+        return adminDatabase.createAdminByOrganizationId(admin, organization.getId());
     }
 
     // tournament visualizer = https://brackethq.com/maker/

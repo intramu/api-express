@@ -5,7 +5,11 @@ import { IPlayerProps, PlayerPatch } from "../../../interfaces/IPlayer";
 import { APIResponse } from "../../../models/APIResponse";
 import { Player } from "../../../models/Player";
 import { handleErrorResponse } from "../../../utilities/apiFunctions";
-import { patchPersonSchema } from "../../../utilities/validation/playerValidation";
+import { organizationIdParam } from "../../../utilities/validation/common";
+import {
+    newPlayerSchemaUser,
+    patchPersonSchema,
+} from "../../../utilities/validation/playerValidation";
 import { authIdParam, teamIdParam } from "../../../utilities/validation/validationSchemas";
 // import { finishProfileSchema } from "../../../utilities/validation/validationSchemas";
 
@@ -20,21 +24,21 @@ const playerService = new PlayerBusinessService();
 
 // todo: add validation schema, there should already be one
 // todo: add param for organization
-router.post("/organization/:orgId", checkJwt, async (req, res) => {
-    const { sub = "" } = req.auth?.payload ?? {};
-    const { id } = req.params;
+router.post(
+    "/organizations/:orgId/players",
+    checkJwt,
+    organizationIdParam,
+    newPlayerSchemaUser,
+    async (req, res) => {
+        const { sub = "" } = req.auth?.payload ?? {};
+        const { orgId } = req.params;
 
-    const body = req.body;
-    const player = new Player(body);
+        const player = new Player(req.body);
 
-    const response = await playerService.completePlayerProfile();
-
-    if (response instanceof APIResponse) {
-        return res.status(response.statusCode).json(response);
+        const response = await playerService.createPlayer(player, orgId);
+        return handleErrorResponse(response, res);
     }
-
-    return res.status(201).json(req.body);
-});
+);
 
 router
     .route("/players")

@@ -3,12 +3,14 @@ import { APIResponse } from "../../../models/APIResponse";
 import playerRoute from "./playerRoute";
 import teamRoute from "./teamRoute";
 import competitionRoute from "./competitionRoute";
+import organizationRoute from "./organizationRoute";
 
 const router = express.Router();
 
 router.use(playerRoute);
 router.use(teamRoute);
 router.use(competitionRoute);
+router.use("/organization", organizationRoute);
 
 // catches api user errors and returns a generic error message
 router.use(

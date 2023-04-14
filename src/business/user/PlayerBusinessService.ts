@@ -70,12 +70,12 @@ export class PlayerBusinessService {
      * @returns - error response or newly created player object
      */
     async createPlayer(player: Player, orgId: string): Promise<APIResponse | Player> {
-        logger.verbose("Entering method completePlayerProfile", {
+        logger.verbose("Entering method createPlayer()", {
             class: this.className,
             values: { player, orgId },
         });
 
-        const organization = await organizationDatabase.findOrganizationByPlayerId(orgId);
+        const organization = await organizationDatabase.findOrganizationById(orgId);
         if (organization === null) {
             return APIResponse.NotFound(`No Organization found with id: ${orgId}`);
         }
