@@ -40,6 +40,20 @@ export class OrganizationBusinessService {
         return organization;
     }
 
+    async findOrganizationByPlayerId(authId: string): Promise<APIResponse | Organization> {
+        logger.verbose("Entering method findOrganizationByPlayerId()", {
+            class: this.className,
+            values: authId,
+        });
+
+        const organization = await organizationDatabase.findOrganizationByPlayerId(authId);
+        if (organization === null) {
+            return APIResponse.NewNotFound(authId);
+        }
+
+        return organization;
+    }
+
     /**
      * Patches organization admin is under
      * @param adminId - id of admin to look for organization with
@@ -264,6 +278,15 @@ export class OrganizationBusinessService {
             }
         }
         return gameList;
+    }
+
+    async findAllOrganizations(): Promise<APIResponse | Organization[]> {
+        logger.verbose("Entering method findAllOrganizations()", {
+            class: this.className,
+        });
+
+        const organizations = await organizationDatabase.findAllOrganizations();
+        return organizations;
     }
 }
 

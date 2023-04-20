@@ -42,11 +42,11 @@ export const newPlayerSchemaUser = validate([
         .toUpperCase()
         .isIn(listEnums(PlayerGender))
         .withMessage(printEnums(PlayerGender, "gender")),
-    body("dateOfBirth")
+    body("dob")
         .notEmpty()
-        .withMessage("value 'dateOfBirth' is missing")
+        .withMessage("value 'dob(Date of Birth)' is missing")
         .isDate({ format: "YYYY-MM-DD", strictMode: true })
-        .withMessage("dateOfBirth is required in format YYYY-MM-DD"),
+        .withMessage("dob (Date of Birth) is required in format YYYY-MM-DD"),
     body("visibility")
         .notEmpty()
         .withMessage("value 'visibility' is missing")

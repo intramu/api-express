@@ -1,6 +1,7 @@
 import { PlayerSmall } from "../models/PlayerSmall";
 import { Sport } from "../utilities/enums/commonEnum";
 import { TeamGender, TeamStatus, TeamVisibility } from "../utilities/enums/teamEnum";
+import { IPlayerTeamDatabase } from "./IPlayer";
 
 export interface ITeamDatabase {
     id: number;
@@ -16,6 +17,7 @@ export interface ITeamDatabase {
     sportsmanship_score: number;
     status: TeamStatus;
     max_team_size: number;
+    players: IPlayerTeamDatabase[];
     organization_id: string;
     bracket_id: number;
 }

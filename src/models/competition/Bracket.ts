@@ -54,18 +54,6 @@ export class Bracket {
         return obj;
     }
 
-    // public static fromDatabaseMultiple(brackets: IBracketDatabase[]) {
-    //     console.log("ssuueze", brackets);
-
-    //     const ist = brackets.map((element) => {
-    //         return Bracket.fromDatabase({ ...element, teams: [] });
-    //     });
-
-    //     console.log("ist", ist);
-
-    //     return ist;
-    // }
-
     private static convertToTimeRanges(timeRanges: string): TimeRange[] {
         if (!timeRanges) {
             return [];

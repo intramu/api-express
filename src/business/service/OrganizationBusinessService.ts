@@ -156,7 +156,7 @@ export class OrganizationBusinessService {
      * @returns - error response or list of organizations
      */
     async findAllOrganizations(): Promise<APIResponse | Organization[]> {
-        logger.verbose("Entering method findOrganizations()", {
+        logger.verbose("Entering method findAllOrganizations()", {
             class: this.className,
         });
 

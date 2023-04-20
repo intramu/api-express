@@ -1,5 +1,15 @@
-import { Gender, Role, Status } from "../utilities/enums";
+import { TeamRole } from "../utilities/enums/teamEnum";
+import { PlayerGender, PlayerStatus } from "../utilities/enums/userEnum";
 
+interface SmallProps {
+    authId: string;
+    role: TeamRole;
+    firstName: string;
+    lastName: string;
+    gender: PlayerGender;
+    status: PlayerStatus;
+    image: string;
+}
 export class PlayerSmall {
     protected authId;
 
@@ -15,15 +25,17 @@ export class PlayerSmall {
 
     protected image;
 
-    constructor(
-        authId: string,
-        role: Role,
-        firstName: string,
-        lastName: string,
-        gender: Gender,
-        status: Status,
-        image: string
-    ) {
+    constructor(props: Partial<SmallProps>) {
+        const {
+            authId = "",
+            firstName = "",
+            lastName = "",
+            gender = PlayerGender.MALE,
+            image = "",
+            role = TeamRole.PLAYER,
+            status = PlayerStatus.ACTIVE,
+        } = props;
+
         this.authId = authId;
         this.role = role;
         this.firstName = firstName;
@@ -31,6 +43,23 @@ export class PlayerSmall {
         this.gender = gender;
         this.status = status;
         this.image = image;
+    }
+
+    public static fromDatabase(props: {
+        auth_id: string;
+        role: TeamRole;
+        first_name: string;
+        last_name: string;
+        gender: PlayerGender;
+        status: PlayerStatus;
+        image: string;
+    }) {
+        const obj = new PlayerSmall(props);
+        obj.authId = props.auth_id;
+        obj.firstName = props.first_name;
+        obj.lastName = props.last_name;
+
+        return obj;
     }
 
     public getAuthId(): string {
@@ -41,11 +70,11 @@ export class PlayerSmall {
         this.authId = authId;
     }
 
-    public getRole(): Role {
+    public getRole(): TeamRole {
         return this.role;
     }
 
-    public setRole(role: Role): void {
+    public setRole(role: TeamRole): void {
         this.role = role;
     }
 
@@ -65,19 +94,19 @@ export class PlayerSmall {
         this.lastName = lastName;
     }
 
-    public getGender(): Gender {
+    public getGender(): PlayerGender {
         return this.gender;
     }
 
-    public setGender(gender: Gender): void {
+    public setGender(gender: PlayerGender): void {
         this.gender = gender;
     }
 
-    public getStatus(): Status {
+    public getStatus(): PlayerStatus {
         return this.status;
     }
 
-    public setStatus(status: Status): void {
+    public setStatus(status: PlayerStatus): void {
         this.status = status;
     }
 

@@ -90,6 +90,25 @@ export default class OrganizationDAO {
         });
     }
 
+    async findOrganizationList(): Promise<{ id: string; name: string }[]> {
+        logger.verbose("Entering method findOrganizationList()", {
+            class: this.className,
+        });
+
+        const sqlSelect = "SELECT id, name FROM organization";
+
+        return withClient(async (querier) => {
+            const results = (await querier<IOrganizationDatabase>(sqlSelect)).rows;
+
+            return results.map((organization) => {
+                return {
+                    name: organization.name,
+                    id: organization.id,
+                };
+            });
+        });
+    }
+
     /**
      * Creates new organization and Master Admin
      *

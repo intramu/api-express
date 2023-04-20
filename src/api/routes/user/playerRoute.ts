@@ -11,16 +11,16 @@ import {
     patchPersonSchema,
 } from "../../../utilities/validation/playerValidation";
 import { authIdParam, teamIdParam } from "../../../utilities/validation/validationSchemas";
+import { OrganizationBusinessService } from "../../../business/user/OrganizationBusinessService";
+import { checkJwt } from "../../../utilities/checkJwt";
 // import { finishProfileSchema } from "../../../utilities/validation/validationSchemas";
 
 const router = express.Router();
 
-const checkJwt = auth({
-    audience: "https://server-authorization/",
-    issuerBaseURL: "https://dev-5p-an07k.us.auth0.com",
-});
-
 const playerService = new PlayerBusinessService();
+const organizationService = new OrganizationBusinessService();
+
+router.use(checkJwt);
 
 // todo: add validation schema, there should already be one
 // todo: add param for organization
@@ -34,11 +34,18 @@ router.post(
         const { orgId } = req.params;
 
         const player = new Player(req.body);
+        console.log(player);
 
         const response = await playerService.createPlayer(player, orgId);
         return handleErrorResponse(response, res);
     }
 );
+
+router.route("/organizations/list").get(async (req, res) => {
+    const response = await playerService.findOrganizationList();
+
+    return handleErrorResponse(response, res);
+});
 
 router
     .route("/players")
@@ -132,11 +139,17 @@ router.get("/players/search", async (req, res) => {
 
     return res.status(400).json(APIResponse.BadRequest("No query parameters provided"));
 });
-// #############
 
 router.get("/players/teams", checkJwt, async (req, res) => {
     const { sub = "" } = req.auth!.payload;
     const response = await playerService.findPlayersTeams(sub);
+
+    return handleErrorResponse(response, res);
+});
+
+router.get("/organizations/this", async (req, res) => {
+    const { sub = "" } = req.auth!.payload;
+    const response = await organizationService.findOrganizationByPlayerId(sub);
 
     return handleErrorResponse(response, res);
 });

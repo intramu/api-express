@@ -1,3 +1,4 @@
+import { TeamRole } from "../utilities/enums/teamEnum";
 import {
     PlayerGender,
     Language,
@@ -56,12 +57,22 @@ export interface PlayerPatchService extends BasePlayerDetails {
     status: PlayerStatus;
 }
 
-export interface PlayerTeam {
+export interface IPlayerTeam {
     authId: string;
     role: string;
     firstName: string;
     lastName: string;
     gender: string;
     status: string;
+    image: string;
+}
+
+export interface IPlayerTeamDatabase {
+    auth_id: string;
+    role: TeamRole;
+    first_name: string;
+    last_name: string;
+    gender: PlayerGender;
+    status: PlayerStatus;
     image: string;
 }

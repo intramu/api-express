@@ -70,3 +70,16 @@ export enum DivisionStatus {
     PLAYOFFS = "PLAYOFFS",
     SCHEDULED = "SCHEDULED",
 }
+
+export enum ContestGameStatus {
+    NULL,
+    NOTPLAYED,
+    TOBEDETERMINED,
+    WON,
+    LOST,
+    FORFEIT,
+    SUSPENDED,
+    WEATHER,
+    RESCHEDULED,
+    OTHER,
+}

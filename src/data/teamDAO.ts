@@ -1,5 +1,9 @@
 import format from "pg-format";
-import { IJoinRequest } from "../interfaces/ITeamJoinRequest";
+import {
+    IJoinRequest,
+    IJoinRequestDatabase,
+    convertFromDatabaseFormat,
+} from "../interfaces/ITeamJoinRequest";
 import { ITeamDatabase } from "../interfaces/ITeam";
 import { PlayerSmall } from "../models/PlayerSmall";
 import { Team } from "../models/Team";
@@ -7,6 +11,9 @@ import { Sport } from "../utilities/enums/commonEnum";
 import { TeamGender, TeamRole, TeamStatus, TeamVisibility } from "../utilities/enums/teamEnum";
 import logger from "../utilities/winstonConfig";
 import { IsRollback, withClient, withClientRollback } from "./database";
+import { ContestGame } from "../models/competition/ContestGame";
+import { IContestGameDatabase } from "../interfaces/IContestGame";
+import { IPlayerTeamDatabase } from "../interfaces/IPlayer";
 
 export default class TeamDAO {
     readonly className = this.constructor.name;
@@ -40,6 +47,7 @@ export default class TeamDAO {
             class: this.className,
         });
 
+        // REVISIT: leave old method to test for performance against new method
         const sqlNew = `SELECT t.*
             FROM team t 
             JOIN team_roster tr ON tr.team_id = t.id
@@ -50,9 +58,25 @@ export default class TeamDAO {
             JOIN player p ON p.auth_id = tr.player_auth_ID
             WHERE tr.team_ID IN (%L)`;
 
+        const sql = `SELECT t.id as team_id, t.*, p.auth_id, tr.role
+            FROM team_roster tr
+            JOIN team AS t ON t.id = tr.team_id
+            JOIN player AS p ON p.auth_id = tr.player_auth_id
+            WHERE tr.player_auth_id = $1 OR tr.team_id = t.id
+            GROUP BY(p.auth_id, t.id, tr.role)`;
+        // const sql = `SELECT t.*,
+        //     json_agg(json_build_object('auth_id', p.auth_id, 'first_name', p.first_name, 'last_name', p.last_name, 'gender', p.gender, 'status', p.status, 'image', p.image, 'role', tr.role)) AS players
+        //     FROM team t
+        //     FULL OUTER JOIN team_roster AS tr ON t.id = tr.team_id
+        //     RIGHT JOIN player AS p ON p.auth_id = tr.player_auth_id
+        //     WHERE tr.player_auth_id = $1
+        //     GROUP BY(t.id)`;
+
         const result = await withClientRollback(async (querier) => {
             // first a query to find teams is performed
             const teams = (await querier<ITeamDatabase>(sqlNew, [id])).rows;
+            // const teamss = (await querier<ITeamDatabase>(sql, [id])).rows;
+
             const teamIdList = teams.map((x) => x.id);
 
             if (teams.length === 0) {
@@ -62,20 +86,26 @@ export default class TeamDAO {
             // next using the team ids from above each player on the team is retrieved
             const players = (await querier(format(sqlFindPlayers, teamIdList))).rows;
 
+            // return teams.map((team) =>
+            //     Team.fromDatabase({
+            //         ...team,
+            //         players: team.players.map((player) => PlayerSmall.fromDatabase(player)),
+            //     })
+            // );
+
             return teams.map((team) => {
                 const playerList = players
                     .filter((player) => player.team_id === team.id)
-                    .map(
-                        (player) =>
-                            new PlayerSmall(
-                                player.auth_id,
-                                player.role,
-                                player.first_name,
-                                player.last_name,
-                                player.gender,
-                                player.status,
-                                player.image
-                            )
+                    .map((player) =>
+                        PlayerSmall.fromDatabase({
+                            auth_id: player.auth_id,
+                            role: player.role,
+                            first_name: player.first_name,
+                            last_name: player.last_name,
+                            gender: player.gender,
+                            status: player.status,
+                            image: player.image,
+                        })
                     );
 
                 return Team.fromDatabase({ ...team, players: playerList });
@@ -117,45 +147,31 @@ export default class TeamDAO {
             class: this.className,
         });
 
-        // todo: combine into one query
+        // REVISIT: test performance of two queries to one query
         const sqlFind = "SELECT * FROM team WHERE id = $1";
         const sqlFindPlayers =
             "SELECT team_roster.role, player.auth_id, player.first_name, player.last_name, player.gender, player.status, player.image FROM team_roster JOIN player ON team_roster.player_AUTH_ID = player.auth_ID WHERE team_roster.team_ID = $1";
 
-        const result = await withClientRollback(async (querier) => {
+        const sql = `SELECT t.*,
+            json_agg(json_build_object('auth_id', p.auth_id, 'first_name', p.first_name, 'last_name', p.last_name, 'gender', p.gender, 'status', p.status, 'image', p.image, 'role', tr.role)) AS players
+            FROM team t
+            JOIN team_roster AS tr ON t.id = tr.team_id
+            JOIN player AS p ON p.auth_id = tr.player_auth_id
+            WHERE t.id = $1
+            GROUP BY(t.id)`;
+
+        return withClient(async (querier) => {
             // first fetch team
-            const [team] = (await querier<ITeamDatabase>(sqlFind, [teamId])).rows;
-            if (team === undefined) {
-                return IsRollback;
+            const [team] = (await querier<ITeamDatabase>(sql, [teamId])).rows;
+
+            if (!team) {
+                return null;
             }
 
-            // next fetche players on team
-            const players = (await querier(sqlFindPlayers, [teamId])).rows;
-
-            if (players.length === 0) {
-                throw new Error(`No players found on team id: ${teamId}`);
-            }
-
-            const playerList = players.map(
-                (player) =>
-                    new PlayerSmall(
-                        player.auth_id,
-                        player.role,
-                        player.first_name,
-                        player.last_name,
-                        player.gender,
-                        player.status,
-                        player.image
-                    )
-            );
+            const playerList = team.players.map((player) => PlayerSmall.fromDatabase(player));
 
             return Team.fromDatabase({ ...team, players: playerList });
         });
-
-        if (result === IsRollback) {
-            return null;
-        }
-        return result;
     }
 
     async removeTeamById(teamId: number): Promise<boolean> {
@@ -281,12 +297,12 @@ export default class TeamDAO {
         });
 
         const sqlNew = `with new_team AS (
-            INSERT INTO team (name, wins, ties, losses, image, visibility, gender, sportsmanship_score, status, max_team_size, organization_id) 
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *
+            INSERT INTO team (name, wins, ties, losses, image, visibility, gender, sportsmanship_score, status, max_team_size, bracket_id, organization_id) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *
             ),
             new_role AS(
                 INSERT INTO team_roster (player_auth_id, team_id, role) 
-                VALUES($12, (SELECT id FROM new_team), $13)
+                VALUES($13, (SELECT id FROM new_team), $14)
             )
             SELECT * FROM new_team`;
 
@@ -303,6 +319,7 @@ export default class TeamDAO {
                     team.getSportsmanshipScore(),
                     team.getStatus(),
                     team.getMaxTeamSize(),
+                    team.getBracketId(),
                     orgId,
                     playerId,
                     role,
@@ -423,7 +440,11 @@ export default class TeamDAO {
      * @param expirationTime - expiration time of invite
      * @returns - true or false based on success or failure
      */
-    async createJoinRequest(teamId: number, playerId: string, expirationTime: Date): Promise<void> {
+    async createJoinRequest(
+        teamId: number,
+        playerId: string,
+        expirationTime: Date
+    ): Promise<IJoinRequest> {
         logger.verbose("Entering method createJoinRequest()", {
             class: this.className,
             values: { teamId, playerId, expirationTime },
@@ -437,42 +458,21 @@ export default class TeamDAO {
             SELECT first_name, last_name FROM player WHERE auth_id = $1
             )
             INSERT INTO team_join_requests (player_auth_id, team_id, requesting_player_full_name, expiration_time) 
-            VALUES ($2, $3, (SELECT CONCAT(first_name, last_name) FROM requesting_player), $4)`;
-
-        // const sqlAdd =
-        //     "INSERT INTO team_join_requests (player_auth_id, team_id, requesting_player_full_name, expiration_time) VALUES ($1,$2,$3,$4) RETURNING *";
-
-        // const sqlPlayer = "SELECT first_name, last_name FROM player WHERE auth_id = $1";
+            VALUES ($1, $2, (SELECT CONCAT(first_name, last_name) FROM requesting_player), $3) RETURNING *`;
 
         return withClient(async (querier) => {
-            const response = (await querier(sqlNew, [playerId, playerId, teamId, expirationTime]))
-                .rowCount;
-            // const [player] = (await querier(sqlPlayer, [playerId])).rows;
-            // if (player === undefined) {
-            //     return false;
-            // }
+            const [response] = (
+                await querier<IJoinRequest>(sqlNew, [playerId, teamId, expirationTime])
+            ).rows;
 
-            // const [result] = (
-            //     await querier(sqlAdd, [
-            //         playerId,
-            //         teamId,
-            //         `${player.first_name} ${player.last_name}`,
-            //         expirationTime,
-            //     ])
-            // ).rows;
-
-            if (response < 0) {
+            if (!response) {
                 logger.error("Error creating request to join team", {
                     class: this.className,
                 });
                 throw new Error("Error creating request to join team");
             }
 
-            // if (result === undefined) {
-            //     return false;
-            // }
-
-            // return true;
+            return response;
         });
     }
 
@@ -485,9 +485,8 @@ export default class TeamDAO {
         const sql = "SELECT * FROM team_join_requests WHERE team_id = $1";
 
         return withClient(async (querier) => {
-            const response = (await querier<IJoinRequest>(sql, [teamId])).rows;
-
-            return response;
+            const response = (await querier<IJoinRequestDatabase>(sql, [teamId])).rows;
+            return response.map((request) => convertFromDatabaseFormat(request));
         });
     }
 
@@ -518,6 +517,32 @@ export default class TeamDAO {
         });
     }
 
+    async updateJoinRequest(
+        playerId: string,
+        teamId: number,
+        expirationTime: Date
+    ): Promise<IJoinRequest> {
+        logger.verbose("Entering method updateJoinRequest", {
+            class: this.className,
+            values: { teamId, playerId },
+        });
+
+        const sqlNew = `with requesting_player AS (
+            SELECT first_name, last_name FROM player WHERE auth_id = $1
+            )
+            UPDATE team_join_requests SET player_auth_id = $1, team_id = $2, requesting_player_full_name = (SELECT CONCAT(first_name, last_name) FROM requesting_player), expiration_time = $3 WHERE player_auth_id = $1 AND team_id = $2 RETURNING *`;
+        const sql =
+            "UPDATE team_join_requests SET player FROM team_join_requests WHERE team_id = $1";
+
+        return withClient(async (querier) => {
+            const [response] = (
+                await querier<IJoinRequest>(sqlNew, [playerId, teamId, expirationTime])
+            ).rows;
+
+            return response;
+        });
+    }
+
     /**
      * Finds all players on team roster
      * @param teamId - team id to search with
@@ -528,24 +553,59 @@ export default class TeamDAO {
             class: this.className,
         });
 
-        const sqlJoin =
-            "SELECT team_roster.role, player.auth_id, player.first_name, player.last_name, player.gender, player.status, player.image FROM team_roster JOIN player ON team_roster.player_AUTH_ID = player.auth_ID WHERE team_roster.team_ID = $1";
+        const sqlJoin = `SELECT tr.role, p.auth_id, p.first_name, p.last_name, p.gender, p.status, p.image 
+            FROM team_roster tr 
+            JOIN player p ON tr.player_AUTH_ID = p.auth_ID 
+            WHERE tr.team_ID = $1`;
 
         return withClient(async (querier) => {
-            const players = (await querier(sqlJoin, [teamId])).rows;
+            const players = (await querier<IPlayerTeamDatabase>(sqlJoin, [teamId])).rows;
 
-            return players.map(
-                (player) =>
-                    new PlayerSmall(
-                        player.auth_id,
-                        player.role,
-                        player.first_name,
-                        player.last_name,
-                        player.gender,
-                        player.status,
-                        player.image
-                    )
-            );
+            return players.map((player) => PlayerSmall.fromDatabase(player));
+        });
+    }
+
+    async findAllContestGames(teamId: number): Promise<ContestGame[]> {
+        logger.verbose("Entering method findAllContestGames()", {
+            class: this.className,
+            values: { teamId },
+        });
+
+        /**
+         * Selects all games where the away/home team id equals the one passed in
+         * It then joins the team table and location table where this result exists
+         * These table joins are converted into json
+         */
+        const sql = `SELECT g.id AS contest_game_id, g.*, 
+        row_to_json (h) AS home_team,
+        row_to_json (a) AS away_team,
+        row_to_json (l) AS location
+        FROM contest_game g
+        INNER JOIN team AS h ON g.home_team_id = h.id
+        INNER JOIN team AS a ON g.away_team_id = a.id
+        INNER JOIN location AS l ON l.id = g.location_id
+        WHERE home_team_id = $1 OR away_team_id = $1
+        GROUP BY g.id, g.date_created, g.game_date, g.score_home, g.score_away, g.status_home, g.status_away, g.location_id, g.home_team_id, g.away_team_id, g.bracket_id, h.*, a.*, l.*`;
+
+        return withClient(async (querier) => {
+            const response = (await querier<IContestGameDatabase>(sql, [teamId])).rows;
+
+            // const test = response.map((game) =>
+            //     ContestGame.fromDatabase({
+            //         id: game.id,
+            //         date_created: game.date_created,
+            //         game_date: game.game_date,
+            //         notes: game.notes,
+            //         score_away: game.score_away,
+            //         score_home: game.score_home,
+            //         status_away: game.status_away,
+            //         status_home: game.status_home,
+            //         home_team: game.home_team,
+            //         away_team: game.away_team,
+            //         location: game.location,
+            //     })
+            // );
+            return response.map((game) => ContestGame.fromDatabase(game));
         });
     }
 }
@@ -573,6 +633,8 @@ const team = new Team({
 testFunc();
 
 async function testFunc() {
+    // console.log(await test.findAllTeamsByPlayerId("auth0|62760b4733c477006f82c56d"));
+    // console.log(await test.findAllTeamsByPlayerId("auth0|643f2fc44116bcb4fcff7486"));
     // test.createJoinRequest(12, "player4");
     // await test.findTeamByIdWithPlayers(12);
     // console.log(await test.addToTeamRoster(12, "player4", Role.PLAYER))
@@ -587,6 +649,10 @@ async function testFunc() {
     // );
     // console.log(await test.findAllTeamsByPlayerId("auth0|62760b4733c477006f82c56d"));
     // console.log(await test.findAllTeamsByPlayerId("auth0|62760b4733c477006f82c56d"));
+    // console.log(await test.findAllJoinRequests(18));
+    // console.log(await test.createJoinRequest(22, "auth0|643f2fc44116bcb4fcff7486", new Date()));
+    // console.log(await test.updateJoinRequest("auth0|643f2fc44116bcb4fcff7486", 22, new Date()));
     // console.log(newTeam?.getId());
-    // console.log(await test.findTeamById(12));
+    // console.log(await test.findTeamById(18));
+    // console.log(await test.findAllContestGames(18));
 }

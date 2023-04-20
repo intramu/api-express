@@ -17,6 +17,34 @@ const contestDatabase = new ContestDAO();
 export class TeamBusinessService {
     readonly className = this.constructor.name;
 
+    async findContestGamesById(authId: string, teamId: number) {
+        logger.verbose("Entering method findContestGamesById()", {
+            class: this.className,
+            values: { authId, teamId },
+        });
+
+        const organization = await organizationDatabase.findOrganizationByPlayerId(authId);
+        if (!organization) {
+            return APIResponse.NewNotFound(authId);
+        }
+
+        return teamDatabase.findAllContestGames(teamId);
+    }
+
+    // async findContestGamesById(authId: string, teamId: number) {
+    //     logger.verbose("Entering method findContestGamesById()", {
+    //         class: this.className,
+    //         values: { authId, teamId },
+    //     });
+
+    //     const organization = await organizationDatabase.findOrganizationByAdminId(authId);
+    //     if (!organization) {
+    //         return APIResponse.NewNotFound(authId);
+    //     }
+
+    //     return contestDatabase.findAllContestGames(organization.getId());
+    // }
+
     /**
      * Creates new team, player becomes captain
      *
@@ -312,7 +340,7 @@ export class TeamBusinessService {
      * @returns - error response or newly updated team object
      */
     // TODO: is requesting player a captain
-    async patchTeam(team: Team): Promise<APIResponse | Team> {
+    async patchTeam(authId: string, team: Team): Promise<APIResponse | Team> {
         logger.verbose("Entering method patchTeam()", {
             class: this.className,
         });
@@ -365,16 +393,16 @@ export class TeamBusinessService {
             return APIResponse.Conflict(`Player: ${playerId} is already on team`);
         }
 
+        // expiration date of invite is set one week out
+        const date = new Date();
+        date.setDate(date.getDate() + 7);
+
         // check if player has already sent invite
         const teamRequests = await teamDatabase.findAllJoinRequests(teamId);
         // TODO: refresh invite rather than a confliction
         if (teamRequests.find((request) => request.authId === playerId)) {
-            return APIResponse.Conflict(`Invite already exists for player`);
+            teamDatabase.updateJoinRequest(playerId, teamId, date);
         }
-
-        // expiration date of invite is set one week out
-        const date = new Date();
-        date.setDate(date.getDate() + 7);
 
         await teamDatabase.createJoinRequest(teamId, playerId, date);
         return true;

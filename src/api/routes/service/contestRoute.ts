@@ -65,7 +65,7 @@ router
         return handleErrorResponse(response, res, 201);
     });
 
-function convertBodyToLeagues(leagues: ILeagueNew[]): League[] {
+export function convertBodyToLeagues(leagues: ILeagueNew[]): League[] {
     return leagues.map((league) => {
         const divisionList = league.divisions.map((division) => {
             const bracketList = division.brackets.map((bracket) => {

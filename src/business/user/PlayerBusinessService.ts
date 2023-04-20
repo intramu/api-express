@@ -210,7 +210,7 @@ export class PlayerBusinessService {
             class: this.className,
         });
 
-        const orgs = await organizationDatabase.findAllOrganizations();
+        const orgs = await organizationDatabase.findOrganizationList();
 
         if (orgs.length === 0) {
             return APIResponse.NotFound("No organizations found");
@@ -218,8 +218,8 @@ export class PlayerBusinessService {
 
         return orgs.map((organization) => {
             return {
-                name: organization.getName(),
-                id: organization.getId(),
+                name: organization.name,
+                id: organization.id,
             };
         });
     }

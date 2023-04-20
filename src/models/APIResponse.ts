@@ -44,6 +44,16 @@ export class APIResponse {
         return x;
     }
 
+    static NewNotFound(value: string, errorCode?: string) {
+        const x = new APIResponse(value, errorCode);
+
+        x.statusCode = 404;
+        x.error = "Not Found";
+        x.message = `No resource found with value: ${value || "null"}`;
+
+        return x;
+    }
+
     static NotFound(message: string, errorCode?: string) {
         const x = new APIResponse(message, errorCode);
 

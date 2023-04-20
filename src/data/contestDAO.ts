@@ -12,6 +12,9 @@ import { Team } from "../models/Team";
 import { TeamGender } from "../utilities/enums/teamEnum";
 import logger from "../utilities/winstonConfig";
 import { IsRollback, withClient, withClientRollback } from "./database";
+import { ContestGame } from "../models/competition/ContestGame";
+import { IContestGameDatabase } from "../interfaces/IContestGame";
+import { PlayerSmall } from "../models/PlayerSmall";
 
 export default class ContestDAO {
     private readonly className = this.constructor.name;
@@ -125,13 +128,13 @@ export default class ContestDAO {
                     }
 
                     return division.getBrackets().forEach(async (bracket) => {
-                        console.log(bracket.convertTimeSlotsToDatabaseFormat());
+                        // console.log(bracket.convertTimeSlotsToDatabaseFormat());
 
                         const [returnedBracket] = (
                             await querier(sqlBracket, [
                                 bracket.getDayChoices(),
                                 bracket.getMaxTeamAmount(),
-                                bracket.convertTimeSlotsToDatabaseFormat(),
+                                [],
                                 returnedDivision.id,
                             ])
                         ).rows;
@@ -176,6 +179,13 @@ export default class ContestDAO {
         const sqlDivision = "SELECT * FROM division WHERE league_id IN (%L)";
         const sqlBracket = "SELECT * FROM bracket WHERE division_id IN (%L)";
         // const sqlTimeSlot = "SELECT * FROM bracket_time_slots WHERE bracket_id IN (%L)";
+        const sql = `SELECT t.*,
+            json_agg(json_build_object('auth_id', p.auth_id, 'first_name', p.first_name, 'last_name', p.last_name, 'gender', p.gender, 'status', p.status, 'image', p.image, 'role', tr.role)) AS players
+            FROM team t
+            JOIN team_roster AS tr ON t.id = tr.team_id
+            JOIN player AS p ON p.auth_id = tr.player_auth_id
+            WHERE t.bracket_id in (%L)
+            GROUP BY(t.id)`;
         const sqlTeams = "SELECT * FROM team WHERE bracket_id IN (%L)";
 
         // set of queries creates lists of leagues, divisions, and brackets that are unsorted
@@ -203,7 +213,8 @@ export default class ContestDAO {
             //     .rows;
 
             // fetch all Teams that are part of bracket
-            const teams = (await querier<ITeamDatabase>(format(sqlTeams, bracketIdList))).rows;
+            const teams = (await querier<ITeamDatabase>(format(sql, bracketIdList))).rows;
+            const wow = (await querier<ITeamDatabase>(format(sql, bracketIdList))).rows;
 
             /** My thought process here was to reverse the process for the insert function
              * above. The insert relies on querying the database for every single league, division,
@@ -230,7 +241,9 @@ export default class ContestDAO {
                                     .map((team) =>
                                         Team.fromDatabase({
                                             ...team,
-                                            players: [],
+                                            players: team.players.map((player) =>
+                                                PlayerSmall.fromDatabase(player)
+                                            ),
                                         })
                                     );
 
@@ -447,12 +460,78 @@ export default class ContestDAO {
             });
         });
     }
+
+    async createContestGame(game: ContestGame, bracketId: number): Promise<boolean> {
+        logger.verbose("Entering method createContestGame()", {
+            class: this.className,
+        });
+
+        const sql =
+            "INSERT INTO contest_game (GAME_DATE, SCORE_HOME, SCORE_AWAY, STATUS_HOME, STATUS_AWAY, location_ID, HOME_TEAM_ID, AWAY_TEAM_ID, bracket_ID) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *";
+
+        return withClient(async (querier) => {
+            const [response] = (
+                await querier<IContestGameDatabase>(sql, [
+                    game.getGameDate(),
+                    game.getScoreHome(),
+                    game.getScoreAway(),
+                    game.getStatusHome(),
+                    game.getStatusAway(),
+                    game.getLocation()?.getId(),
+                    game.getHomeTeam()?.getId(),
+                    game.getAwayTeam()?.getId(),
+                    bracketId,
+                ])
+            ).rows;
+
+            if (response === undefined) {
+                logger.error("Error creating Contest Game", {
+                    class: this.className,
+                });
+                throw new Error("Error creating Contest Game");
+            }
+
+            return true;
+        });
+    }
+
+    async findAllContestGames(orgId: string): Promise<ContestGame[]> {
+        logger.verbose("Entering method findAllContestGames()", {
+            class: this.className,
+        });
+
+        /**
+         * Selects all games that exist within organization
+         * Traverses to the games through teams by table joins
+         * Then joins teams and location to create game object
+         */
+        const newSql = `SELECT g.*,
+        row_to_json (h) AS home_team,
+        row_to_json (a) AS away_team,
+        row_to_json (l) AS location
+        FROM contest_game g
+        INNER JOIN team AS h ON g.home_team_id = h.id
+        INNER JOIN team AS a ON g.away_team_id = a.id
+        INNER JOIN location AS l ON l.id = g.location_id
+        JOIN team t on t.id = g.home_team_id
+        JOIN organization o on o.id = t.organization_id
+        WHERE o.id = $1`;
+
+        return withClient(async (querier) => {
+            const response = (await querier<IContestGameDatabase>(newSql, [orgId])).rows;
+
+            return response.map((game) => ContestGame.fromDatabase(game));
+        });
+    }
 }
 
 const test = new ContestDAO();
 
 async function testFunction() {
-    // const find = await test.findPathByBracketId(1);
+    // console.log(await test.findAllContestGames("dab32727-cb7c-4320-8865-6f1b842785ed"));
+    // const find = await test.findPathByBracketId(2);
+    // const list = await test.findLeaguesAndChildrenByContestId(2);
+    // console.log(list[0].getDivisions()[0].getBrackets()[1].getTeams()[0]);
     // console.log(find?.getLeagues()[0].getDivisions()[0].getBrackets()[0].getTimeChoices());
 }
 

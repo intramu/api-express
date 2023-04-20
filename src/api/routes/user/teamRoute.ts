@@ -144,9 +144,17 @@ router
             role
         );
 
-        // const response = true;
-
         return handleErrorResponse(response, res);
     });
+
+router.route("/teams/:teamId/contests/games").get(checkJwt, async (req, res) => {
+    const { teamId } = req.params;
+    const { sub = "" } = req.auth?.payload ?? {};
+
+    console.log("sub", sub);
+
+    const response = await teamService.findContestGamesById(sub, Number(teamId));
+    return handleErrorResponse(response, res);
+});
 
 export default router;

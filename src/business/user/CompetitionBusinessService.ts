@@ -65,7 +65,9 @@ export class CompetitionBusinessService {
 
         // check if contest exists in organization
         const contests = await contestDatabase.findContestsByOrganizationId(org.getId());
-        if (contests.some((contest) => contest.getId() === contestId)) {
+        console.log(contests);
+
+        if (!contests.some((contest) => contest.getId() === contestId)) {
             return APIResponse.NotFound(`No contest found with id: ${contestId}`);
         }
 
@@ -115,7 +117,7 @@ export class CompetitionBusinessService {
         // let organization = await organizationDatabase.findOrganizationByAdminId(userId);
         const organization = await organizationDatabase.findOrganizationByPlayerId(playerId);
         if (organization === null) {
-            return APIResponse.NotFound(`No user found with id: ${playerId}`);
+            return APIResponse.NewNotFound(playerId);
         }
 
         const contest = await contestDatabase.findContestByIdAndOrgId(
@@ -123,7 +125,7 @@ export class CompetitionBusinessService {
             organization.getId()
         );
         if (!contest) {
-            return APIResponse.NotFound(`No contest found with id: ${contestId}`);
+            return APIResponse.NewNotFound(contestId.toString());
         }
 
         const leagues = await contestDatabase.findLeaguesAndChildrenByContestId(contestId);
