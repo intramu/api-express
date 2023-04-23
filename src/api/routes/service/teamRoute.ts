@@ -1,18 +1,15 @@
 import express from "express";
-import { body } from "express-validator";
 import { TeamBusinessService } from "../../../business/service/TeamBusinessService";
-import { ITeamCreate } from "../../../interfaces/ITeam";
 import { APIResponse } from "../../../models/APIResponse";
 import { handleErrorResponse } from "../../../utilities/apiFunctions";
-import { TeamRole } from "../../../utilities/enums/teamEnum";
 import { authIdBody, teamRoleBody } from "../../../utilities/validation/common";
 import { newJoinRequestSchema } from "../../../utilities/validation/teamValidation";
 import {
     authIdParam,
     organizationIdParam,
     teamIdParam,
-    validate,
 } from "../../../utilities/validation/validationSchemas";
+import { Team } from "../../../models/Team";
 
 const teamService = new TeamBusinessService();
 
@@ -76,7 +73,7 @@ router
     })
     .post(organizationIdParam, async (req, res) => {
         const { orgId } = req.params;
-        const b = req.body as ITeamCreate;
+        const team = new Team({ ...req.body });
         // get body and create team
 
         return handleErrorResponse(APIResponse.NotImplemented(), res);

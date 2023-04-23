@@ -9,8 +9,8 @@ interface ContestGameProps {
     notes: string;
     scoreHome: number | null;
     scoreAway: number | null;
-    statusHome: ContestGameStatus;
-    statusAway: ContestGameStatus;
+    statusHome: ContestGameStatus | null;
+    statusAway: ContestGameStatus | null;
     location: Location | null;
     homeTeam: Team | null;
     awayTeam: Team | null;
@@ -136,17 +136,17 @@ export class ContestGame {
         this.scoreAway = scoreAway;
     }
 
-    getStatusHome(): ContestGameStatus {
+    getStatusHome(): ContestGameStatus | null {
         return this.statusHome;
     }
-    setStatusHome(statusHome: ContestGameStatus) {
+    setStatusHome(statusHome: ContestGameStatus | null) {
         this.statusHome = statusHome;
     }
 
-    getStatusAway(): ContestGameStatus {
+    getStatusAway(): ContestGameStatus | null {
         return this.statusAway;
     }
-    setStatusAway(statusAway: ContestGameStatus) {
+    setStatusAway(statusAway: ContestGameStatus | null) {
         this.statusAway = statusAway;
     }
 

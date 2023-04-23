@@ -3,8 +3,10 @@ import { AdminRole, AdminStatus, Language } from "../enums/userEnum";
 import { authIdBody, listEnums, validate } from "./common";
 import { printEnums } from "./validationSchemas";
 
+/** Validation schemas for admin objects */
+
 export const newAdminSchema = validate([
-    // authIdBody.notEmpty().withMessage("value 'authId' is missing"),
+    authIdBody,
     body("firstName")
         .notEmpty()
         .withMessage("value 'firstName' is missing")

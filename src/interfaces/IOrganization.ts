@@ -1,7 +1,7 @@
 import { Admin } from "../models/Admin";
 import { Organization } from "../models/Organization";
 import { OrganizationStatus } from "../utilities/enums/commonEnum";
-import { IAdmin, IAdminDatabase, IAdminNew } from "./IAdmin";
+import { IAdmin } from "./IAdmin";
 
 export interface IOrganizationDatabase {
     id: string;
@@ -10,6 +10,8 @@ export interface IOrganizationDatabase {
     info: string;
     main_color: string;
     approval_status: OrganizationStatus;
+    primary_contact_email: string;
+    notes: string;
     date_created: Date;
 }
 
@@ -21,22 +23,12 @@ export interface IOrganization {
     approvalStatus: OrganizationStatus;
 }
 
-export interface IOrganizationWithAdmin {
-    admin: IAdmin;
-    organization: IOrganization;
-}
-
-export interface IOrganizationNew {
-    id: string;
-    name: string;
-    image: string;
-    info: string;
-    mainColor: string;
-    approvalStatus: OrganizationStatus;
-    dateCreated: Date;
-}
-
-export interface IOrganizationWithAdminDatabase {
-    admin: Admin;
+export type OrganizationWithAdmin = {
+    admin: Admin & { password: string };
     organization: Organization;
+};
+
+export interface IOrganizationWithAdmin {
+    organization: IOrganization;
+    admin: IAdmin;
 }

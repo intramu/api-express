@@ -1,13 +1,10 @@
-import range from "postgres-range";
-import { IBracketDatabase, TimeRange } from "../../interfaces/IBracket";
-import logger from "../../utilities/winstonConfig";
 import { Team } from "../Team";
-import { TimeSlot } from "./TimeSlot";
 
 interface IBracketProps {
     id: number;
     dayChoices: string[];
-    timeChoices: TimeRange[];
+    // timeChoices: TimeRange[];
+    timeChoices: string[];
     maxTeamAmount: number;
     teams: Team[];
     // divisionId: number;
@@ -41,72 +38,73 @@ export class Bracket {
     public static fromDatabase(props: {
         id: number;
         day_choices: string[];
-        time_choices: string;
+        time_choices: string[];
         max_team_amount: number;
         teams: Team[];
         // divisionId: number;
     }) {
         const obj = new Bracket(props);
         obj.dayChoices = props.day_choices;
-        obj.timeChoices = this.convertToTimeRanges(props.time_choices);
+        // obj.timeChoices = this.convertToTimeRanges(props.time_choices);
+        obj.timeChoices = props.time_choices;
         obj.maxTeamAmount = props.max_team_amount;
 
         return obj;
     }
 
-    private static convertToTimeRanges(timeRanges: string): TimeRange[] {
-        if (!timeRanges) {
-            return [];
-        }
+    // private static convertToTimeRanges(timeRanges: string): TimeRange[] {
+    //     if (!timeRanges) {
+    //         return [];
+    //     }
 
-        const arrayReg = /[^,]+,[^,]+/g;
+    //     const arrayReg = /[^,]+,[^,]+/g;
 
-        console.log("first", timeRanges);
+    //     console.log("first", timeRanges);
 
-        const stripped = timeRanges.substring(1, timeRanges.length - 1).match(arrayReg);
-        console.log("in", stripped);
+    //     const stripped = timeRanges.substring(1, timeRanges.length - 1).match(arrayReg);
+    //     console.log("in", stripped);
 
-        if (!stripped) {
-            return [];
-        }
+    //     if (!stripped) {
+    //         return [];
+    //     }
 
-        try {
-            return stripped.map((time) => {
-                const formattedTime = range.parse(time);
-                if (!formattedTime.upper || !formattedTime.lower) {
-                    logger.error("Time formatted incorrectly", { class: "Bracket" });
-                    throw new Error("Time formatted incorrectly");
-                }
+    //     try {
+    //         return stripped.map((time) => {
+    //             const formattedTime = range.parse(time);
+    //             if (!formattedTime.upper || !formattedTime.lower) {
+    //                 logger.error("Time formatted incorrectly", { class: "Bracket" });
+    //                 throw new Error("Time formatted incorrectly");
+    //             }
 
-                // const startTime = this.parseDate(formattedTime.lower);
-                // const endTime = this.parseDate(formattedTime.upper);
+    //             // const startTime = this.parseDate(formattedTime.lower);
+    //             // const endTime = this.parseDate(formattedTime.upper);
 
-                return { startTime: formattedTime.lower, endTime: formattedTime.upper };
-            });
-            // TODO: handle error
-        } catch (error) {
-            console.log(error);
+    //             return { startTime: formattedTime.lower, endTime: formattedTime.upper };
+    //         });
+    //         // TODO: handle error
+    //     } catch (error) {
+    //         console.log(error);
 
-            return [];
-        }
-    }
+    //         return [];
+    //     }
+    // }
 
-    private static parseDate(str: string): Date {
-        const timeReg = /(\d+)[\.|:](\d+)[\.|:](\d+)/;
+    // private static parseDate(str: string): Date {
+    //     const timeReg = /(\d+)[\.|:](\d+)[\.|:](\d+)/;
 
-        const time = str.match(timeReg);
-        if (!time) {
-            logger.error("Date in incorrect format", { class: "Bracket" });
-            throw new Error("Date in incorrect format");
-        }
+    //     const time = str.match(timeReg);
+    //     if (!time) {
+    //         logger.error("Date in incorrect format", { class: "Bracket" });
+    //         throw new Error("Date in incorrect format");
+    //     }
 
-        const date = new Date();
-        date.setHours(Number(time[1]));
-        date.setMinutes(Number(time[2]));
-        date.setSeconds(Number(time[3]));
+    //     const date = new Date();
+    //     date.setHours(Number(time[1]));
+    //     date.setMinutes(Number(time[2]));
+    //     date.setSeconds(Number(time[3]));
 
-        return date;
-    }
+    //     return date;
+    // }
 
     // convertTimeSlotsToDatabaseFormat(): string {
     //     return `{${this.timeChoices.map((range) => {
@@ -115,20 +113,20 @@ export class Bracket {
     //     })}}`;
     // }
 
-    convertTimeSlotsToDatabaseFormat(): string {
-        const test = `{${this.timeChoices.map((range) => {
-            console.log(range);
-            return `[${range.startTime}, ${range.endTime}]`;
-        })}}`;
+    // convertTimeSlotsToDatabaseFormat(): string {
+    //     const test = `{${this.timeChoices.map((range) => {
+    //         console.log(range);
+    //         return `[${range.startTime}, ${range.endTime}]`;
+    //     })}}`;
 
-        console.log("test", test);
+    //     console.log("test", test);
 
-        return test;
-    }
+    //     return test;
+    // }
 
-    private convertToTime(date: Date): string {
-        return `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
-    }
+    // private convertToTime(date: Date): string {
+    //     return `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
+    // }
 
     public getId(): number {
         return this.id;
@@ -146,11 +144,11 @@ export class Bracket {
         this.dayChoices = dayChoices;
     }
 
-    public getTimeChoices(): TimeRange[] {
+    public getTimeChoices(): string[] {
         return this.timeChoices;
     }
 
-    public setTimeChoies(timeChoices: TimeRange[]): void {
+    public setTimeChoies(timeChoices: string[]): void {
         this.timeChoices = timeChoices;
     }
 

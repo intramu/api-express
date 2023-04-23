@@ -14,14 +14,16 @@ const teamDatabase = new TeamDAO();
 const organizationDatabase = new OrganizationDAO();
 
 export class PlayerBusinessService {
+    // classname for logger
     readonly className = this.constructor.name;
 
     /**
      * Searches for other player using playerId
      * @param authId - user requesting for other player details
      * @param playerId - id of player being searched for
-     * @returns - Player or error response
+     * @returns - error response or player with given id
      */
+    // TODO: needs rework
     async findPlayerById(authId: string, playerId: string): Promise<APIResponse | Player> {
         logger.verbose("Entering method findPlayerById()", {
             class: this.className,
@@ -29,33 +31,47 @@ export class PlayerBusinessService {
         });
 
         // TODO: visibility levels return different amounts of information
-        // TODO: not separation safe
+
+        // finds both players organizations
+        const playerResponse = await organizationDatabase.findOrganizationByPlayerId(playerId);
+        const authResponse = await organizationDatabase.findOrganizationByPlayerId(authId);
+
+        // do they exist
+        if (!playerResponse || !authResponse) {
+            return APIResponse.NewNotFound(playerId);
+        }
+
+        // do both players belong to same organization
+        if (playerResponse.getId() !== authResponse.getId()) {
+            return APIResponse.NewNotFound(playerId);
+        }
+
+        // finds player info in database. Cannot possibly be null here
         const player = await playerDatabase.findPlayerById(playerId);
-        if (player === null) {
-            return APIResponse.NotFound(`No player found with id: ${playerId}`);
+
+        // is player visibility closed
+        if (player!.getVisibility() === PlayerVisibility.CLOSED) {
+            return APIResponse.Conflict(`Player visibility is ${player!.getVisibility()}`);
         }
 
-        if (player.getVisibility() === PlayerVisibility.CLOSED) {
-            return APIResponse.Conflict(`Player visibility is ${player.getVisibility()}`);
-        }
-
-        return player;
+        return player!;
     }
 
     /**
      * Finds requesting players profile details by using Id
      * @param authId of requesting player
-     * @returns Player or
-     * @returns Error Response
+     * @returns error response or player with given id
      */
+    // TODO: needs rework
     async findPlayerProfile(authId: string): Promise<APIResponse | Player> {
         logger.verbose("Entering method findPlayerProfile()", {
             class: this.className,
             values: authId,
         });
 
+        // does player exist
         const player = await playerDatabase.findPlayerById(authId);
-        if (player === null) {
+        if (!player) {
             return APIResponse.NotFound(`No player found with id: ${authId}`);
         }
 
@@ -67,7 +83,7 @@ export class PlayerBusinessService {
      * to internal database.
      * @param player - player details to be added
      * @param orgId - id of organization to add player too
-     * @returns - error response or newly created player object
+     * @returns - error response or the saved player
      */
     async createPlayer(player: Player, orgId: string): Promise<APIResponse | Player> {
         logger.verbose("Entering method createPlayer()", {
@@ -75,25 +91,31 @@ export class PlayerBusinessService {
             values: { player, orgId },
         });
 
+        // does organization exist
         const organization = await organizationDatabase.findOrganizationById(orgId);
-        if (organization === null) {
+        if (!organization) {
             return APIResponse.NotFound(`No Organization found with id: ${orgId}`);
         }
 
-        const newPlayer: Player = player;
         // sets the player status to active, there account is complete
-        newPlayer.setStatus(PlayerStatus.ACTIVE);
+        const newPlayer = new Player({ ...player, status: PlayerStatus.ACTIVE });
 
         // create new player in database
         return playerDatabase.createPlayerByOrganizationId(newPlayer, orgId);
     }
 
+    /**
+     * Returns all teams for player
+     * @param authId - id to search with
+     * @returns - error response or team list
+     */
     async findPlayersTeams(authId: string): Promise<APIResponse | Team[]> {
         logger.verbose("Entering method findPlayerTeams()", {
             class: this.className,
-            values: authId,
+            values: { authId },
         });
 
+        // fetches teams from database
         return teamDatabase.findAllTeamsByPlayerId(authId);
     }
 
@@ -104,8 +126,7 @@ export class PlayerBusinessService {
      * @param teamId - id of team sending invite
      * @returns - error response or true if success
      */
-    // need to think if this performs player or team functionality
-    async acceptTeamInvite(authorizingId: string, teamId: number): Promise<APIResponse | true> {
+    async acceptTeamInvite(authorizingId: string, teamId: number): Promise<APIResponse | void> {
         logger.verbose("Entering method acceptTeamInvite()", {
             class: this.className,
             values: {
@@ -125,16 +146,28 @@ export class PlayerBusinessService {
             );
         }
 
+        // add player to team roster
         await teamDatabase.addToTeamRoster(teamId, authorizingId, TeamRole.PLAYER);
-        return true;
     }
 
+    /**
+     * Patches player by its id
+     * @param player - player object that will be used to patch
+     * @returns -
+     */
     async patchPlayer(player: Player): Promise<APIResponse | Player> {
         logger.verbose("Entering method patchPlayer()", {
             class: this.className,
             values: player,
         });
 
+        // does player exist
+        const lookup = await playerDatabase.findPlayerById(player.getAuthId());
+        if (!lookup) {
+            return APIResponse.NewNotFound(player.getAuthId());
+        }
+
+        // patches player object
         return playerDatabase.patchPlayer(player);
     }
 
@@ -160,12 +193,13 @@ export class PlayerBusinessService {
             },
         });
 
-        // check team exists and is valid for invite
+        // check team exists
         const team = await teamDatabase.findTeamById(teamId);
         if (!team) {
             return APIResponse.NotFound(`No team found with id: ${teamId}`);
         }
 
+        // and is valid for invite
         if (team.getPlayers().length >= team.getMaxTeamSize()) {
             return APIResponse.Conflict(`Team is full`);
         }
@@ -196,123 +230,50 @@ export class PlayerBusinessService {
         // todo: send invitee a notification of the invite
     }
 
-    async findAllPlayerInvitesById(authorizingId: string): Promise<IPlayerInvite[]> {
+    /**
+     * Finds all player invites with id
+     * @param authorizingId - id to search by
+     * @returns - error response or player invite list
+     */
+    async findAllPlayerInvitesById(authorizingId: string): Promise<APIResponse | IPlayerInvite[]> {
         logger.verbose("Entering method invitePlayerToTeam()", {
             class: this.className,
             values: { authorizingId },
         });
 
-        return playerDatabase.findAllPlayerInvitesById(authorizingId);
-    }
-
-    async findOrganizationList(): Promise<APIResponse | { id: string; name: string }[]> {
-        logger.verbose("Entering method findOrganizationList()", {
-            class: this.className,
-        });
-
-        const orgs = await organizationDatabase.findOrganizationList();
-
-        if (orgs.length === 0) {
-            return APIResponse.NotFound("No organizations found");
+        // does player exist
+        const player = await playerDatabase.findPlayerById(authorizingId);
+        if (!player) {
+            return APIResponse.NewNotFound(authorizingId);
         }
 
-        return orgs.map((organization) => {
-            return {
-                name: organization.name,
-                id: organization.id,
-            };
-        });
+        // return invites
+        return playerDatabase.findAllPlayerInvites(authorizingId);
     }
 
-    async findAllPlayersInOrganizationByName(
+    /**
+     * Searches for players in organization by name
+     * @param authId - id of player searching
+     * @param name - name player is searching for
+     * @returns - error response or player list
+     */
+    // REVISIT - for performance issues if necessary
+    async findPlayerByNameInOrganization(
         authId: string,
         name: string
     ): Promise<APIResponse | Player[]> {
-        logger.verbose("Entering method findAllPlayersInOrganizationByName()", {
+        logger.verbose("Entering method findPlayerByNameInOrganization()", {
             class: this.className,
             values: { name, authId },
         });
 
+        // does organization exist
         const org = await organizationDatabase.findOrganizationByPlayerId(authId);
-        if (org === null) {
+        if (!org) {
             return APIResponse.NotFound(`No organization found with id:${authId}`);
         }
 
+        // returns player list
         return playerDatabase.findPlayerByName(name, org.getId());
     }
-
-    // async joinBracket(
-    //     bracketId: number,
-    //     teamId: number,
-    //     playerId: string
-    // ): Promise<APIResponse | boolean> {
-    //     logger.verbose("Entering method joinBracket()", {
-    //         class: this.className,
-    //         values: { bracketId, teamId, playerId },
-    //     });
-
-    //     // todo: check if bracket exists in organization
-    //     const bracket = await competitionDatabase.findBracketId(bracketId);
-    //     if (bracket === null) {
-    //         return APIResponse.NotFound(`No bracket found with id: ${bracketId}`);
-    //     }
-
-    //     const players = await playerDatabase.findPlayersByTeamId(teamId);
-    //     if (players === null || players.length === 0) {
-    //         return APIResponse.NotFound(`No team found with id: ${teamId}`);
-    //     }
-
-    //     if (
-    //         !players.find(
-    //             (player) => player.getAuthId() === playerId && player.getRole() === Role.CAPTAIN
-    //         )
-    //     ) {
-    //         return APIResponse[403](`Id: ${playerId} not authorized`);
-    //     }
-
-    //     // get division id to set the max team size
-    //     const response = await teamDatabase.patchTeam(new Team({
-    //         id: teamId,
-    //         dateCreated: null,
-    //         bracketId,
-    //         image: "",
-    //         losses: null,
-    //         maxTeamSize: bracket,
-    //     }))
-    // }
 }
-const test = new PlayerBusinessService();
-
-// const player = new Player(
-//     null,
-//     "Stevan",
-//     "Perrino",
-//     "",
-//     "sPerrino@gmail.com",
-//     "505",
-//     null,
-//     "MALE",
-//     new Date(),
-//     "",
-//     "SPRING_2023",
-//     null,
-//     "",
-//     new Date()
-// );
-// test.createPlayer(player, "7f83b6f4-754a-4f34-913d-907c1226321f")
-// test.joinTeam("player1", 12);
-
-testFunc();
-async function testFunc() {
-    // performance.mark("start");
-    // console.log(await test.invitePlayerToTeam("player1", "player4", 12));
-    // console.log(await test.acceptTeamInvite("player4", 12));
-    // console.log(await test.requestToJoinTeam("player4", 12));
-    // console.log(await test.acceptJoinRequest("player4", "player1", 12));
-    // console.log(await test.viewTeamDetailsById(12));
-    // console.log(await test.kickPlayerFromTeam("player4", 12, "player2"));
-    // console.log(await test.joinTeam("player1", 10));
-    // performance.mark("end");
-    // performance.measure("example", "start", "end");
-}
-// const profile = tempLogger.startTimer();

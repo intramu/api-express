@@ -8,6 +8,10 @@ interface LocationProps {
     details: string;
 }
 
+/**
+ * Location model for Organizations to create
+ * And for contest and tournaments games to use
+ */
 export class Location {
     protected id;
 

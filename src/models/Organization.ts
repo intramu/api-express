@@ -7,9 +7,14 @@ interface IOrganizationProps {
     info: string;
     mainColor: string;
     approvalStatus: OrganizationStatus;
+    primaryContactEmail: string;
+    notes: string;
     dateCreated: Date;
 }
 
+/**
+ * Main container to hold all other models
+ */
 export class Organization {
     private id: string;
 
@@ -23,6 +28,10 @@ export class Organization {
 
     private approvalStatus: OrganizationStatus | null;
 
+    private primaryContactEmail;
+
+    private notes;
+
     private dateCreated: Date | null;
 
     constructor(props: Partial<IOrganizationProps>) {
@@ -33,6 +42,8 @@ export class Organization {
             info = "",
             mainColor = "",
             approvalStatus = null,
+            primaryContactEmail = "",
+            notes = "",
             dateCreated = null,
         } = props;
 
@@ -42,6 +53,8 @@ export class Organization {
         this.info = info;
         this.mainColor = mainColor;
         this.approvalStatus = approvalStatus;
+        this.primaryContactEmail = primaryContactEmail;
+        this.notes = notes;
         this.dateCreated = dateCreated;
     }
 
@@ -52,11 +65,14 @@ export class Organization {
         info: string;
         main_color: string;
         approval_status: OrganizationStatus | null;
+        primary_contact_email: string;
+        notes: string;
         date_created: Date | null;
     }) {
         const obj = new Organization(props);
         obj.mainColor = props.main_color;
         obj.approvalStatus = props.approval_status;
+        obj.primaryContactEmail = props.primary_contact_email;
         obj.dateCreated = props.date_created;
         return obj;
     }
@@ -107,6 +123,22 @@ export class Organization {
 
     setApprovalStatus(approvalStatus: OrganizationStatus | null): void {
         this.approvalStatus = approvalStatus;
+    }
+
+    getPrimaryContactEmail(): string {
+        return this.primaryContactEmail;
+    }
+
+    setPrimaryContactEmail(primaryContactEmail: string): void {
+        this.primaryContactEmail = primaryContactEmail;
+    }
+
+    getNotes(): string {
+        return this.notes;
+    }
+
+    setNotes(notes: string): void {
+        this.notes = notes;
     }
 
     getDateCreated(): Date | null {

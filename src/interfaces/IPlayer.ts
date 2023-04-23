@@ -17,22 +17,6 @@ interface BasePlayerDetails {
     image: string;
 }
 
-export interface IPlayerProps {
-    authId: string;
-    firstName: string;
-    lastName: string;
-    language: Language;
-    emailAddress: string;
-    gender: PlayerGender;
-    dob: Date;
-    visibility: PlayerVisibility;
-    graduationTerm: string;
-    image: string;
-    status: PlayerStatus;
-    // organizationId: string;
-    dateCreated: Date;
-}
-
 export interface IPlayerDatabase {
     auth_id: string;
     first_name: string;
@@ -50,12 +34,6 @@ export interface IPlayerDatabase {
 }
 
 export type PlayerPatch = BasePlayerDetails;
-
-export interface PlayerPatchService extends BasePlayerDetails {
-    authId: string;
-    graduationTerm: string;
-    status: PlayerStatus;
-}
 
 export interface IPlayerTeam {
     authId: string;

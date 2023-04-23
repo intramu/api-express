@@ -7,9 +7,12 @@ interface ILeagueProps {
     sport: Sport | null;
     divisions: Division[];
     // contestId: number;
-    // organizationId: string;
 }
 
+/**
+ * League model that acts as a sport container for divisions
+ * Child of Contest model
+ */
 export class League {
     protected id: number;
 
@@ -21,8 +24,6 @@ export class League {
 
     // protected contestId: number;
 
-    // protected organizationId: string;
-
     constructor(props: Partial<ILeagueProps>) {
         const { id = 0, name = null, sport = null, divisions = [] } = props;
 
@@ -31,7 +32,6 @@ export class League {
         this.sport = sport;
         this.divisions = divisions;
         // this.contestId = contestId;
-        // this.organizationId = organizationId;
     }
 
     public static fromDatabase(props: {
@@ -82,13 +82,5 @@ export class League {
 
     // public setContestId(contestId: number): void {
     //     this.contestId = contestId;
-    // }
-
-    // public getOrganizationId(): string {
-    //     return this.organizationId;
-    // }
-
-    // public setOrganizationId(organizationId: string): void {
-    //     this.organizationId = organizationId;
     // }
 }

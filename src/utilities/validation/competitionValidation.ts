@@ -13,6 +13,8 @@ import {
 } from "../enums/competitionEnum";
 import { listEnums, printEnums, validate } from "./common";
 
+/** Validation schemas for competition objects */
+
 export const newContestSchema = validate([
     body("name")
         .optional()

@@ -3,6 +3,8 @@ import { OrganizationStatus } from "../enums/commonEnum";
 import { Language } from "../enums/userEnum";
 import { authIdBody, listEnums, printEnums, validate } from "./common";
 
+/** Validation schemas for Organization objects */
+
 export const updateOrganizationSchema = validate([
     body("name")
         .notEmpty()

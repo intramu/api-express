@@ -1,5 +1,9 @@
-import { AdminStatus, Language, PlayerStatus } from "../utilities/enums/userEnum";
+import { Language } from "../utilities/enums/userEnum";
 
+/**
+ * Parent abstract class for Admin and Player models to extend from
+ * Includes common fields like authId and dateCreated
+ */
 export abstract class User {
     protected authId: string;
 
@@ -11,11 +15,7 @@ export abstract class User {
 
     protected emailAddress: string;
 
-    // protected role: Role | null;
-
     protected dateCreated: Date | null;
-
-    // protected status: PlayerStatus | AdminStatus | null;
 
     // protected organizationId: string;
 
@@ -25,9 +25,7 @@ export abstract class User {
         lastName: string,
         language: Language | null,
         emailAddress: string,
-        // role: Role | null,
         dateCreated: Date | null
-        // status: PlayerStatus | null
         // organizationId: string
     ) {
         this.authId = authId;
@@ -35,9 +33,7 @@ export abstract class User {
         this.lastName = lastName;
         this.language = language;
         this.emailAddress = emailAddress;
-        // this.role = role;
         this.dateCreated = dateCreated;
-        // this.status = status;
         // this.organizationId = organizationId;
     }
 
@@ -81,14 +77,6 @@ export abstract class User {
         this.emailAddress = emailAddress;
     }
 
-    // getRole(): Role | null {
-    //     return this.role;
-    // }
-
-    // setRole(role: Role | null): void {
-    //     this.role = role;
-    // }
-
     getDateCreated(): Date | null {
         return this.dateCreated;
     }
@@ -96,14 +84,6 @@ export abstract class User {
     setDateCreated(dateCreated: Date): void {
         this.dateCreated = dateCreated;
     }
-
-    // getStatus(): PlayerStatus | null {
-    //     return this.status;
-    // }
-
-    // setStatus(status: PlayerStatus | null) {
-    //     this.status = status;
-    // }
 
     // getOrganizationId(): string {
     //     return this.organizationId;

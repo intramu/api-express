@@ -10,8 +10,7 @@ import {
 } from "../../../utilities/validation/validationSchemas";
 import { PlayerBusinessService } from "../../../business/service/PlayerBusinessService";
 import { handleErrorResponse } from "../../../utilities/apiFunctions";
-import { newPersonSchema } from "../../../utilities/validation/playerValidation";
-import { IPlayerProps } from "../../../interfaces/IPlayer";
+import { newPlayerSchemaSudo } from "../../../utilities/validation/playerValidation";
 
 const router = express.Router();
 
@@ -65,23 +64,19 @@ router
 
         return handleErrorResponse(response, res);
     })
-    .post(organizationIdParam, newPersonSchema, async (req, res) => {
+    .post(organizationIdParam, newPlayerSchemaSudo, async (req, res) => {
         const { orgId } = req.params;
-        const b = req.body as IPlayerProps;
+        const player = new Player(req.body);
 
-        const player = new Player(b);
         const response = await playerService.createPlayerByOrganizationId(player, orgId);
-
         return handleErrorResponse(response, res, 201);
     });
 
 router.post("/organizations/:orgId/players/auth0", async (req, res) => {
     const { orgId } = req.params;
-    const b = req.body as IPlayerProps;
+    const player = new Player(req.body);
 
-    const player = new Player(b);
     const response = await playerService.createPlayerWithAuth0Account(player, orgId);
-
     return handleErrorResponse(response, res, 201);
 });
 

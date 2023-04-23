@@ -1,6 +1,6 @@
 import { PlayerSmall } from "../models/PlayerSmall";
 import { Sport } from "../utilities/enums/commonEnum";
-import { TeamGender, TeamStatus, TeamVisibility } from "../utilities/enums/teamEnum";
+import { TeamGender, TeamRole, TeamStatus, TeamVisibility } from "../utilities/enums/teamEnum";
 import { IPlayerTeamDatabase } from "./IPlayer";
 
 export interface ITeamDatabase {
@@ -22,29 +22,14 @@ export interface ITeamDatabase {
     bracket_id: number;
 }
 
-export interface ITeamCreate {
-    name: string;
-    image: string;
-    visibility: TeamVisibility;
-    sport: Sport;
-    bracketId: number;
+export interface ITeamRosterDatabase {
+    player_id: string;
+    team_id: number;
+    role: TeamRole;
 }
 
-export interface ITeamProps {
-    id: number;
-    name: string;
-    wins: number;
-    ties: number;
-    losses: number;
-    image: string;
-    visibility: TeamVisibility;
-    sport: Sport;
-    gender: TeamGender;
-    dateCreated: Date;
-    sportsmanshipScore: number;
-    status: TeamStatus;
-    maxTeamSize: number;
-    players: PlayerSmall[];
-    organizationId: string;
-    bracketId: number;
+export interface ITeamRoster {
+    playerId: string;
+    teamId: number;
+    role: TeamRole;
 }

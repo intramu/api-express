@@ -4,11 +4,10 @@ import {
     IJoinRequestDatabase,
     convertFromDatabaseFormat,
 } from "../interfaces/ITeamJoinRequest";
-import { ITeamDatabase } from "../interfaces/ITeam";
+import { ITeamDatabase, ITeamRoster, ITeamRosterDatabase } from "../interfaces/ITeam";
 import { PlayerSmall } from "../models/PlayerSmall";
 import { Team } from "../models/Team";
-import { Sport } from "../utilities/enums/commonEnum";
-import { TeamGender, TeamRole, TeamStatus, TeamVisibility } from "../utilities/enums/teamEnum";
+import { TeamRole } from "../utilities/enums/teamEnum";
 import logger from "../utilities/winstonConfig";
 import { IsRollback, withClient, withClientRollback } from "./database";
 import { ContestGame } from "../models/competition/ContestGame";
@@ -19,13 +18,14 @@ export default class TeamDAO {
     readonly className = this.constructor.name;
 
     /**
-     * Finds a list of all details of a team within an Organization
-     * @param id string of the Organization
-     * @returns List of Teams
+     * Returns all instances of team with given organization id
+     * @param id - must not be null
+     * @returns - team list with the given id
      */
     async findAllTeamsByOrganizationId(id: string): Promise<Team[]> {
         logger.verbose("Entering method findAllTeamsByOrganizationId()", {
             class: this.className,
+            values: { id },
         });
 
         const sqlAll = "SELECT * FROM team WHERE organization_id=$1";
@@ -38,13 +38,14 @@ export default class TeamDAO {
     }
 
     /**
-     * Returns list of teams that player is on
-     * @param id - id to search for teams with
-     * @returns - list of teams
+     * Returns all instances of team with given player id
+     * @param id - must not be null
+     * @returns - team list with the given id
      */
     async findAllTeamsByPlayerId(id: string): Promise<Team[]> {
         logger.verbose("Entering method findAllTeamsByPlayerId()", {
             class: this.className,
+            values: { id },
         });
 
         // REVISIT: leave old method to test for performance against new method
@@ -120,8 +121,8 @@ export default class TeamDAO {
     }
 
     /**
-     * Finds all teams, ignores any status
-     * @returns - list of teams
+     * Returns all instances of team
+     * @returns - team list
      */
     async findAllTeams(): Promise<Team[]> {
         logger.verbose("Entering method findAllTeams()", {
@@ -138,9 +139,9 @@ export default class TeamDAO {
     }
 
     /**
-     * Returns team details with player list
-     * @param teamId - id to search for team with
-     * @returns - team object with players or null
+     * Retrieves team by its id
+     * @param teamId - must not be null
+     * @returns - team with given id or null if not found
      */
     async findTeamById(teamId: number): Promise<Team | null> {
         logger.verbose("Entering method findTeamById()", {
@@ -161,7 +162,6 @@ export default class TeamDAO {
             GROUP BY(t.id)`;
 
         return withClient(async (querier) => {
-            // first fetch team
             const [team] = (await querier<ITeamDatabase>(sql, [teamId])).rows;
 
             if (!team) {
@@ -174,27 +174,30 @@ export default class TeamDAO {
         });
     }
 
-    async removeTeamById(teamId: number): Promise<boolean> {
+    /**
+     * Deletes team with the given id
+     * @param teamId - must not be null
+     * @returns - void
+     */
+    async removeTeamById(teamId: number): Promise<void> {
         logger.verbose("Entering method removeTeamById()", {
             class: this.className,
             values: teamId,
         });
 
-        const sqlDelete = "DELETE FROM team WHERE id = $1";
+        const sql = "DELETE FROM team WHERE id = $1";
 
         return withClient(async (querier) => {
-            const response = await querier(sqlDelete, [teamId]);
-
-            return response.rowCount > 0;
+            await querier(sql, [teamId]);
         });
     }
 
     /**
-     * Patches team in database, only changing variables that are different
-     * @param team - team object to be patched
-     * @returns - newly patched team object or null
+     * Patches team by its id
+     * @param team - must not be null
+     * @returns - the patched team
      */
-    async patchTeam(team: Team): Promise<Team | null> {
+    async patchTeam(team: Team): Promise<Team> {
         logger.verbose("Entering method patchTeam()", {
             class: this.className,
             values: team,
@@ -222,8 +225,11 @@ export default class TeamDAO {
                 ])
             ).rows;
 
-            if (response === undefined) {
-                return null;
+            if (!response) {
+                logger.error("Error patching team", {
+                    class: this.className,
+                });
+                throw new Error("Error patching team");
             }
 
             return Team.fromDatabase({ ...response, players: [] });
@@ -282,18 +288,20 @@ export default class TeamDAO {
     // }
 
     /**
-     * Creates new team and adds player to roster using common table expression
-     * will have to revisit performance versus two separate queries
-     * @param team entity
-     * @param playerId id of player entity
-     * @param orgId id of organization
-     * @param role role of player
-     * @returns
+     * Creates team under organization with given id
+     * Adds player to team roster with given ids
+     *
+     * Uses common table expression will have to revisit performance versus two separate
+     * queries
+     * @param team - must not be null
+     * @param playerId - player added to team roster; must not be null
+     * @param orgId - must not be null
+     * @returns - the saved team
      */
-    async createTeam(team: Team, playerId: string, orgId: string, role: TeamRole): Promise<Team> {
+    async createTeam(team: Team, playerId: string, orgId: string): Promise<Team> {
         logger.verbose("Entering method createTeam()", {
             class: this.className,
-            values: { team, playerId, orgId, role },
+            values: { team, playerId, orgId },
         });
 
         const sqlNew = `with new_team AS (
@@ -307,7 +315,7 @@ export default class TeamDAO {
             SELECT * FROM new_team`;
 
         return withClient(async (querier) => {
-            const [newTeam] = (
+            const [response] = (
                 await querier<ITeamDatabase>(sqlNew, [
                     team.getName(),
                     team.getWins(),
@@ -322,11 +330,11 @@ export default class TeamDAO {
                     team.getBracketId(),
                     orgId,
                     playerId,
-                    role,
+                    TeamRole.CAPTAIN,
                 ])
             ).rows;
 
-            if (newTeam === undefined) {
+            if (!response) {
                 logger.error("Error creating team", {
                     class: this.className,
                 });
@@ -334,45 +342,50 @@ export default class TeamDAO {
             }
 
             return Team.fromDatabase({
-                ...newTeam,
+                ...response,
                 players: [],
             });
         });
     }
 
     /**
-     * Player is added to team roster with a role attached
-     * @param teamId - team id to add player to
-     * @param playerId - player to be added to team
-     * @param role - role attached to player
-     * @returns - true or false depending on success or failure
+     * Adds player to roster with given ids and role
+     * @param teamId - must not be null
+     * @param playerId - must not be null
+     * @param role - role level; must not be null
+     * @returns - the saved roster result
+     * @throws - if error when creating roster result
      */
-    async addToTeamRoster(teamId: number, playerId: string, role: TeamRole): Promise<void> {
+    async addToTeamRoster(teamId: number, playerId: string, role: TeamRole): Promise<ITeamRoster> {
         logger.verbose("Entering method addToTeamRoster()", {
             class: this.className,
             values: { teamId, playerId },
         });
 
         const sqlAddPlayer =
-            "INSERT INTO team_roster (player_AUTH_ID, team_ID, role) VALUES ($1, $2, $3)";
+            "INSERT INTO team_roster (player_AUTH_ID, team_ID, role) VALUES ($1, $2, $3) RETURNING *";
 
         return withClient(async (querier) => {
-            const response = (await querier(sqlAddPlayer, [playerId, teamId, role])).rowCount;
+            const [response] = (
+                await querier<ITeamRosterDatabase>(sqlAddPlayer, [playerId, teamId, role])
+            ).rows;
 
-            if (response < 0) {
+            if (!response) {
                 logger.error("Error adding player to roster", {
                     class: this.className,
                 });
                 throw new Error("Error adding player to roster");
             }
+
+            return { playerId: response.player_id, teamId: response.team_id, role: response.role };
         });
     }
 
     /**
-     * Player is removed from team roster
-     * @param teamId - id of team
-     * @param playerId - id of player to remove from team
-     * @returns - true or false based on success or failure
+     * Removes player from roster with given ids
+     * @param teamId - must not be null
+     * @param playerId - must not be null
+     * @returns - void
      */
     async removeFromTeamRoster(teamId: number, playerId: string): Promise<void> {
         logger.verbose("Entering method removeFromTeamRoster()", {
@@ -383,62 +396,52 @@ export default class TeamDAO {
         const sqlRemove = "DELETE FROM team_roster WHERE player_AUTH_ID=$1 AND team_ID=$2";
 
         return withClient(async (querier) => {
-            const response = (await querier(sqlRemove, [playerId, teamId])).rowCount;
-
-            if (response < 0) {
-                logger.error("Error removing player from team", {
-                    class: this.className,
-                });
-                throw new Error("Error removing player from team");
-            }
-
-            if (response > 1) {
-                logger.error("removeFromTeamRoster deleted more than one record", {
-                    class: this.className,
-                    values: {
-                        playerId,
-                        teamId,
-                    },
-                });
-            }
+            await querier(sqlRemove, [playerId, teamId]);
         });
     }
 
     /**
-     * Updates role for player on team roster
-     * @param teamId - id of team to update
-     * @param playerId - id of player to change role
-     * @param role - new role of player
-     * @returns - true or false based on success or failure
+     * Updates player role from roster with given ids and role
+     * @param teamId - must not be null
+     * @param playerId - must not be null
+     * @param role - must not be null
+     * @returns - the updated roster result
+     * @throws - if error when updating roster result
      */
-    async updateTeamRoster(teamId: number, playerId: string, role: TeamRole): Promise<boolean> {
+    async updateTeamRoster(teamId: number, playerId: string, role: TeamRole): Promise<ITeamRoster> {
         logger.verbose("Entering method updateTeamRoster()", {
             class: this.className,
             values: { teamId, playerId, role },
         });
 
-        const sqlUpdate = "UPDATE team_roster SET ROLE=$1 WHERE team_ID=$2 AND player_AUTH_ID=$3";
+        const sqlUpdate =
+            "UPDATE team_roster SET ROLE=$1 WHERE team_ID=$2 AND player_AUTH_ID=$3 RETURNING *";
 
         return withClient(async (querier) => {
-            const response = await querier(sqlUpdate, [role, teamId, playerId]);
+            const [response] = (
+                await querier<ITeamRosterDatabase>(sqlUpdate, [role, teamId, playerId])
+            ).rows;
 
-            const [results] = response.rows;
-
-            if (results === undefined) {
-                return false;
+            if (!response) {
+                logger.error("Error updating team roster", {
+                    class: this.className,
+                });
+                throw new Error("Error updating team roster");
             }
 
-            return true;
+            return { playerId: response.player_id, teamId: response.team_id, role: response.role };
         });
     }
 
     /**
-     * Creates new request to join team by a player, expiration time can be used by database
-     * to eliminate old requests
-     * @param teamId - id of team to join
-     * @param playerId - id of player wanting to join team
-     * @param expirationTime - expiration time of invite
-     * @returns - true or false based on success or failure
+     * Creates new join request under team with given ids and expiration time
+     *
+     * Expiration time can be used by database to eliminate old requests
+     * @param teamId - must not be null
+     * @param playerId - must not be null
+     * @param expirationTime - must not be null
+     * @returns - the saved join request
+     * @throws - if error when creating join request
      */
     async createJoinRequest(
         teamId: number,
@@ -462,7 +465,7 @@ export default class TeamDAO {
 
         return withClient(async (querier) => {
             const [response] = (
-                await querier<IJoinRequest>(sqlNew, [playerId, teamId, expirationTime])
+                await querier<IJoinRequestDatabase>(sqlNew, [playerId, teamId, expirationTime])
             ).rows;
 
             if (!response) {
@@ -472,10 +475,15 @@ export default class TeamDAO {
                 throw new Error("Error creating request to join team");
             }
 
-            return response;
+            return convertFromDatabaseFormat(response);
         });
     }
 
+    /**
+     * Returns all instances of join request with given team id
+     * @param teamId - must not be null
+     * @returns - join request list with the given id
+     */
     async findAllJoinRequests(teamId: number): Promise<IJoinRequest[]> {
         logger.verbose("Entering method findAllJoinRequests()", {
             class: this.className,
@@ -491,13 +499,15 @@ export default class TeamDAO {
     }
 
     /**
-     * Deletes request to join team. This request is represented simply in database, so the
+     * Deletes request to join team with the given ids
+     *
+     * This request is represented simply in database, so the
      * team id and player id or the only attributes needed to remove the request
-     * @param playerId - id of player
-     * @param teamId - id of team
-     * @returns - true or false based on success or failure
+     * @param playerId - must not be null
+     * @param teamId - must not be null
+     * @returns - void
      */
-    async removeJoinRequest(playerId: string, teamId: number): Promise<boolean> {
+    async removeJoinRequest(playerId: string, teamId: number): Promise<void> {
         logger.verbose("Entering method deleteJoinRequest()", {
             class: this.className,
             values: { teamId, playerId },
@@ -507,16 +517,18 @@ export default class TeamDAO {
             "DELETE FROM team_join_requests WHERE player_auth_id = $1 AND team_id = $2";
 
         return withClient(async (querier) => {
-            const results = (await querier(sqlDelete, [playerId, teamId])).rowCount;
-
-            if (results === 0) {
-                return false;
-            }
-
-            return true;
+            await querier(sqlDelete, [playerId, teamId]);
         });
     }
 
+    /**
+     * Updates join request by given ids and expiration time
+     * @param playerId - must not be null
+     * @param teamId - must not be null
+     * @param expirationTime - must not be null
+     * @returns - the updated join request
+     * @throws - if error when updating join request
+     */
     async updateJoinRequest(
         playerId: string,
         teamId: number,
@@ -527,26 +539,31 @@ export default class TeamDAO {
             values: { teamId, playerId },
         });
 
-        const sqlNew = `with requesting_player AS (
+        const sql = `with requesting_player AS (
             SELECT first_name, last_name FROM player WHERE auth_id = $1
             )
             UPDATE team_join_requests SET player_auth_id = $1, team_id = $2, requesting_player_full_name = (SELECT CONCAT(first_name, last_name) FROM requesting_player), expiration_time = $3 WHERE player_auth_id = $1 AND team_id = $2 RETURNING *`;
-        const sql =
-            "UPDATE team_join_requests SET player FROM team_join_requests WHERE team_id = $1";
 
         return withClient(async (querier) => {
             const [response] = (
-                await querier<IJoinRequest>(sqlNew, [playerId, teamId, expirationTime])
+                await querier<IJoinRequestDatabase>(sql, [playerId, teamId, expirationTime])
             ).rows;
 
-            return response;
+            if (!response) {
+                logger.error("Error updating request to join team", {
+                    class: this.className,
+                });
+                throw new Error("Error updating request to join team");
+            }
+
+            return convertFromDatabaseFormat(response);
         });
     }
 
     /**
-     * Finds all players on team roster
-     * @param teamId - team id to search with
-     * @returns - List of PlayerSmall objects. Returns limited details on players
+     * Returns all instances of player with the given team id
+     * @param teamId - must not be null
+     * @returns - player list with the given id
      */
     async findAllPlayersByTeamId(teamId: number): Promise<PlayerSmall[]> {
         logger.verbose("Entering method findAllPlayersByTeamId()", {
@@ -565,6 +582,11 @@ export default class TeamDAO {
         });
     }
 
+    /**
+     * Returns all instances of contest games with given team id
+     * @param teamId - must not be null
+     * @returns - contest list with the given id
+     */
     async findAllContestGames(teamId: number): Promise<ContestGame[]> {
         logger.verbose("Entering method findAllContestGames()", {
             class: this.className,
@@ -590,69 +612,14 @@ export default class TeamDAO {
         return withClient(async (querier) => {
             const response = (await querier<IContestGameDatabase>(sql, [teamId])).rows;
 
-            // const test = response.map((game) =>
-            //     ContestGame.fromDatabase({
-            //         id: game.id,
-            //         date_created: game.date_created,
-            //         game_date: game.game_date,
-            //         notes: game.notes,
-            //         score_away: game.score_away,
-            //         score_home: game.score_home,
-            //         status_away: game.status_away,
-            //         status_home: game.status_home,
-            //         home_team: game.home_team,
-            //         away_team: game.away_team,
-            //         location: game.location,
-            //     })
-            // );
             return response.map((game) => ContestGame.fromDatabase(game));
         });
     }
 }
 
 const test = new TeamDAO();
-// test.findAllTeamsByPlayerId()
-// test.findAllTeams();
-// test.findTeamById(12)
-
-const team = new Team({
-    name: "Hello Barbie",
-    wins: 0,
-    ties: 0,
-    losses: 0,
-    image: "",
-    visibility: TeamVisibility.PRIVATE,
-    sport: Sport.BASKETBALL,
-    sportsmanshipScore: 4.0,
-    status: TeamStatus.ELIGIBLE,
-    maxTeamSize: 12,
-    players: [],
-    organizationId: "dab32727-cb7c-4320-8865-6f1b842785ed",
-});
-
-testFunc();
-
-async function testFunc() {
-    // console.log(await test.findAllTeamsByPlayerId("auth0|62760b4733c477006f82c56d"));
-    // console.log(await test.findAllTeamsByPlayerId("auth0|643f2fc44116bcb4fcff7486"));
-    // test.createJoinRequest(12, "player4");
-    // await test.findTeamByIdWithPlayers(12);
-    // console.log(await test.addToTeamRoster(12, "player4", Role.PLAYER))
-    // console.log(await test.removeFromTeamRoster(12, "player2"));
-    // const newTeam = await test.updateTeam(team);
-    // console.log(
-    //     await test.createTeam(
-    //         team,
-    //         "auth0|62760b4733c477006f82c56c",
-    //         "dab32727-cb7c-4320-8865-6f1b842785ed"
-    //     )
-    // );
-    // console.log(await test.findAllTeamsByPlayerId("auth0|62760b4733c477006f82c56d"));
-    // console.log(await test.findAllTeamsByPlayerId("auth0|62760b4733c477006f82c56d"));
-    // console.log(await test.findAllJoinRequests(18));
-    // console.log(await test.createJoinRequest(22, "auth0|643f2fc44116bcb4fcff7486", new Date()));
-    // console.log(await test.updateJoinRequest("auth0|643f2fc44116bcb4fcff7486", 22, new Date()));
-    // console.log(newTeam?.getId());
-    // console.log(await test.findTeamById(18));
-    // console.log(await test.findAllContestGames(18));
+async function thing() {
+    test.updateTeamRoster(18, "auth0|62760b4733c477006f82c56d", TeamRole.CAPTAIN);
 }
+
+// thing();

@@ -15,7 +15,7 @@ export interface TimeRange {
 export interface IBracketDatabase {
     id: number;
     day_choices: string[];
-    time_choices: string;
+    time_choices: string[];
     max_team_amount: number;
     division_id: number;
 }

@@ -1,4 +1,3 @@
-import { IPlayerProps } from "../interfaces/IPlayer";
 import {
     Language,
     PlayerGender,
@@ -6,6 +5,26 @@ import {
     PlayerVisibility,
 } from "../utilities/enums/userEnum";
 import { User } from "./User";
+
+/**
+ * Player model is part of organization
+ * and participates in team activity
+ */
+export interface PlayerProps {
+    authId: string;
+    firstName: string;
+    lastName: string;
+    language: Language;
+    emailAddress: string;
+    gender: PlayerGender;
+    dob: Date;
+    visibility: PlayerVisibility;
+    graduationTerm: string;
+    image: string;
+    status: PlayerStatus;
+    // organizationId: string;
+    dateCreated: Date;
+}
 
 export class Player extends User {
     protected status: PlayerStatus | null;
@@ -22,7 +41,7 @@ export class Player extends User {
 
     protected phoneNumber: string;
 
-    constructor(props: Partial<IPlayerProps>) {
+    constructor(props: Partial<PlayerProps>) {
         const {
             authId = "",
             firstName = "",

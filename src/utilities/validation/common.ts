@@ -3,6 +3,14 @@ import { body, param, ValidationChain, validationResult } from "express-validato
 import { APIResponse } from "../../models/APIResponse";
 import { TeamRole } from "../enums/teamEnum";
 
+/** Validation file with common methods for all other validation files to use */
+
+/**
+ * Enumerates through enum and prints out values in a message stating valid options
+ * @param enumValue - enum to enumerate through
+ * @param enumName - name of enum
+ * @returns - message with list of valid options
+ */
 export const printEnums = (enumValue: any, enumName: string) => {
     // adds values of enum to list spacing out each value, then converts into string
     const list = Object.values(enumValue)
@@ -13,10 +21,9 @@ export const printEnums = (enumValue: any, enumName: string) => {
     return `valid ${enumName} options are [${list.substring(0, list.length)} ]`;
 };
 
+/** Enumerates through enum and creates value list for validation */
 export const listEnums = (enumValue: any) => Object.values(enumValue).map((value: any) => value);
 
-// NR - this sequentially processes the errors and stops once one has failed, Not sure which one is better
-// Eslint sure isn't happy about it, I had to disable a lot of things
 /**
  * This is a middleware function that will run on every request wherever its added. It will validate all
  * user input based on the schema provided to it.
@@ -41,6 +48,7 @@ export const validate = (validations: ValidationChain[]) => {
             return res.status(400).json(APIResponse.BadRequest(errorResponse));
         }
 
+        // TODO: needs to be fixed
         // // checks for extra fields
         // const extraFields = checkIfExtraFields(validations, req);
 
@@ -61,15 +69,19 @@ export const validate = (validations: ValidationChain[]) => {
  * @returns - boolean value if other fields were present
  */
 const checkIfExtraFields = (validators: any[], req: express.Request) => {
+    // loops through validation chain and finds number of allowed fields based on the
+    // validation schema
     const allowedFields = validators
         .reduce((fields, rule) => {
             return [...fields, ...rule.builder.fields];
         }, [])
         .sort();
 
+    // finds the actual number of fields present in body
     const requestInput = { ...req.body };
     const requestFields = Object.keys(requestInput).sort();
 
+    // returns false if there are extra values
     if (JSON.stringify(allowedFields) === JSON.stringify(requestFields)) {
         return false;
     }
@@ -79,7 +91,7 @@ const checkIfExtraFields = (validators: any[], req: express.Request) => {
     return true;
 };
 
-// Requires auth id param to meet the required length of 30 characters
+// Requires auth id param to meet the required format of auth0 id's
 export const authIdParam = validate([
     param("userId")
         .custom((str: string) => str.substring(0, 6) === "auth0|")
@@ -108,7 +120,10 @@ export const compIdParam = validate([
     param("compId").isInt({ min: 1 }).withMessage("Competition id must be a number greater than 0"),
 ]);
 
+// Requires "authId" body field to meet the required format of auth0 id's
 export const authIdBody = body("authId")
+    .notEmpty()
+    .withMessage("value 'authId' is missing")
     .trim()
     .escape()
     .custom((str: string) => str.substring(0, 6) === "auth0|")
@@ -116,6 +131,7 @@ export const authIdBody = body("authId")
     .isLength({ min: 30, max: 30 })
     .withMessage("User's auth_id must be 30 characters");
 
+// requires "role" body field to be enum type
 export const teamRoleBody = validate([
     body("role")
         .notEmpty()

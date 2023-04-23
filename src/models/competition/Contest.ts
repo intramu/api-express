@@ -1,8 +1,5 @@
 import {
-    ContestType,
-    PlayoffSeedingType,
     CompetitionStatus,
-    TournamentType,
     CompetitionVisibility,
     CompetitionSeason,
 } from "../../utilities/enums/competitionEnum";

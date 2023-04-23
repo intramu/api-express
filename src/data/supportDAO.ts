@@ -1,5 +1,5 @@
 import { fromDatabase, IAnnouncement, IAnnouncementDatabase } from "../interfaces/IAnnouncement";
-import { IFAQ } from "../interfaces/IFAQ";
+// import { IFAQ } from "../interfaces/IFAQ";
 import logger from "../utilities/winstonConfig";
 import { withClient } from "./database";
 
@@ -9,6 +9,12 @@ import { withClient } from "./database";
 export class SupportDAO {
     readonly className = this.constructor.name;
 
+    /**
+     * Creates announcement under organization with given id
+     * @param announcement - must not be null
+     * @param orgId - must not be null
+     * @returns - the saved announcement
+     */
     async createAnnouncement(announcement: IAnnouncement, orgId: string): Promise<IAnnouncement> {
         logger.verbose("Entering method createAnnouncement()", {
             class: this.className,
@@ -27,12 +33,24 @@ export class SupportDAO {
                 ])
             ).rows;
 
+            if (!announce) {
+                logger.error("Error creating announcement", {
+                    class: this.className,
+                });
+                throw new Error("Error creating announcement");
+            }
+
             return fromDatabase(announce);
         });
     }
 
-    async findAllOrganizationAnnouncements(orgId: string): Promise<IAnnouncement[]> {
-        logger.verbose("Entering method findOrganizationAnnouncements()", {
+    /**
+     * Returns all instances of announcement with given organization id
+     * @param orgId - must not be null
+     * @returns - announcement list with the given id
+     */
+    async findOrgAnnouncementsById(orgId: string): Promise<IAnnouncement[]> {
+        logger.verbose("Entering method findAllOrgAnnouncementsById()", {
             class: this.className,
             values: { orgId },
         });
@@ -47,8 +65,13 @@ export class SupportDAO {
         });
     }
 
-    async findAllGlobalAndOrganizationAnnouncements(orgId: string): Promise<IAnnouncement[]> {
-        logger.verbose("Entering method findAllGlobalAndOrganizationAnnouncements()", {
+    /**
+     * Returns all instances of announcement with organization id AND global
+     * @param orgId - must not be null
+     * @returns - announcement list with the given id
+     */
+    async findAllAnnouncementsById(orgId: string): Promise<IAnnouncement[]> {
+        logger.verbose("Entering method findAllAnnouncementsById()", {
             class: this.className,
             values: { orgId },
         });
@@ -63,23 +86,26 @@ export class SupportDAO {
         });
     }
 
-    async findGlobalAnnouncements(): Promise<IAnnouncement> {
-        logger.verbose("Entering method findAllGlobalAndOrganizationAnnouncements()", {
+    /**
+     * Returns all instances of global announcements
+     * @returns - announcement list
+     */
+    async findAllGlobalAnnouncements(): Promise<IAnnouncement[]> {
+        logger.verbose("Entering method findAllGlobalAnnouncements()", {
             class: this.className,
-            values: { orgId },
         });
 
         const sql = `SELECT * FROM announcement 
-        WHERE organization_id is null OR organization_id = $1`;
+        WHERE organization_id is null`;
 
         return withClient(async (querier) => {
-            const announcements = (await querier<IAnnouncementDatabase>(sql, [orgId])).rows;
+            const announcements = (await querier<IAnnouncementDatabase>(sql)).rows;
 
             return announcements.map((announcement) => fromDatabase(announcement));
         });
     }
 
-    async createFAQ(faq: IFAQ): Promise<IFAQ> {}
+    // async createFAQ(faq: IFAQ): Promise<IFAQ> {}
 
     // FEATURE: add expiration date to announcement
     // patchAnnouncement

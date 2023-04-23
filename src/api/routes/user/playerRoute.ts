@@ -1,7 +1,6 @@
 import express from "express";
 import { auth } from "express-oauth2-jwt-bearer";
 import { PlayerBusinessService } from "../../../business/user/PlayerBusinessService";
-import { IPlayerProps, PlayerPatch } from "../../../interfaces/IPlayer";
 import { APIResponse } from "../../../models/APIResponse";
 import { Player } from "../../../models/Player";
 import { handleErrorResponse } from "../../../utilities/apiFunctions";
@@ -12,7 +11,7 @@ import {
 } from "../../../utilities/validation/playerValidation";
 import { authIdParam, teamIdParam } from "../../../utilities/validation/validationSchemas";
 import { OrganizationBusinessService } from "../../../business/user/OrganizationBusinessService";
-import { checkJwt } from "../../../utilities/checkJwt";
+import { checkJwt } from "../../../utilities/authUtilities";
 // import { finishProfileSchema } from "../../../utilities/validation/validationSchemas";
 
 const router = express.Router();
@@ -33,8 +32,7 @@ router.post(
         const { sub = "" } = req.auth?.payload ?? {};
         const { orgId } = req.params;
 
-        const player = new Player(req.body);
-        console.log(player);
+        const player = new Player({ authId: sub, ...req.body });
 
         const response = await playerService.createPlayer(player, orgId);
         return handleErrorResponse(response, res);
@@ -42,7 +40,7 @@ router.post(
 );
 
 router.route("/organizations/list").get(async (req, res) => {
-    const response = await playerService.findOrganizationList();
+    const response = await organizationService.findOrganizationSignupList();
 
     return handleErrorResponse(response, res);
 });
@@ -53,24 +51,17 @@ router
         const { sub = "" } = req.auth?.payload ?? {};
 
         const response = await playerService.findPlayerProfile(sub);
-        // const response = true;
         return handleErrorResponse(response, res);
     })
     .patch(checkJwt, patchPersonSchema, async (req, res) => {
         const { sub = "" } = req.auth?.payload ?? {};
-        const body = req.body;
-
-        console.log("body", body);
 
         // REVIST - small issue here, additional fields can be passed into the request body
         // and change fields that aren't supposed to be touched
-        const player = new Player(body);
+        const player = new Player({ authId: sub, ...req.body });
         console.log("artic", player);
 
-        player.setAuthId(sub);
-
         const response = await playerService.patchPlayer(player);
-        // const response = true;
 
         return handleErrorResponse(response, res);
     });
@@ -122,7 +113,7 @@ router.get("/players/search", async (req, res) => {
     console.log(name);
 
     if (name) {
-        const response = await playerService.findAllPlayersInOrganizationByName(
+        const response = await playerService.findPlayerByNameInOrganization(
             "auth0|62760b4733c477006f82c56d",
             name as string
         );
@@ -147,7 +138,7 @@ router.get("/players/teams", checkJwt, async (req, res) => {
     return handleErrorResponse(response, res);
 });
 
-router.get("/organizations/this", async (req, res) => {
+router.get("/organizations/signup/list", async (req, res) => {
     const { sub = "" } = req.auth!.payload;
     const response = await organizationService.findOrganizationByPlayerId(sub);
 

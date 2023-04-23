@@ -1,6 +1,7 @@
 import { Pool, PoolClient, QueryConfig, QueryResult, QueryResultRow } from "pg";
 import logger from "../utilities/winstonConfig";
 
+// creates connection pool
 export const db = new Pool({
     user: "noah",
     host: "localhost",
@@ -10,9 +11,14 @@ export const db = new Pool({
     max: 20,
 });
 
+// rollback type if error occurs
 export type IsRollback = typeof IsRollback;
 export const IsRollback = Symbol("IsRollback");
 
+/**
+ * Gets connection from pool and
+ * @returns - connection or null if connection error occurred
+ */
 export async function getClient(): Promise<PoolClient> {
     try {
         return await db.connect();
@@ -24,6 +30,7 @@ export async function getClient(): Promise<PoolClient> {
     }
 }
 
+// generic that allows user to pass in return type of data from database
 type Querier = <T extends QueryResultRow>(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     queryTextOrConfig: string | QueryConfig<any[]>,
@@ -31,10 +38,18 @@ type Querier = <T extends QueryResultRow>(
     values?: any[] | undefined
 ) => Promise<QueryResult<T>>;
 
+/**
+ * Will rollback query when called
+ * @param client - client connection
+ */
 export async function rollback(client: PoolClient): Promise<void> {
     await client.query("ROLLBACK");
 }
 
+/**
+ * Get connection, makes query, then releases connection
+ * @returns - object that is type of generic
+ */
 export async function withClient<T>(
     runner: (querier: Querier, client: PoolClient) => T
 ): Promise<T> {
@@ -45,9 +60,8 @@ export async function withClient<T>(
 }
 
 /**
- * If you return in the runner with IsRollback or throw an exception, the transaction will be rolled back.
- * @param runner
- * @returns
+ * Extended functionality of withClient that will rollback query if specified
+ * @returns - object that is type of generic or IsRollback
  */
 export async function withClientRollback<T>(
     runner: (querier: Querier, client: PoolClient) => Promise<T | typeof IsRollback>
@@ -57,6 +71,13 @@ export async function withClientRollback<T>(
     );
 }
 
+/**
+ * Simply queries database and returns result
+ * @param client - client connection
+ * @param queryTextOrConfig - sql statement to be executed
+ * @param values - parameters to be passed to query
+ * @returns - promise of result that is of generic type
+ */
 export async function query<T extends QueryResultRow>(
     client: PoolClient,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -76,6 +97,12 @@ export async function query<T extends QueryResultRow>(
     }
 }
 
+/**
+ * Wrapper for querier function that is returned for user.
+ * Gets sql statement and parameters that are passed to query
+ * @param client - connection
+ * @returns - querier function for user
+ */
 export function createQuerier(client: PoolClient): <T extends QueryResultRow>(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     queryTextOrConfig: string | QueryConfig<any[]>,
@@ -95,10 +122,9 @@ export function createQuerier(client: PoolClient): <T extends QueryResultRow>(
 }
 
 /**
- * If you return in the runner with IsRollback or throw an exception, the transaction will be rolled back.
- * @param client
- * @param runner
- * @returns
+ * Runner function to manage transaction for query
+ * @param client - connection
+ * @returns - result of query
  */
 export async function rollbackWithErrors<T>(
     client: PoolClient,
@@ -112,7 +138,6 @@ export async function rollbackWithErrors<T>(
         if (result === IsRollback) {
             await rollback(client);
         } else {
-            console.log("COMMITTED");
             await querier("COMMIT");
         }
         return result;

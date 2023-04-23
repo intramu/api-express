@@ -10,6 +10,9 @@ interface SmallProps {
     status: PlayerStatus;
     image: string;
 }
+/**
+ * Smaller model for team roster that limits information on player
+ */
 export class PlayerSmall {
     protected authId;
 

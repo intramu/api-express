@@ -1,3 +1,8 @@
+/**
+ * Common API response model that is returned whenever there was NOT a successful response.
+ * When something went wrong. Shows error message, possible error code, type of http error,
+ * and status code
+ */
 export class APIResponse {
     statusCode: number;
 

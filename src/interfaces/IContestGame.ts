@@ -15,3 +15,11 @@ export interface IContestGameDatabase {
     home_team: Team | null;
     away_team: Team | null;
 }
+
+export interface IContestGameReport {
+    id: number;
+    scoreHome: number;
+    scoreAway: number;
+    statusHome: ContestGameStatus;
+    statusAway: ContestGameStatus;
+}

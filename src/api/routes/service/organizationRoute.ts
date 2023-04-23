@@ -1,12 +1,7 @@
 import express from "express";
-import { param } from "express-validator";
-// import { requiredScopes } from "express-oauth2-jwt-bearer";
-
 import { OrganizationBusinessService } from "../../../business/service/OrganizationBusinessService";
-import { APIResponse } from "../../../models/APIResponse";
 import { Organization } from "../../../models/Organization";
-import { Player } from "../../../models/Player";
-import { organizationIdParam, validate } from "../../../utilities/validation/validationSchemas";
+import { organizationIdParam } from "../../../utilities/validation/validationSchemas";
 import { Admin } from "../../../models/Admin";
 import { handleErrorResponse } from "../../../utilities/apiFunctions";
 import {
@@ -15,12 +10,10 @@ import {
     updateOrganizationSchema,
 } from "../../../utilities/validation/organizationValidation";
 import { IOrganization, IOrganizationWithAdmin } from "../../../interfaces/IOrganization";
-import { IAdmin } from "../../../interfaces/IAdmin";
 
 const router = express.Router();
 
 const organizationService = new OrganizationBusinessService();
-// const playerService = new PlayerBusinessService();
 
 router
     .route("/organizations")

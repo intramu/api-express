@@ -8,12 +8,6 @@ import { APIResponse } from "../models/APIResponse";
 
 const app = express();
 
-// auth0 library checks token against my server
-const checkJwt = auth({
-    audience: "https://server-authorization/",
-    issuerBaseURL: "https://dev-5p-an07k.us.auth0.com",
-});
-
 // needed to read json input
 app.use(express.json());
 
@@ -21,8 +15,8 @@ app.use(express.json());
 app.use(cors());
 
 // import for service api
-app.use("/api/v1", serviceIndex);
-app.use("/user/v1", userIndex);
+app.use("/api/sudo/v1", serviceIndex);
+app.use("/api/user/v1", userIndex);
 
 // 404 handler when no endpoint is found
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

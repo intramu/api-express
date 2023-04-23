@@ -13,6 +13,9 @@ const logLevels = {
     debug: 6,
 };
 
+/**
+ * Customized winston logger that currently prints message to console
+ */
 const logger = winston.createLogger({
     levels: logLevels,
     level: "verbose",

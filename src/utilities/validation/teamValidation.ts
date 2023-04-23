@@ -2,6 +2,8 @@ import { body } from "express-validator";
 import { TeamVisibility } from "../enums/teamEnum";
 import { authIdBody, listEnums, printEnums, validate } from "./common";
 
+/** Validation schemas for team objects */
+
 export const newTeamSchema = validate([
     body("name")
         .notEmpty()

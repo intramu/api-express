@@ -1,3 +1,4 @@
+import { Admin } from "../models/Admin";
 import { Language, AdminRole, AdminStatus } from "../utilities/enums/userEnum";
 
 export interface IAdminDatabase {
@@ -20,19 +21,4 @@ export interface IAdmin {
     emailAddress: string;
 }
 
-export interface IAdminNewService extends IAdmin {
-    role: AdminRole;
-    status: AdminStatus;
-    organizationId: string;
-}
-
-export interface IAdminNew {
-    authId: string;
-    firstName: string;
-    lastName: string;
-    language: Language;
-    emailAddress: string;
-    role: AdminRole;
-    status: AdminStatus;
-    dateCreated: Date;
-}
+export type AdminWithPassword = Admin & { password: string };

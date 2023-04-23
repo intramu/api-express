@@ -1,9 +1,11 @@
 import OrganizationDAO from "../../data/organizationDAO";
 import PlayerDAO from "../../data/playerDAO";
 import TeamDAO from "../../data/teamDAO";
+import { ITeamRoster } from "../../interfaces/ITeam";
+import { IJoinRequest } from "../../interfaces/ITeamJoinRequest";
 import { APIResponse } from "../../models/APIResponse";
 import { Team } from "../../models/Team";
-import { TeamRole, TeamVisibility } from "../../utilities/enums/teamEnum";
+import { TeamRole } from "../../utilities/enums/teamEnum";
 import logger from "../../utilities/winstonConfig";
 
 const teamDatabase = new TeamDAO();
@@ -11,115 +13,126 @@ const organizationDatabase = new OrganizationDAO();
 const playerDatabase = new PlayerDAO();
 
 export class TeamBusinessService {
+    // classname for logger
     private readonly className = this.constructor.name;
 
+    /**
+     * Finds all teams in application
+     * @returns - team list
+     */
     async findAllTeams(): Promise<APIResponse | Team[]> {
         logger.verbose("Entering method createOrganizationWithAuth0Account()", {
             class: this.className,
         });
 
-        const teams = await teamDatabase.findAllTeams();
-
-        return teams;
+        return teamDatabase.findAllTeams();
     }
 
     /**
      * Returns all teams under organization regardless of status.
-     * todo: figure out how to set this up so a user can pass in query parameter on
-     * API without this having to call a different method.
      * @param orgId
      * @returns
      */
+    // TODO: add query parameters for status
     async findAllTeamsByOrganizationId(orgId: string): Promise<APIResponse | Team[]> {
         logger.verbose("Entering method findAllTeamsByOrganizationId()", {
             class: this.className,
-            values: orgId,
+            values: { orgId },
         });
 
+        // does organization exist
         const org = await organizationDatabase.findOrganizationById(orgId);
-        if (org === null) {
+        if (!org) {
             return APIResponse.NotFound(`No organization found with id: ${orgId}`);
         }
 
-        const response = await teamDatabase.findAllTeamsByOrganizationId(orgId);
-        if (response.length === 0) {
-            return APIResponse.NotFound(`No teams found with organization id: ${orgId}`);
-        }
-
-        return response;
+        return teamDatabase.findAllTeamsByOrganizationId(orgId);
     }
 
+    /**
+     * Finds team using id
+     * @param teamId - id to search with
+     * @returns - error response or team with given id
+     */
     async findTeamById(teamId: number): Promise<APIResponse | Team> {
         logger.verbose("Entering method findTeamById()", {
             class: this.className,
-            values: teamId,
+            values: { teamId },
         });
 
+        // search for team
         const team = await teamDatabase.findTeamById(teamId);
-        if (team === null) {
+        if (!team) {
             return APIResponse.NotFound(`No team found with id: ${teamId}`);
         }
 
         return team;
     }
 
-    async removeTeamById(teamId: number): Promise<APIResponse | boolean> {
+    /**
+     * Remove team by id
+     * @param teamId - id to remove by
+     * @returns - void
+     */
+    async removeTeamById(teamId: number): Promise<void> {
         logger.verbose("Entering method removeTeamById()", {
             class: this.className,
-            values: teamId,
+            values: { teamId },
         });
 
-        const team = await teamDatabase.removeTeamById(teamId);
-        if (!team) {
-            return APIResponse.NotFound(`No team found with id: ${teamId}`);
-        }
-
-        return true;
+        return teamDatabase.removeTeamById(teamId);
     }
 
+    /**
+     * Removes player from team roster using given ids
+     * @param teamId - team to remove from
+     * @param playerId - player to remove from roster
+     * @returns - error response or void
+     */
     async removePlayerFromTeamRoster(
         teamId: number,
         playerId: string
-    ): Promise<APIResponse | boolean> {
+    ): Promise<APIResponse | void> {
         logger.verbose("Entering method removePlayerFromTeamRoster()", {
             class: this.className,
             values: { teamId, playerId },
         });
 
-        // one player should always be on team, if no players were found, team doesn't exist
-        const players = await teamDatabase.findAllPlayersByTeamId(teamId);
-        if (players.length === 0) {
+        // does team exist
+        const team = await teamDatabase.findTeamById(teamId);
+        if (!team) {
             return APIResponse.NotFound(`No team found with id: ${teamId}`);
         }
 
-        // IS THERE A BETTER WAY TO DO THIS?
-        const found = players.find((player) => player.getAuthId() === playerId);
-
-        // is player on team
-        if (found === undefined) {
-            return APIResponse.NotFound(`No player on team roster with id: ${playerId}`);
-        }
+        // search for player on roster
+        const player = team.getPlayers().find((player) => player.getAuthId() === playerId);
 
         // is player team captain
-        if (found.getRole() === TeamRole.CAPTAIN) {
+        if (player && player.getRole() === TeamRole.CAPTAIN) {
             return APIResponse.Conflict(`Cannot remove team Captain`);
         }
 
-        await teamDatabase.removeFromTeamRoster(teamId, playerId);
-        return true;
+        // remove player from roster
+        return teamDatabase.removeFromTeamRoster(teamId, playerId);
     }
 
+    /**
+     * Adds player to team roster
+     * @param teamId - team to add player to
+     * @param playerId - player to be added
+     * @param role - role associated with player
+     * @returns - error response or roster record
+     */
     async addPlayerToTeamRoster(
         teamId: number,
         playerId: string,
         role?: TeamRole
-    ): Promise<APIResponse | boolean> {
+    ): Promise<APIResponse | ITeamRoster> {
         logger.verbose("Entering method addPlayerToTeamRoster()", {
             class: this.className,
-            values: { teamId, playerId },
+            values: { teamId, playerId, role },
         });
 
-        // IS THERE A BETTER WAY TO DO ALL THIS CHECKING
         // prevent multiple captains.
         if (role === TeamRole.CAPTAIN) {
             return APIResponse.BadRequest(`Team cannot have more than one Captain`);
@@ -127,13 +140,8 @@ export class TeamBusinessService {
 
         const team = await teamDatabase.findTeamById(teamId);
         // does team exist
-        if (team === null) {
+        if (!team) {
             return APIResponse.NotFound(`No team found with id: ${teamId}`);
-        }
-
-        // is team public
-        if (team.getVisibility() === TeamVisibility.PRIVATE) {
-            return APIResponse.Forbidden(`Team visibility is Private`);
         }
 
         // is team full
@@ -148,24 +156,29 @@ export class TeamBusinessService {
 
         // does player id exist
         const player = await playerDatabase.findPlayerById(playerId);
-        if (player === null) {
+        if (!player) {
             return APIResponse.NotFound(`No player found with id: ${playerId}`);
         }
 
         // add to team roster
-        await teamDatabase.addToTeamRoster(teamId, playerId, role ?? TeamRole.PLAYER);
-
-        return true;
+        return teamDatabase.addToTeamRoster(teamId, playerId, role ?? TeamRole.PLAYER);
     }
 
+    /**
+     * Updates player role on team roster
+     * @param teamId - team to update
+     * @param playerId - player to be updated
+     * @param role - new role
+     * @returns - error response or roster record
+     */
     async updatePlayerOnTeamRoster(
         teamId: number,
         playerId: string,
         role: TeamRole
-    ): Promise<APIResponse | boolean> {
+    ): Promise<APIResponse | ITeamRoster> {
         logger.verbose("Entering method updatePlayerOnTeamRoster()", {
             class: this.className,
-            values: { teamId, playerId },
+            values: { teamId, playerId, role },
         });
 
         // prevent multiple captains.
@@ -175,47 +188,48 @@ export class TeamBusinessService {
 
         // does team exist
         const team = await teamDatabase.findTeamById(teamId);
-        if (team === null) {
+        if (!team) {
             return APIResponse.NotFound(`No team found with id: ${teamId}`);
         }
 
-        const found = team.getPlayers().find((player) => player.getAuthId() === playerId);
+        const player = team.getPlayers().find((player) => player.getAuthId() === playerId);
 
         // is player on roster
-        if (found === undefined) {
+        if (!player) {
             return APIResponse.NotFound(`No player found on team roster with id: ${playerId}`);
         }
 
         // is player a captain
-        if (found.getRole() === TeamRole.CAPTAIN) {
+        if (player.getRole() === TeamRole.CAPTAIN) {
             return APIResponse.BadRequest("Cannot change Captain's role");
         }
 
         // update roster
-        const response = teamDatabase.updateTeamRoster(teamId, playerId, role ?? TeamRole.PLAYER);
-
-        if (!response) {
-            throw new Error("Error updating team roster");
-        }
-
-        return true;
+        return teamDatabase.updateTeamRoster(teamId, playerId, role);
     }
 
+    /**
+     * Creates join request for team
+     * @param teamId - team recieving request
+     * @param playerId - player requesting to join team
+     * @param expirationDate - expirationDate of request; OPTIONAL
+     * @returns - error response or join request record
+     */
     async createTeamJoinRequest(
         teamId: number,
         playerId: string,
-        expirationDate: Date
-    ): Promise<APIResponse | boolean> {
+        expirationDate?: Date
+    ): Promise<APIResponse | IJoinRequest> {
         logger.verbose("Entering method createTeamJoinRequest()", {
             class: this.className,
-            values: { teamId, playerId },
+            values: { teamId, playerId, expirationDate },
         });
 
         // fetch team with id
         const team = await teamDatabase.findTeamById(teamId);
 
         // does team exist
-        if (team === null) {
+        if (!team) {
             return APIResponse.NotFound(`No team found with id: ${teamId}`);
         }
 
@@ -229,14 +243,19 @@ export class TeamBusinessService {
             return APIResponse.Conflict(`Player: ${playerId} is already on team`);
         }
 
+        // expiration date of invite is set one week out if 'expirationDate' is ever undefined
+        const date = new Date();
+        date.setDate(date.getDate() + 7);
+
         // check if player has already sent invite
         const teamRequests = await teamDatabase.findAllJoinRequests(teamId);
-        // TODO: refresh invite rather than a confliction
+
+        // if request already exists it is refreshed in the database
         if (teamRequests.find((request) => request.authId === playerId)) {
-            return APIResponse.Conflict(`Invite already exists for player`);
+            return teamDatabase.updateJoinRequest(playerId, teamId, expirationDate ?? date);
         }
 
-        await teamDatabase.createJoinRequest(teamId, playerId, expirationDate);
-        return true;
+        // otherwise creates new request
+        return teamDatabase.createJoinRequest(teamId, playerId, expirationDate ?? date);
     }
 }

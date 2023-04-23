@@ -10,41 +10,49 @@ const contestDatabase = new ContestDAO();
 const organizationDatabase = new OrganizationDAO();
 
 export class CompetitionBusinessService {
+    // classname for logger
     private readonly className = this.constructor.name;
 
     /**
-     *
-     * @param newContest
-     * @param orgId
-     * @returns
+     * Creates contest under organization
+     * @param contest - contest to be added
+     * @param orgId - organization contest goes under
+     * @returns - error response or the saved contest
      */
-    async createContest(newContest: Contest, orgId: string): Promise<APIResponse | Contest> {
+    async createContest(contest: Contest, orgId: string): Promise<APIResponse | Contest> {
         logger.verbose("Entering method createContest()", {
             class: this.className,
-            values: newContest,
+            values: { contest },
         });
 
-        // finds organization id that admin belongs too
+        // does organization exist
         const org = await organizationDatabase.findOrganizationById(orgId);
         if (!org) {
             return APIResponse.NotFound(`No organization found with id: ${orgId}`);
         }
 
         // add contest to database under organization
-        return contestDatabase.createContest(newContest, orgId);
+        return contestDatabase.createContest(contest, orgId);
     }
 
+    /**
+     * Returns all contests under organization
+     * @param orgId - organization id to search under
+     * @returns - error response or contest list
+     */
     async findContestsByOrganizationId(orgId: string): Promise<APIResponse | Contest[]> {
         logger.verbose("Entering method findContestsByOrganizationId()", {
             class: this.className,
-            values: orgId,
+            values: { orgId },
         });
 
+        // does organization exist
         const org = await organizationDatabase.findOrganizationById(orgId);
         if (!org) {
             return APIResponse.NotFound(`No organization found with id: ${orgId}`);
         }
 
+        // find contests
         return contestDatabase.findContestsByOrganizationId(orgId);
     }
 
@@ -61,12 +69,13 @@ export class CompetitionBusinessService {
             values: { leagues, contestId },
         });
 
-        // looks to see if contest exists yet
+        // does contest exist
         const contest = await contestDatabase.findContestById(contestId);
-        if (contest === null) {
+        if (!contest) {
             return APIResponse.NotFound(`No contest found with id: ${contestId}`);
         }
 
+        // waitlist added to every division
         const leaguesWithWaitlist = this.addWaitlistBracket(leagues);
 
         // create leagues
@@ -86,12 +95,15 @@ export class CompetitionBusinessService {
             values: { contestId },
         });
 
+        // does contest exist
         const contest = await contestDatabase.findContestById(contestId);
-        if (contest === null) {
+        if (!contest) {
             return APIResponse.NotFound(`No contest found with id: ${contest}`);
         }
 
+        // fetch all leagues and children under contest
         const leagues = await contestDatabase.findLeaguesAndChildrenByContestId(contestId);
+        // assign leagues
         contest.setLeagues(leagues);
 
         return contest;

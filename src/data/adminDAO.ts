@@ -3,14 +3,16 @@ import logger from "../utilities/winstonConfig";
 import { withClient } from "./database";
 import { IAdminDatabase } from "../interfaces/IAdmin";
 
+/** Admin database methods */
 export default class AdminDAO {
     readonly className = this.constructor.name;
 
     /**
-     * Creates new admin under organization
-     * @param admin - admin details to be aded
-     * @param organizationId - id of organization admin will be created under
-     * @returns - newly created admin or null
+     * Creates admin under organization with given id
+     * @param admin - must not be null
+     * @param organizationId - id of organization; must not be null
+     * @returns - the saved admin
+     * @throws - if error when creating admin
      */
     async createAdminByOrganizationId(admin: Admin, organizationId: string): Promise<Admin> {
         logger.verbose("Entering method createAdminByOrganizationId()", {
@@ -22,7 +24,7 @@ export default class AdminDAO {
             "INSERT INTO admin (auth_id, first_name, last_name, language, role, status, organization_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *";
 
         return withClient(async (querier) => {
-            const [result] = (
+            const [response] = (
                 await querier<IAdminDatabase>(sqlCreate, [
                     admin.getAuthId(),
                     admin.getFirstName(),
@@ -34,52 +36,79 @@ export default class AdminDAO {
                 ])
             ).rows;
 
-            return Admin.fromDatabase(result);
+            if (!response) {
+                logger.error("Error creating admin", {
+                    class: this.className,
+                });
+                throw new Error("Error creating admin");
+            }
+
+            return Admin.fromDatabase(response);
         });
     }
 
     // todo:patchAdmin method() to replace updateAdmin()
-
-    async updateAdmin(admin: Admin) {
+    /**
+     * Updates admin by its id
+     * @param admin - must not be null
+     * @returns - the updated admin
+     * @throws - if error when updating admin
+     */
+    async updateAdmin(admin: Admin): Promise<Admin> {
         logger.verbose("Entering method updateAdmin()", {
             class: this.className,
+            values: { admin },
         });
 
-        return withClient(async (querier) => {
-            const sqlUpdate =
-                "UPDATE admin SET first_name=$1, last_name=$2, language=$3, role=$4, status=$5 WHERE auth_id = $6 RETURNING *";
-            const response = await querier(sqlUpdate, [
-                admin.getFirstName(),
-                admin.getLastName(),
-                admin.getLanguage(),
-                admin.getRole(),
-                admin.getStatus(),
-                admin.getAuthId(),
-            ]);
+        const sqlUpdate =
+            "UPDATE admin SET first_name=$1, last_name=$2, language=$3, role=$4, status=$5 WHERE auth_id = $6 RETURNING *";
 
-            console.log(response);
-            return response;
+        return withClient(async (querier) => {
+            const [response] = (
+                await querier<IAdminDatabase>(sqlUpdate, [
+                    admin.getFirstName(),
+                    admin.getLastName(),
+                    admin.getLanguage(),
+                    admin.getRole(),
+                    admin.getStatus(),
+                    admin.getAuthId(),
+                ])
+            ).rows;
+
+            if (!response) {
+                logger.error("Error creating admin", {
+                    class: this.className,
+                });
+                throw new Error("Error creating admin");
+            }
+
+            return Admin.fromDatabase(response);
         });
     }
 
-    async removeAdminById(adminId: string): Promise<boolean> {
+    /**
+     * Deletes admin with the given id
+     * @param adminId - must not be null
+     * @returns - void
+     */
+    async removeAdminById(adminId: string): Promise<void> {
         logger.verbose("Entering method removeAdminById()", {
             class: this.className,
             values: adminId,
         });
 
-        const sqlDelete = "DELETE FROM admin WHERE id=$1";
+        const sqlDelete = "DELETE FROM admin WHERE auth_id=$1";
 
         return withClient(async (querier) => {
-            const response = await querier(sqlDelete, [adminId]);
-            if (response.rowCount < 0) {
-                return false;
-            }
-
-            return true;
+            await querier(sqlDelete, [adminId]);
         });
     }
 
+    /**
+     * Retrieves admin by its id
+     * @param adminId - must not be null
+     * @returns - admin with given id or null if not found
+     */
     async findAdminById(adminId: string): Promise<Admin | null> {
         logger.verbose("Entering method findAdminById()", {
             class: this.className,
@@ -99,9 +128,9 @@ export default class AdminDAO {
     }
 
     /**
-     * Returns list of all admins in organization
-     * @param orgId - id to search in organization with
-     * @returns - list of admins
+     * Returns all instances of admin with given organization id
+     * @param orgId - must not be null
+     * @returns - admin list with the given id
      */
     async findAllAdminsByOrganizationId(orgId: string): Promise<Admin[]> {
         logger.verbose("Entering method findAllAdminsByOrganizationId()", {
@@ -117,6 +146,10 @@ export default class AdminDAO {
         });
     }
 
+    /**
+     * Returns all instances of admin
+     * @returns - admin list
+     */
     async findAllAdmins(): Promise<Admin[]> {
         logger.verbose("Entering method findAllAdmins()", {
             class: this.className,
@@ -130,50 +163,3 @@ export default class AdminDAO {
         });
     }
 }
-
-// possible error handling
-// if(error.errno === -4078)
-// {
-//     console.log("WOWZA");
-
-// }
-// console.log("TRACE: ", error.errno);
-// console.log("MESSAGE: ", (<Error>error).stack);
-// switch(error){
-//     case error.errno === -4078: {console.log("TEST ERROR");
-//                 break}
-//     case Error: {console.log("GENERAL ERROR")
-//                 break};
-
-//     default: console.log("UNKNOWN ERROR");
-
-// }
-
-const test = new AdminDAO();
-
-// test.createOrganization(new Organization('','Grand Canyon University', '', 'The coolest University', 'purple', '', new Date()))
-// test.findAllAdmins();
-// test.findAllOrganizations()
-// test.updateOrganization(new Organization("a5fe0074-2e47-492f-9aed-01748d856a93", "University of Arizona","", "Some more info on UOA", "Blue", "UNAPPROVED", new Date()))
-// test.deleteOrganizationById("a5fe0074-2e47-492f-9aed-01748d856a93")
-
-// const admin = new Admin(
-//     "test1",
-//     "Noah",
-//     "Roerig",
-//     "ENGLISH",
-//     "noahr1936@gmail.com",
-//     "MASTER",
-//     new Date(),
-//     "VALID"
-// );
-
-// test.findAllAdminsByOrganizationId("dab32727-cb7c-4320-8865-6f1b842785ed");
-
-// test.updateAdmin(admin)
-// test.findAllAdminsInOrganization("92181711-98ed-48c7-9cc6-75afaf2ba728")
-// test.createAdmin(admin)
-// test.findAdminById("test");
-
-// test.createOrganization(new Organization("2", "GCU", "none", "Christian", "Purple", "UNAPPROVED", new Date()))
-// test.findAllOrganizations()

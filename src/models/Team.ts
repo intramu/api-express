@@ -1,7 +1,29 @@
-import { ITeamProps } from "../interfaces/ITeam";
 import { Sport } from "../utilities/enums/commonEnum";
 import { TeamGender, TeamStatus, TeamVisibility } from "../utilities/enums/teamEnum";
 import { PlayerSmall } from "./PlayerSmall";
+
+/**
+ * Team model for players to join
+ */
+
+export interface TeamProps {
+    id: number;
+    name: string;
+    wins: number;
+    ties: number;
+    losses: number;
+    image: string;
+    visibility: TeamVisibility;
+    sport: Sport;
+    gender: TeamGender;
+    dateCreated: Date;
+    sportsmanshipScore: number;
+    status: TeamStatus;
+    maxTeamSize: number;
+    players: PlayerSmall[];
+    organizationId: string;
+    bracketId: number;
+}
 
 export class Team {
     protected id: number | null;
@@ -18,7 +40,7 @@ export class Team {
 
     protected visibility: TeamVisibility | null;
 
-    // protected sport: Sport | null;
+    protected sport: Sport | null;
 
     protected gender: TeamGender | null;
 
@@ -37,7 +59,7 @@ export class Team {
     protected bracketId: number | null;
 
     /** Constructor */
-    constructor(props: Partial<ITeamProps>) {
+    constructor(props: Partial<TeamProps>) {
         const {
             id = 0,
             name = "",
@@ -62,7 +84,7 @@ export class Team {
         this.ties = ties;
         this.losses = losses;
         this.image = image;
-        // this.sport = sport;
+        this.sport = sport;
         this.gender = gender;
         this.dateCreated = dateCreated;
         this.image = image;
@@ -159,13 +181,13 @@ export class Team {
         this.visibility = visibility;
     }
 
-    // getSport(): Sport | null {
-    //     return this.sport;
-    // }
+    getSport(): Sport | null {
+        return this.sport;
+    }
 
-    // setSport(sport: Sport | null): void {
-    //     this.sport = sport;
-    // }
+    setSport(sport: Sport | null): void {
+        this.sport = sport;
+    }
 
     getGender(): TeamGender | null {
         return this.gender;

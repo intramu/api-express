@@ -1,9 +1,10 @@
 import express from "express";
 import { APIResponse } from "../models/APIResponse";
 
-/** Below are two methods I came up with for handling the apiResponse */
-// this one is a middleware but it doesn't seem like this is the proper way. It feels
-// like im using middleware improperly so I'm hesitant
+/**
+ * Below are two methods I came up with for handling the apiResponse
+ * Still need to test which one is better
+ */
 
 // router.use((req, res, next) => {
 //     const { response, status } = res.locals;

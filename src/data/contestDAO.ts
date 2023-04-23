@@ -9,7 +9,6 @@ import { Contest } from "../models/competition/Contest";
 import { Division } from "../models/competition/Division";
 import { League } from "../models/competition/League";
 import { Team } from "../models/Team";
-import { TeamGender } from "../utilities/enums/teamEnum";
 import logger from "../utilities/winstonConfig";
 import { IsRollback, withClient, withClientRollback } from "./database";
 import { ContestGame } from "../models/competition/ContestGame";
@@ -20,9 +19,11 @@ export default class ContestDAO {
     private readonly className = this.constructor.name;
 
     /**
-     * Creates new contest to setup league play
-     * @param contest - contest details to be added to database
-     * @returns - returns contest details or null
+     * Creates new contest under organization with given id
+     * @param contest - must not be null
+     * @param orgId - must not be null
+     * @returns - the saved contest
+     * @throws - error when creating contest
      */
     async createContest(contest: Contest, orgId: string): Promise<Contest> {
         logger.verbose("Entering method createContest()", {
@@ -30,12 +31,12 @@ export default class ContestDAO {
             values: { contest, orgId },
         });
 
-        const sqlAdd =
+        const sql =
             "INSERT INTO contest (NAME, VISIBILITY, STATUS, SEASON, TERM, YEAR, organization_Id) VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING *";
 
         return withClient(async (querier) => {
-            const [result] = (
-                await querier<IContestDatabase>(sqlAdd, [
+            const [response] = (
+                await querier<IContestDatabase>(sql, [
                     contest.getName(),
                     contest.getVisibility(),
                     contest.getStatus(),
@@ -47,30 +48,31 @@ export default class ContestDAO {
                 ])
             ).rows;
 
-            if (result === undefined) {
+            if (!response) {
                 logger.error("Error creating contest", {
                     class: this.className,
                 });
                 throw new Error("Error creating contest");
             }
 
-            return Contest.fromDatabase({ ...result, leagues: [] });
+            return Contest.fromDatabase({ ...response, leagues: [] });
         });
     }
 
     /**
-     * Due to the nested nature of this data, there will many queries on the database
-     * A single connection is used to enter all data into the database, preventing
-     * the need to drop and acquire connections for every object
-     *
-     * REVISIT - IF NEEDED, possibly use common table expressions to speed this up
-     *
+     * Creates leagues, divisions, and brackets under contest with given id
      * @param leagues - list of leagues with divisions and brackets
-     * @param orgId - organization to create leagues under, ? may not be needed in future
-     * @param contestId - contest to put leagues under
-     * @returns - returns true or false for success and failure
+     * @param contestId - must not be null
+     * @returns - void
      */
     async createLeaguesAndChildren(leagues: League[], contestId: number): Promise<void> {
+        /**
+         * Due to the nested nature of this data, there will many queries on the database
+         * A single connection is used to enter all data into the database, preventing
+         *
+         * the need to drop and acquire connections for every object
+         * REVISIT - IF NEEDED, possibly use common table expressions to speed this up
+         */
         logger.verbose("Entering method createLeaguesAndChildren()", {
             class: this.className,
             values: { leagues, contestId },
@@ -98,7 +100,7 @@ export default class ContestDAO {
                     await querier(sqlLeague, [league.getName(), league.getSport(), contestId])
                 ).rows;
 
-                if (returnedLeague === undefined) {
+                if (!returnedLeague) {
                     return IsRollback;
                 }
 
@@ -123,7 +125,7 @@ export default class ContestDAO {
                         ])
                     ).rows;
 
-                    if (returnedDivision === undefined) {
+                    if (!returnedDivision) {
                         return IsRollback;
                     }
 
@@ -139,7 +141,7 @@ export default class ContestDAO {
                             ])
                         ).rows;
 
-                        if (returnedBracket === undefined) {
+                        if (!returnedBracket) {
                             return IsRollback;
                         }
 
@@ -160,16 +162,55 @@ export default class ContestDAO {
     }
 
     /**
+     * Creates contest game under bracket with given id
+     * @param game - must not be null
+     * @param bracketId - id of bracket; must not be null
+     * @returns - the saved contest
+     * @throws - error when creating contest game
+     */
+    async createContestGame(game: ContestGame, bracketId: number): Promise<ContestGame> {
+        logger.verbose("Entering method createContestGame()", {
+            class: this.className,
+        });
+
+        const sql =
+            "INSERT INTO contest_game (GAME_DATE, SCORE_HOME, SCORE_AWAY, STATUS_HOME, STATUS_AWAY, location_ID, HOME_TEAM_ID, AWAY_TEAM_ID, bracket_ID) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *";
+
+        return withClient(async (querier) => {
+            const [response] = (
+                await querier<IContestGameDatabase>(sql, [
+                    game.getGameDate(),
+                    game.getScoreHome(),
+                    game.getScoreAway(),
+                    game.getStatusHome(),
+                    game.getStatusAway(),
+                    game.getLocation()?.getId(),
+                    game.getHomeTeam()?.getId(),
+                    game.getAwayTeam()?.getId(),
+                    bracketId,
+                ])
+            ).rows;
+
+            if (!response) {
+                logger.error("Error creating Contest Game", {
+                    class: this.className,
+                });
+                throw new Error("Error creating Contest Game");
+            }
+
+            return ContestGame.fromDatabase(response);
+        });
+    }
+
+    /**
      * Finds all leagues under a contest along with its children
-     *
-     * REVISIT - IF NEEDED, look at using json_build_object() or something of the sort to
-     * get the database to perform a single query and return a built json object
-     * refer to findPathByBracketId() for example
-     *
      * @param contestId - id to fetch leagues with
      * @returns - returns list of leagues, division, and brackets
      */
     async findLeaguesAndChildrenByContestId(contestId: number): Promise<League[]> {
+        // REVISIT - IF NEEDED, look at using json_build_object() or something of the sort to
+        // get the database to perform a single query and return a built json object
+        // refer to findPathByBracketId() for example
         logger.verbose("Entering method findLeaguesAndChildrenByContestId()", {
             class: this.className,
             values: contestId,
@@ -185,6 +226,14 @@ export default class ContestDAO {
             JOIN team_roster AS tr ON t.id = tr.team_id
             JOIN player AS p ON p.auth_id = tr.player_auth_id
             WHERE t.bracket_id in (%L)
+            GROUP BY(t.id)`;
+
+        const sqlwhat = `SELECT t.*,
+            COALESCE(json_agg(json_build_object('auth_id', p.auth_id, 'first_name', p.first_name, 'last_name', p.last_name, 'gender', p.gender, 'status', p.status, 'image', p.image, 'role', tr.role)) FILTER (WHERE p.auth_id IS NOT NULL), '[]') AS players
+            FROM team t
+            JOIN team_roster AS tr ON t.id = tr.team_id
+            JOIN player AS p ON p.auth_id = tr.player_auth_id
+            WHERE t.bracket_id = $1
             GROUP BY(t.id)`;
         const sqlTeams = "SELECT * FROM team WHERE bracket_id IN (%L)";
 
@@ -213,8 +262,11 @@ export default class ContestDAO {
             //     .rows;
 
             // fetch all Teams that are part of bracket
+            console.log(bracketIdList);
+
             const teams = (await querier<ITeamDatabase>(format(sql, bracketIdList))).rows;
-            const wow = (await querier<ITeamDatabase>(format(sql, bracketIdList))).rows;
+            // const wow = (await querier<ITeamDatabase>(sqlwhat, [6])).rows;
+            // console.log(wow);
 
             /** My thought process here was to reverse the process for the insert function
              * above. The insert relies on querying the database for every single league, division,
@@ -267,9 +319,9 @@ export default class ContestDAO {
     }
 
     /**
-     * Returns contest details by using the id
-     * @param contestId - id to search for contest
-     * @returns - contest object or null
+     * Retrieves contest by its id
+     * @param contestId - must not be null
+     * @returns - contest with given id or null if not found
      */
     async findContestById(contestId: number): Promise<Contest | null> {
         logger.verbose("Entering method findContestById()", {
@@ -281,7 +333,7 @@ export default class ContestDAO {
         return withClient(async (querier) => {
             const [contest] = (await querier<IContestDatabase>(sqlFind, [contestId])).rows;
 
-            if (contest === undefined) {
+            if (!contest) {
                 return null;
             }
 
@@ -289,6 +341,11 @@ export default class ContestDAO {
         });
     }
 
+    /**
+     * Retrieves contest list under organization with given id
+     * @param orgId - must not be null
+     * @returns - contest list with given id
+     */
     async findContestsByOrganizationId(orgId: string): Promise<Contest[]> {
         logger.verbose("Entering method findContestByOrganizationId()", {
             class: this.className,
@@ -303,6 +360,12 @@ export default class ContestDAO {
         });
     }
 
+    /**
+     * Retrieves contest by contest id and organization id
+     * @param contestId - must not be null
+     * @param orgId - must not be null
+     * @returns - contest with given id or null if not found
+     */
     async findContestByIdAndOrgId(contestId: number, orgId: string): Promise<Contest | null> {
         logger.verbose("Entering method findContestByIdAndOrgId()", {
             class: this.className,
@@ -314,14 +377,18 @@ export default class ContestDAO {
         return withClient(async (querier) => {
             const [contest] = (await querier<IContestDatabase>(sqlFind, [contestId, orgId])).rows;
 
+            if (!contest) {
+                return null;
+            }
+
             return Contest.fromDatabase({ ...contest, leagues: [] });
         });
     }
 
     /**
-     * Returns bracket object
-     * @param bracketId - id to search for bracket with
-     * @returns - Bracket object or null
+     * Retrieves bracket by its id
+     * @param bracketId - must not be null
+     * @returns - bracket with given id or null if not found
      */
     async findBracketById(bracketId: number): Promise<Bracket | null> {
         logger.verbose("Entering method findBracketById()", {
@@ -338,6 +405,11 @@ export default class ContestDAO {
         });
     }
 
+    /**
+     * Retrieves division by its id
+     * @param divisionId - must not be null
+     * @returns - division with given id or null if not found
+     */
     async findDivisionById(divisionId: number): Promise<Division | null> {
         logger.verbose("Entering method findDivisionById()", {
             class: this.className,
@@ -351,7 +423,7 @@ export default class ContestDAO {
             const [division] = (await querier<IDivisionDatabase>(sqlDivision, [divisionId])).rows;
             const brackets = (await querier<IBracketDatabase>(sqlBrackets, [divisionId])).rows;
 
-            if (division === undefined) {
+            if (!division) {
                 return IsRollback;
             }
 
@@ -377,8 +449,8 @@ export default class ContestDAO {
      * teams, along with all their details. Uses table joins and json functions and
      * operators
      *
-     * @param bracketId - Bracket id to search with
-     * @returns - returns a Contest object with the tree to the bracket
+     * @param bracketId - must not be null
+     * @returns - contest object with the tree to the bracket or null if not found
      */
     async findPathByBracketId(bracketId: number): Promise<Contest | null> {
         logger.verbose("Entering method findPathByBracketId()", {
@@ -461,40 +533,11 @@ export default class ContestDAO {
         });
     }
 
-    async createContestGame(game: ContestGame, bracketId: number): Promise<boolean> {
-        logger.verbose("Entering method createContestGame()", {
-            class: this.className,
-        });
-
-        const sql =
-            "INSERT INTO contest_game (GAME_DATE, SCORE_HOME, SCORE_AWAY, STATUS_HOME, STATUS_AWAY, location_ID, HOME_TEAM_ID, AWAY_TEAM_ID, bracket_ID) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *";
-
-        return withClient(async (querier) => {
-            const [response] = (
-                await querier<IContestGameDatabase>(sql, [
-                    game.getGameDate(),
-                    game.getScoreHome(),
-                    game.getScoreAway(),
-                    game.getStatusHome(),
-                    game.getStatusAway(),
-                    game.getLocation()?.getId(),
-                    game.getHomeTeam()?.getId(),
-                    game.getAwayTeam()?.getId(),
-                    bracketId,
-                ])
-            ).rows;
-
-            if (response === undefined) {
-                logger.error("Error creating Contest Game", {
-                    class: this.className,
-                });
-                throw new Error("Error creating Contest Game");
-            }
-
-            return true;
-        });
-    }
-
+    /**
+     * Finds contest games under organization id
+     * @param orgId - must not be null
+     * @returns contest game list with given id or null if not found
+     */
     async findAllContestGames(orgId: string): Promise<ContestGame[]> {
         logger.verbose("Entering method findAllContestGames()", {
             class: this.className,
@@ -523,6 +566,45 @@ export default class ContestDAO {
             return response.map((game) => ContestGame.fromDatabase(game));
         });
     }
+
+    /**
+     * Patches admin in database
+     * @param game - must not be null
+     * @param bracketId - id of bracket; can be null
+     * @returns - the update contest game
+     */
+    async patchContestGame(game: ContestGame, bracketId: number | null): Promise<ContestGame> {
+        logger.verbose("Entering method updateContestGame()", {
+            class: this.className,
+            values: { game, bracketId },
+        });
+
+        const homeStatus = game.getStatusHome() === 0 ? null : game.getStatusHome();
+        const awayStatus = game.getStatusAway() === 0 ? null : game.getStatusAway();
+
+        const sql = `UPDATE contest_game 
+        SET game_date=COALESCE($1, game_date), score_home=COALESCE($2, score_home), score_away=COALESCE($3, score_away), status_home=COALESCE($4, status_home), status_away=COALESCE($5, status_away), location_id=COALESCE($6, location_id), home_team_id=COALESCE($7, home_team_id), away_team_id=COALESCE($8, away_team_id), bracket_id=COALESCE($9, bracket_id) 
+        WHERE id = $10 RETURNING *`;
+
+        return withClient(async (querier) => {
+            const [response] = (
+                await querier<IContestGameDatabase>(sql, [
+                    game.getGameDate(),
+                    game.getScoreHome(),
+                    game.getScoreAway(),
+                    homeStatus,
+                    awayStatus,
+                    game.getLocation()?.getId(),
+                    game.getHomeTeam()?.getId(),
+                    game.getAwayTeam()?.getId(),
+                    bracketId,
+                    game.getId(),
+                ])
+            ).rows;
+
+            return ContestGame.fromDatabase(response);
+        });
+    }
 }
 
 const test = new ContestDAO();
@@ -531,6 +613,7 @@ async function testFunction() {
     // console.log(await test.findAllContestGames("dab32727-cb7c-4320-8865-6f1b842785ed"));
     // const find = await test.findPathByBracketId(2);
     // const list = await test.findLeaguesAndChildrenByContestId(2);
+    // console.log(list);
     // console.log(list[0].getDivisions()[0].getBrackets()[1].getTeams()[0]);
     // console.log(find?.getLeagues()[0].getDivisions()[0].getBrackets()[0].getTimeChoices());
 }

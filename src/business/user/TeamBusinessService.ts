@@ -7,7 +7,6 @@ import { Team } from "../../models/Team";
 import { TeamRole, TeamStatus, TeamVisibility } from "../../utilities/enums/teamEnum";
 import logger from "../../utilities/winstonConfig";
 import { IJoinRequest } from "../../interfaces/ITeamJoinRequest";
-import { Sport } from "../../utilities/enums/commonEnum";
 
 const playerDatabase = new PlayerDAO();
 const teamDatabase = new TeamDAO();
@@ -17,41 +16,41 @@ const contestDatabase = new ContestDAO();
 export class TeamBusinessService {
     readonly className = this.constructor.name;
 
+    /**
+     * Returns all contest games for a team id
+     * @param authId - player searching
+     * @param teamId - team be searched on
+     * @returns - error response or team list
+     */
     async findContestGamesById(authId: string, teamId: number) {
         logger.verbose("Entering method findContestGamesById()", {
             class: this.className,
             values: { authId, teamId },
         });
 
-        const organization = await organizationDatabase.findOrganizationByPlayerId(authId);
-        if (!organization) {
-            return APIResponse.NewNotFound(authId);
+        const playerOrg = await organizationDatabase.findOrganizationByPlayerId(authId);
+        const teamOrg = await organizationDatabase.findOrganizationByTeamId(teamId);
+
+        // does player organization and team organization exist
+        if (!playerOrg || !teamOrg) {
+            return APIResponse.NewNotFound(teamId.toString());
         }
 
+        // are team and player in same organization
+        if (playerOrg.getId() !== teamOrg.getId()) {
+            return APIResponse.NewNotFound(teamId.toString());
+        }
+
+        // return all contest games for team
         return teamDatabase.findAllContestGames(teamId);
     }
 
-    // async findContestGamesById(authId: string, teamId: number) {
-    //     logger.verbose("Entering method findContestGamesById()", {
-    //         class: this.className,
-    //         values: { authId, teamId },
-    //     });
-
-    //     const organization = await organizationDatabase.findOrganizationByAdminId(authId);
-    //     if (!organization) {
-    //         return APIResponse.NewNotFound(authId);
-    //     }
-
-    //     return contestDatabase.findAllContestGames(organization.getId());
-    // }
-
     /**
      * Creates new team, player becomes captain
-     *
      * @param team - team object passed to database
      * @param divisionId - division waitlist to place team in
      * @param playerId - player that will be set as captain of the team
-     * @returns - returns single team object with added details
+     * @returns - error response or the saved team
      */
     async createTeam(
         team: Team,
@@ -63,6 +62,7 @@ export class TeamBusinessService {
             values: { team, authorizingId },
         });
 
+        // does player exist
         const organization = await organizationDatabase.findOrganizationByPlayerId(authorizingId);
         if (!organization) {
             return APIResponse.NotFound(`No player found with id: ${authorizingId}`);
@@ -75,20 +75,8 @@ export class TeamBusinessService {
             return APIResponse.NotFound(`No division found with id: ${divisionId}`);
         }
 
-        const newTeam: Team = team;
-
-        //setting some default team values
-        newTeam.setSportsmanshipScore(4.0);
-        newTeam.setStatus(TeamStatus.UNELIGIBLE);
-
-        newTeam.setMaxTeamSize(division.getMaxTeamSize());
-        newTeam.setGender(division.getType());
-
-        console.log(division.getBrackets());
-
         // search for waitlist bracket in division
         const waitlist = division.getBrackets().find((bracket) => bracket.getMaxTeamAmount() === 0);
-        console.log(waitlist);
 
         // if it doesn't exist this is a big error
         if (!waitlist) {
@@ -98,19 +86,18 @@ export class TeamBusinessService {
             throw new Error("No waitlist found");
         }
 
-        // put the team into the waitlist bracket
-        newTeam.setBracketId(waitlist.getId());
+        const newTeam = new Team({
+            //setting some default team values
+            sportsmanshipScore: 4.0,
+            status: TeamStatus.FINISHED,
+            maxTeamSize: division.getMaxTeamSize(),
+            gender: division.getType()!,
+            // put the team into the waitlist bracket
+            bracketId: waitlist.getId(),
+        });
 
         // create team
-        const response = await teamDatabase.createTeam(
-            newTeam,
-            authorizingId,
-            organization.getId(),
-            // first player role is set to Captain
-            TeamRole.CAPTAIN
-        );
-
-        return response;
+        return teamDatabase.createTeam(newTeam, authorizingId, organization.getId());
     }
 
     /**
@@ -125,12 +112,10 @@ export class TeamBusinessService {
             values: orgId,
         });
 
+        // finds all teams in organization
         const response = await teamDatabase.findAllTeamsByOrganizationId(orgId);
 
-        if (response.length === 0 || response === undefined) {
-            return APIResponse.NotFound(`No teams found with id ${orgId}`);
-        }
-
+        // filters team for eligibility
         const teamList = response.filter(
             (team) =>
                 team.getStatus() === TeamStatus.ELIGIBLE ||
@@ -142,11 +127,10 @@ export class TeamBusinessService {
 
     /**
      * Returns all teams under organization regardless of status.
-     * todo: figure out how to set this up so a user can pass in query parameter on
-     * API without this having to call a different method.
-     * @param orgId
-     * @returns
+     * @param orgId - organization to search under
+     * @returns - error response or team list
      */
+    // TODO: add query parameters
     async findAllTeamsByOrganizationId(orgId: string): Promise<APIResponse | Team[]> {
         logger.verbose("Entering method findAllTeamsByOrganizationId()", {
             class: this.className,
@@ -154,16 +138,11 @@ export class TeamBusinessService {
         });
 
         const org = await organizationDatabase.findOrganizationById(orgId);
-        if (org === null) {
+        if (!org) {
             return APIResponse.NotFound(`No organization found with id: ${orgId}`);
         }
 
-        const response = await teamDatabase.findAllTeamsByOrganizationId(orgId);
-        if (response.length === 0) {
-            return APIResponse.NotFound(`No teams found with organization id: ${orgId}`);
-        }
-
-        return response;
+        return teamDatabase.findAllTeamsByOrganizationId(orgId);
     }
 
     // TODO: create function to move team to bracket (will check if team meets minimum requirements)
@@ -171,11 +150,10 @@ export class TeamBusinessService {
      * Adds player to team as a player, only if the team is public
      * @param playerId - id of player to add to team
      * @param teamId - id of team, player is being added too
-     * @returns Error Response
-     * @returns boolean
+     * @returns error Response or void
      */
     // TODO: not separation safe. are player and team in same organization
-    async joinTeam(playerId: string, teamId: number): Promise<APIResponse | boolean> {
+    async joinTeam(playerId: string, teamId: number): Promise<APIResponse | void> {
         logger.verbose("Entering method joinTeam()", {
             class: this.className,
             values: { playerId, teamId },
@@ -186,7 +164,7 @@ export class TeamBusinessService {
         const team = await teamDatabase.findTeamById(teamId);
 
         // does team exist
-        if (team === null) {
+        if (!team) {
             return APIResponse.NotFound(`No Team found with id: ${teamId}`);
         }
 
@@ -206,8 +184,7 @@ export class TeamBusinessService {
         }
 
         // if all checks out, add player to team
-        teamDatabase.addToTeamRoster(teamId, playerId, TeamRole.PLAYER);
-        return true;
+        await teamDatabase.addToTeamRoster(teamId, playerId, TeamRole.PLAYER);
     }
 
     /**
@@ -222,24 +199,26 @@ export class TeamBusinessService {
         kickeeId: string,
         teamId: number,
         authorizingId: string
-    ): Promise<APIResponse | boolean> {
+    ): Promise<APIResponse | void> {
         logger.verbose("Entering method kickPlayerFromTeam()", {
             class: this.className,
             values: { kickeeId, teamId, authorizingId },
         });
 
         // one player should always be on team, if no players were found, team doesn't exist
-        const players = await teamDatabase.findAllPlayersByTeamId(teamId);
-        if (players.length === 0) {
+        const team = await teamDatabase.findTeamById(teamId);
+        if (!team) {
             return APIResponse.NotFound(`No team found with id: ${teamId}`);
         }
 
         // search for authorizing player
-        const authorizing = players.find((player) => player.getAuthId() === authorizingId);
+        const authorizing = team
+            .getPlayers()
+            .find((player) => player.getAuthId() === authorizingId);
 
         // is authorizing id a captain or co-captain
         if (
-            authorizing !== undefined &&
+            authorizing &&
             authorizing.getRole() !== TeamRole.CAPTAIN &&
             authorizing.getRole() !== TeamRole.COCAPTAIN
         ) {
@@ -247,10 +226,10 @@ export class TeamBusinessService {
         }
 
         // search for kickee
-        const kickee = players.find((player) => player.getAuthId() === kickeeId);
+        const kickee = team.getPlayers().find((player) => player.getAuthId() === kickeeId);
 
         // if player to kick is on team
-        if (kickee === undefined) {
+        if (!kickee) {
             return APIResponse.NotFound(`Player: ${kickeeId} to kick not found`);
         }
 
@@ -261,7 +240,6 @@ export class TeamBusinessService {
 
         // if all checks out player is removed from team roster
         await teamDatabase.removeFromTeamRoster(teamId, kickeeId);
-        return true;
     }
 
     async updatePlayerRoleOnTeam(
@@ -269,7 +247,7 @@ export class TeamBusinessService {
         teamId: number,
         authorizingId: string,
         role: TeamRole
-    ): Promise<APIResponse | boolean> {
+    ): Promise<APIResponse | void> {
         logger.verbose("Entering method kickPlayerFromTeam()", {
             class: this.className,
             values: { updateeId, teamId, authorizingId, role },
@@ -281,15 +259,17 @@ export class TeamBusinessService {
         }
 
         // one player should always be on team, if no players were found, team doesn't exist
-        const players = await teamDatabase.findAllPlayersByTeamId(teamId);
-        if (players.length === 0) {
+        const team = await teamDatabase.findTeamById(teamId);
+        if (!team) {
             return APIResponse.NotFound(`No team found with id: ${teamId}`);
         }
 
         // search for authorizing player
-        const authorizing = players.find((player) => player.getAuthId() === authorizingId);
+        const authorizing = team
+            .getPlayers()
+            .find((player) => player.getAuthId() === authorizingId);
         if (
-            authorizing !== undefined &&
+            authorizing &&
             authorizing.getRole() !== TeamRole.CAPTAIN &&
             authorizing.getRole() !== TeamRole.COCAPTAIN
         ) {
@@ -297,10 +277,10 @@ export class TeamBusinessService {
         }
 
         // search for updatee
-        const kickee = players.find((player) => player.getAuthId() === updateeId);
+        const kickee = team.getPlayers().find((player) => player.getAuthId() === updateeId);
 
         // if player to update is on team
-        if (kickee === undefined) {
+        if (!kickee) {
             return APIResponse.NotFound(`Player: ${updateeId} to kick not found`);
         }
 
@@ -309,24 +289,25 @@ export class TeamBusinessService {
             return APIResponse.Conflict(`Cannot update Captain's role`);
         }
 
+        // update player on roster
         await teamDatabase.updateTeamRoster(teamId, updateeId, role);
-        return true;
     }
 
     /**
      * Returns details on team by searching with id
      * @param teamId - id of team to search with
-     * @returns - error response or team object
+     * @returns - error response or team with given id
      */
     // TODO: is requesting player in organization
-    async findTeamById(teamId: number): Promise<APIResponse | Team> {
+    async findTeamById(teamId: number, authId: string): Promise<APIResponse | Team> {
         logger.verbose("Entering method findTeamById()", {
             class: this.className,
+            values: { teamId, authId },
         });
 
+        // does team exist
         const team = await teamDatabase.findTeamById(teamId);
-
-        if (team === null) {
+        if (!team) {
             return APIResponse.NotFound(`No team found with id: ${teamId}`);
         }
 
@@ -337,7 +318,7 @@ export class TeamBusinessService {
      * Patches team details with id that exists on team object. This method only patches
      * object in database
      * @param team - new team details
-     * @returns - error response or newly updated team object
+     * @returns - error response or patched team
      */
     // TODO: is requesting player a captain
     async patchTeam(authId: string, team: Team): Promise<APIResponse | Team> {
@@ -345,28 +326,35 @@ export class TeamBusinessService {
             class: this.className,
         });
 
-        const result = await teamDatabase.findTeamById(team.getId()!);
-
-        if (result === null) {
+        // does team exist
+        const teamResult = await teamDatabase.findTeamById(team.getId()!);
+        if (!teamResult) {
             return APIResponse.NotFound(`No team found with id: ${team.getId()}`);
         }
 
-        const updatedTeam = await teamDatabase.patchTeam(team);
-
-        if (updatedTeam === null) {
-            return APIResponse.InternalError(`Error updating team: ${team.getId()}`);
+        // is player on team and the captain
+        if (
+            !team
+                .getPlayers()
+                .some(
+                    (player) =>
+                        player.getAuthId() === authId && player.getRole() === TeamRole.CAPTAIN
+                )
+        ) {
+            return APIResponse.Forbidden(`${authId} is not authorized to patch the team`);
         }
 
-        return updatedTeam;
+        // patches team in database
+        return teamDatabase.patchTeam(team);
     }
 
     /**
      * Makes request for a player to join a team
      * @param playerId - id of player wanting to join team
      * @param teamId - id of team
-     * @returns - error response or true if success
+     * @returns - error response or void
      */
-    async requestToJoinTeam(playerId: string, teamId: number): Promise<APIResponse | true> {
+    async requestToJoinTeam(playerId: string, teamId: number): Promise<APIResponse | void> {
         logger.verbose("Entering method requestToJoinTeam()", {
             class: this.className,
             values: {
@@ -379,7 +367,7 @@ export class TeamBusinessService {
         const team = await teamDatabase.findTeamById(teamId);
 
         // does team exist
-        if (team === null) {
+        if (!team) {
             return APIResponse.NotFound(`No team found with id: ${teamId}`);
         }
 
@@ -399,13 +387,12 @@ export class TeamBusinessService {
 
         // check if player has already sent invite
         const teamRequests = await teamDatabase.findAllJoinRequests(teamId);
-        // TODO: refresh invite rather than a confliction
         if (teamRequests.find((request) => request.authId === playerId)) {
+            // refreshes invite if one already exists
             teamDatabase.updateJoinRequest(playerId, teamId, date);
         }
 
         await teamDatabase.createJoinRequest(teamId, playerId, date);
-        return true;
     }
 
     async findAllJoinRequests(
@@ -439,6 +426,7 @@ export class TeamBusinessService {
             );
         }
 
+        // finds all join requests
         return teamDatabase.findAllJoinRequests(teamId);
     }
 
@@ -453,7 +441,7 @@ export class TeamBusinessService {
         requesteeId: string,
         authorizingId: string,
         teamId: number
-    ): Promise<APIResponse | true> {
+    ): Promise<APIResponse | void> {
         logger.verbose("Entering method acceptJoinRequest()", {
             class: this.className,
             values: {
@@ -467,7 +455,7 @@ export class TeamBusinessService {
 
         // check if team exists
         const team = await teamDatabase.findTeamById(teamId);
-        if (team === null) {
+        if (!team) {
             return APIResponse.NotFound(`No team found with id: ${teamId}`);
         }
         // check that aceptee id possesses valid rights to accept join request
@@ -476,9 +464,9 @@ export class TeamBusinessService {
                 .getPlayers()
                 .some(
                     (player) =>
-                        (player.getAuthId() === authorizingId &&
-                            player.getRole() === TeamRole.CAPTAIN) ||
-                        player.getRole() === TeamRole.COCAPTAIN
+                        player.getAuthId() === authorizingId &&
+                        (player.getRole() === TeamRole.CAPTAIN ||
+                            player.getRole() === TeamRole.COCAPTAIN)
                 )
         ) {
             return APIResponse.Forbidden(
@@ -488,16 +476,9 @@ export class TeamBusinessService {
 
         // REVISIT - issues can occur here if one database method fails
         // delete join request
-        const deleteResponse = await teamDatabase.removeJoinRequest(requesteeId, teamId);
-        if (deleteResponse === false) {
-            return APIResponse.NotFound(
-                `No join request found with player id: ${requesteeId} and team id: ${teamId}`
-            );
-        }
+        await teamDatabase.removeJoinRequest(requesteeId, teamId);
 
         // add player to team roster
         await teamDatabase.addToTeamRoster(teamId, requesteeId, TeamRole.PLAYER);
-
-        return true;
     }
 }

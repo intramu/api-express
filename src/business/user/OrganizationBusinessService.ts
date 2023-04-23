@@ -2,16 +2,16 @@ import AdminDAO from "../../data/adminDAO";
 import OrganizationDAO from "../../data/organizationDAO";
 import { Admin } from "../../models/Admin";
 import { APIResponse } from "../../models/APIResponse";
-import { Tournament } from "../../models/competition/Tournament";
-import { TournamentGame } from "../../models/competition/TournamentGame";
 import { Organization } from "../../models/Organization";
-import { getBracket } from "../../utilities/bracketGenerator";
 import { TournamentGameStatus, TournamentType } from "../../utilities/enums/competitionEnum";
 import logger from "../../utilities/winstonConfig";
 import PlayerDAO from "../../data/playerDAO";
 import { Player } from "../../models/Player";
 import TeamDAO from "../../data/teamDAO";
 import { Team } from "../../models/Team";
+import { createAdminAuth0Account } from "../commonBusinessService";
+import { AdminRole } from "../../utilities/enums/userEnum";
+import { AdminWithPassword } from "../../interfaces/IAdmin";
 
 const organizationDatabase = new OrganizationDAO();
 const adminDatabase = new AdminDAO();
@@ -22,32 +22,52 @@ export class OrganizationBusinessService {
     private readonly className = this.constructor.name;
 
     /**
+     * Finds all organizations names and ids
+     * @returns - organization list of only names and id pairs
+     */
+    async findOrganizationSignupList(): Promise<APIResponse | { id: string; name: string }[]> {
+        logger.verbose("Entering method findOrganizationSignupList()", {
+            class: this.className,
+        });
+
+        // fetches organizations
+        return organizationDatabase.findAllOrganizationsWithNameAndId();
+    }
+
+    /**
      * Searches for organization with admin id
      * @param adminId - id of admin to search with
-     * @returns - error response or Organization object
+     * @returns - error response or organization with given id
      */
     async findOrganizationByAdminId(adminId: string): Promise<APIResponse | Organization> {
         logger.verbose("Entering method findOrganizationByAdminId()", {
             class: this.className,
-            values: adminId,
+            values: { adminId },
         });
 
+        // find organization
         const organization = await organizationDatabase.findOrganizationByAdminId(adminId);
-        if (organization === null) {
+        if (!organization) {
             return APIResponse.NotFound(`No organization found with admin id: ${adminId}`);
         }
 
         return organization;
     }
 
+    /**
+     * Searches for organization with player id
+     * @param authId - id of player
+     * @returns - error response or organization with given id
+     */
     async findOrganizationByPlayerId(authId: string): Promise<APIResponse | Organization> {
         logger.verbose("Entering method findOrganizationByPlayerId()", {
             class: this.className,
-            values: authId,
+            values: { authId },
         });
 
+        // find organization
         const organization = await organizationDatabase.findOrganizationByPlayerId(authId);
-        if (organization === null) {
+        if (!organization) {
             return APIResponse.NewNotFound(authId);
         }
 
@@ -62,11 +82,11 @@ export class OrganizationBusinessService {
     async patchOrganizationByAdminId(adminId: string): Promise<APIResponse | Organization> {
         logger.verbose("Entering method patchOrganizationByAdminId()", {
             class: this.className,
-            values: adminId,
+            values: { adminId },
         });
 
         const admin = await adminDatabase.findAdminById(adminId);
-        if (admin === null) {
+        if (!admin) {
             return APIResponse.NotFound(`No admin found with id: ${adminId}`);
         }
 
@@ -81,17 +101,19 @@ export class OrganizationBusinessService {
      * @param adminId - id of admin to look for organization with
      * @returns - error response or Player list
      */
-    async findAllPlayersByAdminId(adminId: string): Promise<APIResponse | Player[]> {
-        logger.verbose("Entering method findAllPlayersByAdminId()", {
+    async findAllPlayers(adminId: string): Promise<APIResponse | Player[]> {
+        logger.verbose("Entering method findAllPlayers()", {
             class: this.className,
-            values: adminId,
+            values: { adminId },
         });
 
+        // does organization exist
         const organization = await organizationDatabase.findOrganizationByAdminId(adminId);
-        if (organization === null) {
+        if (!organization) {
             return APIResponse.NotFound(`No organization found with admin id: ${adminId}`);
         }
 
+        // returns all players in organization
         return playerDatabase.findAllPlayersByOrganizationId(organization.getId());
     }
 
@@ -100,17 +122,19 @@ export class OrganizationBusinessService {
      * @param adminId - id of admin to look for organization with
      * @returns - error response or team list
      */
-    async findAllTeamsByAdminId(adminId: string): Promise<APIResponse | Team[]> {
-        logger.verbose("Entering method findAllTeamsByAdminId()", {
+    async findAllTeams(adminId: string): Promise<APIResponse | Team[]> {
+        logger.verbose("Entering method findAllTeams()", {
             class: this.className,
-            values: adminId,
+            values: { adminId },
         });
 
+        // does organization exist
         const organization = await organizationDatabase.findOrganizationByAdminId(adminId);
-        if (organization === null) {
+        if (!organization) {
             return APIResponse.NotFound(`No organization found with admin id: ${adminId}`);
         }
 
+        // returns all teams in organization
         return teamDatabase.findAllTeamsByOrganizationId(organization.getId());
     }
 
@@ -125,208 +149,60 @@ export class OrganizationBusinessService {
             values: authId,
         });
 
+        // does organization exist
         const organization = await organizationDatabase.findOrganizationByAdminId(authId);
-        if (organization === null) {
+        if (!organization) {
             return APIResponse.NotFound(`No organization found with admin id: ${authId}`);
         }
 
+        // returns all admins in organization
         return adminDatabase.findAllAdminsByOrganizationId(organization.getId());
     }
 
-    async createAdmin(admin: Admin, authId: string): Promise<APIResponse | Admin> {
+    /**
+     * Creates new admin in organization
+     * @param admin - admin to be added
+     * @param authId - authorizing master admin id
+     * @returns - the saved admin with temp password
+     */
+    async createAdmin(admin: Admin, authId: string): Promise<APIResponse | AdminWithPassword> {
         logger.verbose("Entering method createAdmin()", {
             class: this.className,
             values: authId,
         });
 
+        // does admin exits
+        const lookupAdmin = await adminDatabase.findAdminById(authId);
+        if (!lookupAdmin) {
+            return APIResponse.NewNotFound(authId);
+        }
+
+        // is the admin a master
+        // only master's can create other admins
+        if (lookupAdmin.getRole() !== AdminRole.MASTER) {
+            return APIResponse.Forbidden(`${authId} not authorized to create admins`);
+        }
+
+        // does organization exist
         const organization = await organizationDatabase.findOrganizationByAdminId(authId);
-        if (organization === null) {
+        if (!organization) {
             return APIResponse.NotFound(`No organization found with admin id: ${authId}`);
         }
 
-        return adminDatabase.createAdminByOrganizationId(admin, organization.getId());
+        // create auth0 account for new admin
+        const auth0Admin = await createAdminAuth0Account(admin, organization.getName(), false);
+        if (!auth0Admin) {
+            return APIResponse.InternalError("Auth0 error");
+        }
+
+        // adds auth0 account and other details to database
+        const newAdmin = await adminDatabase.createAdminByOrganizationId(
+            auth0Admin,
+            organization.getId()
+        );
+
+        return { ...newAdmin, password: "" } as AdminWithPassword;
     }
 
     // tournament visualizer = https://brackethq.com/maker/
-
-    // REVISIT - These tournament methods need some major rework but i'm leaving them in here for now
-
-    // async generatePlayoff() {}
-
-    /**
-     * Requires a list of participants, their seeds, and tournament details to create a new Tournament
-     * and its games. For generating a tournament based on a league, please use generatePlayoff()
-     * @param tournament
-     * @param teams
-     */
-    async createTournament(
-        tournament: Tournament,
-        teams: number[]
-    ): Promise<Tournament | APIResponse> {
-        return APIResponse.NotImplemented();
-        // const newTournament = await competitionDatabase.createTournament(tournament);
-        // if (newTournament === null) {
-        //     return APIResponse[500]("Error creating tournament");
-        // }
-
-        // const gameList: TournamentGame[] = await this.generateTournament(newTournament, teams);
-        // if (gameList.length === 0) {
-        //     return APIResponse[500]("Error generating tournament");
-        // }
-
-        // const newGames = await competitionDatabase.createTournamentGames(gameList);
-        // if (newGames.length === 0) {
-        //     return APIResponse[500]("Error creating games");
-        // }
-
-        // newTournament.setGames(newGames);
-        // return newTournament;
-    }
-
-    // async generateTournament(tournament: Tournament, teams: [teamId: number, teamSeed: number]) {
-    // eslint-disable-next-line class-methods-use-this
-    async generateTournament(tournament: Tournament, teams: number[]): Promise<TournamentGame[]> {
-        // will return if there are not an even number of teams to make a bracket.
-        // todo: support byes
-        if (teams.length % 4 !== 0) {
-            return [];
-        }
-
-        const generatedList = getBracket(teams);
-        const gameList: TournamentGame[] = [];
-
-        switch (tournament.getTournamentType()) {
-            case TournamentType.SINGLE: {
-                console.log("SINGLE");
-                let totalNumberOfGames = teams.length - 1;
-                // first loop creates first round games with seeds
-                for (let x = 0; x < generatedList.length; x++) {
-                    // random number pulls random team from list then splices it out of list
-                    const randomNumberOne = Math.floor(Math.random() * teams.length);
-                    const homeTeam = teams[randomNumberOne];
-                    teams.splice(randomNumberOne, 1);
-
-                    const randomNumberTwo = Math.floor(Math.random() * teams.length);
-                    const awayTeam = teams[randomNumberTwo];
-                    teams.splice(randomNumberTwo, 1);
-
-                    // the two random teams are now placed into a game with seed info
-                    gameList.push(
-                        new TournamentGame({
-                            id: null,
-                            dateCreated: null,
-                            gameDate: null,
-                            location: "GCU",
-                            locationDetails: "",
-                            scoreHome: 0,
-                            scoreAway: 0,
-                            seedHome: generatedList[x][0],
-                            seedAway: generatedList[x][1],
-                            statusHome: TournamentGameStatus.NOTPLAYED,
-                            statusAway: TournamentGameStatus.NOTPLAYED,
-                            level: x,
-                            round: 1,
-                            homeTeamId: homeTeam,
-                            awayTeamId: awayTeam,
-                            tournamentId: tournament.getId()!,
-                        })
-                    );
-                    totalNumberOfGames--;
-                }
-
-                // rest of tournament games are created here
-                let round = 2;
-                while (totalNumberOfGames > 0) {
-                    const remainingGames = totalNumberOfGames / 2;
-                    for (let x = 0; x < remainingGames; x++) {
-                        gameList.push(
-                            new TournamentGame({
-                                id: null,
-                                dateCreated: null,
-                                gameDate: null,
-                                location: "GCU",
-                                locationDetails: "",
-                                scoreHome: 0,
-                                scoreAway: 0,
-                                seedHome: 0,
-                                seedAway: 0,
-                                statusHome: TournamentGameStatus.TOBEDETERMINED,
-                                statusAway: TournamentGameStatus.TOBEDETERMINED,
-                                level: x,
-                                round,
-                                homeTeamId: null,
-                                awayTeamId: null,
-                                tournamentId: tournament.getId()!,
-                            })
-                        );
-                        totalNumberOfGames--;
-                    }
-                    round++;
-                }
-
-                break;
-            }
-            case TournamentType.DOUBLE:
-                console.log("DOUBLE");
-                break;
-            case TournamentType.ROUNDROBIN:
-                console.log("ROUND ROBIN");
-                break;
-            default: {
-                console.log("RANDOM");
-                break;
-            }
-        }
-        return gameList;
-    }
-
-    async findAllOrganizations(): Promise<APIResponse | Organization[]> {
-        logger.verbose("Entering method findAllOrganizations()", {
-            class: this.className,
-        });
-
-        const organizations = await organizationDatabase.findAllOrganizations();
-        return organizations;
-    }
-}
-
-const test = new OrganizationBusinessService();
-
-testFunc();
-
-async function testFunc() {
-    // await test.createTournament(
-    //     new Tournament({
-    //         id: null,
-    //         name: "My Tourney",
-    //         visibility: Visibility.CLOSED,
-    //         status: Status.ACTIVE,
-    //         numberOfTeams: 2,
-    //         dateCreated: null,
-    //         startDate: new Date(),
-    //         endDate: new Date(),
-    //         tournamentType: TournamentType.SINGLE,
-    //         sport: "soccer",
-    //         games: [],
-    //         organizationId: "03503875-f4a2-49f6-bb9f-e9a22fb852d4",
-    //     }),
-    //     [4, 10, 12]
-    // );
-    // await test.generateTournament(
-    //     new Tournament({
-    //         id: null,
-    //         name: "My Tourney",
-    //         visibility: Visibility.CLOSED,
-    //         status: Status.ACTIVE,
-    //         numberOfTeams: 2,
-    //         dateCreated: null,
-    //         startDate: new Date(),
-    //         endDate: new Date(),
-    //         tournamentType: TournamentType.RANDOM,
-    //         sport: "soccer",
-    //         games: [],
-    //         organizationId: "03503875-f4a2-49f6-bb9f-e9a22fb852d4",
-    //     }),
-    //     [21, 22, 23, 24, 25, 26, 27, 28]
-    // );
 }
