@@ -3,7 +3,7 @@ import { auth } from "express-oauth2-jwt-bearer";
 import { generate } from "generate-password";
 
 /**
- * Middelware import from auth0 that checks if incoming JWT is valid
+ * Middleware import from auth0 that checks if incoming JWT is valid
  * and user credentials
  */
 // TODO: add environment config
@@ -21,6 +21,15 @@ export const auth0 = new ManagementClient({
     domain: "dev-5p-an07k.us.auth0.com",
     clientId: "kJSlepUUcaMHM5Qi4DOcsOkTToZtOpie",
     clientSecret: "Pgtyf53JVpnnjn_RlpVHDSDgSp4Vqzwqg3J7RQdtnL7l6oNLVUzJPjYDfY2MrakM",
+    scope: "create:users read:roles update:users create:role_members",
+    audience: "https://server-authorization/",
+    retry: {
+        enabled: true,
+        maxRetries: 2,
+    },
+    tokenProvider: {
+        enableCache: true,
+    },
 });
 
 export const generateRandomPasword = generate({
