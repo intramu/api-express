@@ -2,13 +2,14 @@ import express from "express";
 import { TeamBusinessService } from "../../../business/service/TeamBusinessService";
 import { APIResponse } from "../../../models/APIResponse";
 import { handleErrorResponse } from "../../../utilities/apiFunctions";
-import { authIdBody, teamRoleBody } from "../../../utilities/validation/common";
-import { newJoinRequestSchema } from "../../../utilities/validation/teamValidation";
 import {
+    authIdBody,
     authIdParam,
     organizationIdParam,
     teamIdParam,
-} from "../../../utilities/validation/validationSchemas";
+    teamRoleBody,
+} from "../../../utilities/validation/common";
+import { newJoinRequestSchema } from "../../../utilities/validation/teamValidation";
 import { Team } from "../../../models/Team";
 
 const teamService = new TeamBusinessService();

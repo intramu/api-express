@@ -4,7 +4,7 @@ import { OrganizationBusinessService } from "../../../business/service/Organizat
 import { Admin } from "../../../models/Admin";
 import { handleErrorResponse } from "../../../utilities/apiFunctions";
 import { newAdminSchema, patchAdminSchema } from "../../../utilities/validation/adminValidation";
-import { authIdParam, organizationIdParam } from "../../../utilities/validation/validationSchemas";
+import { authIdParam, organizationIdParam } from "../../../utilities/validation/common";
 
 const organizationService = new OrganizationBusinessService();
 

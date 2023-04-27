@@ -3,14 +3,11 @@ import { requiredScopes } from "express-oauth2-jwt-bearer";
 import { OrganizationBusinessService } from "../../../business/service/OrganizationBusinessService";
 import { APIResponse } from "../../../models/APIResponse";
 import { Player } from "../../../models/Player";
-import {
-    authIdParam,
-    organizationIdParam,
-    validate,
-} from "../../../utilities/validation/validationSchemas";
 import { PlayerBusinessService } from "../../../business/service/PlayerBusinessService";
 import { handleErrorResponse } from "../../../utilities/apiFunctions";
 import { newPlayerSchemaSudo } from "../../../utilities/validation/playerValidation";
+import { upload } from "../../../business/AWSService";
+import { authIdParam, organizationIdParam } from "../../../utilities/validation/common";
 
 const router = express.Router();
 
@@ -34,10 +31,7 @@ router
         const { userId } = req.params;
         const response = await playerService.findPlayerById(userId);
 
-        // setTimeout(() => {
-        //     return handleErrorResponse(response, res);
-        // }, 3000);
-        return res.status(500).json("error");
+        return handleErrorResponse(response, res);
     })
     .delete(authIdParam, async (req, res) => {
         const { userId } = req.params;
@@ -64,9 +58,12 @@ router
 
         return handleErrorResponse(response, res);
     })
-    .post(organizationIdParam, newPlayerSchemaSudo, async (req, res) => {
+    .post(upload.single("image"), organizationIdParam, newPlayerSchemaSudo, async (req, res) => {
+        const obj: unknown = req.file;
+        const file: { location: string } = obj as { location: string };
+
         const { orgId } = req.params;
-        const player = new Player(req.body);
+        const player = new Player({ image: file.location, ...req.body });
 
         const response = await playerService.createPlayerByOrganizationId(player, orgId);
         return handleErrorResponse(response, res, 201);

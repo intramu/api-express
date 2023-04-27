@@ -3,9 +3,8 @@ import { TeamBusinessService } from "../../../business/user/TeamBusinessService"
 import { APIResponse } from "../../../models/APIResponse";
 import { Team } from "../../../models/Team";
 import { handleErrorResponse } from "../../../utilities/apiFunctions";
-import { authIdParam, teamRoleBody } from "../../../utilities/validation/common";
+import { authIdParam, teamIdParam, teamRoleBody } from "../../../utilities/validation/common";
 import { newTeamSchema } from "../../../utilities/validation/teamValidation";
-import { teamIdParam } from "../../../utilities/validation/validationSchemas";
 import { checkJwt } from "../../../utilities/authUtilities";
 
 const router = express.Router();

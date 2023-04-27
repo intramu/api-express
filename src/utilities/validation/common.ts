@@ -127,9 +127,9 @@ export const authIdBody = body("authId")
     .trim()
     .escape()
     .custom((str: string) => str.substring(0, 6) === "auth0|")
-    .withMessage("User auth_id's must be prepended with 'auth0|'")
+    .withMessage("User authId's must be prepended with 'auth0|'")
     .isLength({ min: 30, max: 30 })
-    .withMessage("User's auth_id must be 30 characters");
+    .withMessage("User's authId must be 30 characters");
 
 // requires "role" body field to be enum type
 export const teamRoleBody = validate([

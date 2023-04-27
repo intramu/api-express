@@ -6,6 +6,7 @@ interface LocationProps {
     zipCode: string;
     name: string;
     details: string;
+    isMain: boolean;
 }
 
 /**
@@ -27,6 +28,8 @@ export class Location {
 
     protected details;
 
+    protected isMain;
+
     constructor(props: Partial<LocationProps>) {
         const {
             id = 0,
@@ -36,6 +39,7 @@ export class Location {
             zipCode = "",
             name = "",
             details = "",
+            isMain = false,
         } = props;
 
         this.id = id;
@@ -45,6 +49,7 @@ export class Location {
         this.zipCode = zipCode;
         this.name = name;
         this.details = details;
+        this.isMain = isMain;
     }
 
     public static fromDatabase(props: {
@@ -55,6 +60,7 @@ export class Location {
         zip_code: string;
         name: string;
         details: string;
+        ismain: boolean;
     }) {
         const obj = new Location(props);
         obj.zipCode = props.zip_code;

@@ -1,18 +1,20 @@
 import express from "express";
-import { auth } from "express-oauth2-jwt-bearer";
 import { PlayerBusinessService } from "../../../business/user/PlayerBusinessService";
 import { APIResponse } from "../../../models/APIResponse";
 import { Player } from "../../../models/Player";
 import { handleErrorResponse } from "../../../utilities/apiFunctions";
-import { organizationIdParam } from "../../../utilities/validation/common";
+import {
+    authIdParam,
+    organizationIdParam,
+    teamIdParam,
+} from "../../../utilities/validation/common";
 import {
     newPlayerSchemaUser,
     patchPersonSchema,
 } from "../../../utilities/validation/playerValidation";
-import { authIdParam, teamIdParam } from "../../../utilities/validation/validationSchemas";
 import { OrganizationBusinessService } from "../../../business/user/OrganizationBusinessService";
 import { checkJwt } from "../../../utilities/authUtilities";
-// import { finishProfileSchema } from "../../../utilities/validation/validationSchemas";
+import { upload } from "../../../business/AWSService";
 
 const router = express.Router();
 
@@ -25,25 +27,26 @@ router.use(checkJwt);
 // todo: add param for organization
 router.post(
     "/organizations/:orgId/players",
-    checkJwt,
+    upload.single("image"),
     organizationIdParam,
     newPlayerSchemaUser,
     async (req, res) => {
         const { sub = "" } = req.auth?.payload ?? {};
         const { orgId } = req.params;
 
-        const player = new Player({ authId: sub, ...req.body });
+        /**
+         * The types on the file object for multer are incorrect so it requires
+         * a type assertion to tell typescript this will have a variable called
+         * location
+         */
+        const obj: unknown = req.file;
+        const file: { location: string } = obj as { location: string };
+        const player = new Player({ authId: sub, image: file ? file.location : "", ...req.body });
 
         const response = await playerService.createPlayer(player, orgId);
         return handleErrorResponse(response, res);
     }
 );
-
-router.route("/organizations/list").get(async (req, res) => {
-    const response = await organizationService.findOrganizationSignupList();
-
-    return handleErrorResponse(response, res);
-});
 
 router
     .route("/players")
@@ -59,8 +62,6 @@ router
         // REVIST - small issue here, additional fields can be passed into the request body
         // and change fields that aren't supposed to be touched
         const player = new Player({ authId: sub, ...req.body });
-        console.log("artic", player);
-
         const response = await playerService.patchPlayer(player);
 
         return handleErrorResponse(response, res);
@@ -110,7 +111,6 @@ router.delete("/players/requests/teams/:teamId", async (req, res) => {
 
 router.get("/players/search", async (req, res) => {
     const { name, userId } = req.query;
-    console.log(name);
 
     if (name) {
         const response = await playerService.findPlayerByNameInOrganization(
@@ -131,17 +131,30 @@ router.get("/players/search", async (req, res) => {
     return res.status(400).json(APIResponse.BadRequest("No query parameters provided"));
 });
 
-router.get("/players/teams", checkJwt, async (req, res) => {
-    const { sub = "" } = req.auth!.payload;
+router.get("/players/teams", async (req, res) => {
+    const { sub = "" } = req.auth?.payload ?? {};
     const response = await playerService.findPlayersTeams(sub);
 
     return handleErrorResponse(response, res);
 });
 
 router.get("/organizations/signup/list", async (req, res) => {
-    const { sub = "" } = req.auth!.payload;
-    const response = await organizationService.findOrganizationByPlayerId(sub);
+    const response = await organizationService.findOrganizationSignupList();
 
+    return handleErrorResponse(response, res);
+});
+
+router.get("/organizations/:orgId/email/:email", async (req, res) => {
+    const { email, orgId } = req.params;
+    const response = await organizationService.findPocEmail(email, orgId);
+
+    return handleErrorResponse(response, res);
+});
+
+router.get("/organizations/my", async (req, res) => {
+    const { sub = "" } = req.auth?.payload ?? {};
+
+    const response = await organizationService.findOrganizationByPlayerId(sub);
     return handleErrorResponse(response, res);
 });
 

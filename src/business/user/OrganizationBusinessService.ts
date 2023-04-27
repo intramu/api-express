@@ -3,7 +3,6 @@ import OrganizationDAO from "../../data/organizationDAO";
 import { Admin } from "../../models/Admin";
 import { APIResponse } from "../../models/APIResponse";
 import { Organization } from "../../models/Organization";
-import { TournamentGameStatus, TournamentType } from "../../utilities/enums/competitionEnum";
 import logger from "../../utilities/winstonConfig";
 import PlayerDAO from "../../data/playerDAO";
 import { Player } from "../../models/Player";
@@ -12,11 +11,14 @@ import { Team } from "../../models/Team";
 import { createAdminAuth0Account } from "../commonBusinessService";
 import { AdminRole } from "../../utilities/enums/userEnum";
 import { AdminWithPassword } from "../../interfaces/IAdmin";
+import { Location } from "../../models/Location";
+import { LocationDAO } from "../../data/locationDAO";
 
 const organizationDatabase = new OrganizationDAO();
 const adminDatabase = new AdminDAO();
 const playerDatabase = new PlayerDAO();
 const teamDatabase = new TeamDAO();
+const locationDatabase = new LocationDAO();
 
 export class OrganizationBusinessService {
     private readonly className = this.constructor.name;
@@ -168,7 +170,7 @@ export class OrganizationBusinessService {
     async createAdmin(admin: Admin, authId: string): Promise<APIResponse | AdminWithPassword> {
         logger.verbose("Entering method createAdmin()", {
             class: this.className,
-            values: authId,
+            values: { authId },
         });
 
         // does admin exits
@@ -202,6 +204,60 @@ export class OrganizationBusinessService {
         );
 
         return { ...newAdmin, password: "" } as AdminWithPassword;
+    }
+
+    /**
+     * Returns list of all locations under organization
+     * @param authId - id to search under
+     * @returns - error response or location list
+     */
+    async findAllLocations(authId: string): Promise<APIResponse | Location[]> {
+        logger.verbose("Entering method findAllLocations()", {
+            class: this.className,
+            values: { authId },
+        });
+
+        const organization = await organizationDatabase.findOrganizationByAdminId(authId);
+        if (!organization) {
+            return APIResponse.NotFound(`No organization found with admin id: ${authId}`);
+        }
+
+        return locationDatabase.findAllLocationsByOrganizationId(organization.getId());
+    }
+
+    /**
+     * Proof of concept method that searches in email list for the uuid of the organization and the email
+     * of the user trying to sign up. If there is not email found on the list for that organization, the
+     * user cannot sign up. In production this would be done through an API call to the organization
+     * database, or the email's could be stored like so
+     * @param email - email of user
+     * @param orgId - organization signing up under
+     * @returns - the email and organization id row
+     */
+    async findPocEmail(
+        email: string,
+        orgId: string
+    ): Promise<APIResponse | { emailAddress: string; organizationId: string }> {
+        logger.verbose("Entering method findPocEmail()", {
+            class: this.className,
+            values: { email, orgId },
+        });
+
+        // this only enforces the authorization check on GCU and not every single organization
+        const organization = await organizationDatabase.findOrganizationById(orgId);
+        if (organization) {
+            if (organization.getName() !== "Grand Canyon University") {
+                return { emailAddress: email, organizationId: orgId };
+            }
+        }
+
+        // searches if the users email exists in the email list
+        const person = await organizationDatabase.findPocEmailById(email, orgId);
+        if (!person) {
+            return APIResponse.Unauthorized("Not authorized to join");
+        }
+
+        return person;
     }
 
     // tournament visualizer = https://brackethq.com/maker/

@@ -11,9 +11,9 @@ interface ContestGameProps {
     scoreAway: number | null;
     statusHome: ContestGameStatus | null;
     statusAway: ContestGameStatus | null;
-    location: Location | null;
-    homeTeam: Team | null;
-    awayTeam: Team | null;
+    location: Location;
+    homeTeam: Team;
+    awayTeam: Team;
 }
 export class ContestGame {
     protected id;
@@ -50,9 +50,9 @@ export class ContestGame {
             scoreAway = null,
             statusHome = ContestGameStatus.NULL,
             statusAway = ContestGameStatus.NULL,
-            location = null,
-            homeTeam = null,
-            awayTeam = null,
+            location = new Location({}),
+            homeTeam = new Team({}),
+            awayTeam = new Team({}),
         } = props;
 
         this.id = id;
@@ -77,9 +77,9 @@ export class ContestGame {
         score_away: number | null;
         status_home: number;
         status_away: number;
-        location: Location | null;
-        home_team: Team | null;
-        away_team: Team | null;
+        location: Location;
+        home_team: Team;
+        away_team: Team;
     }) {
         const obj = new ContestGame(props);
         obj.dateCreated = props.date_created;
@@ -150,21 +150,21 @@ export class ContestGame {
         this.statusAway = statusAway;
     }
 
-    getLocation(): Location | null {
+    getLocation(): Location {
         return this.location;
     }
     setLocation(location: Location) {
         this.location = location;
     }
 
-    getHomeTeam(): Team | null {
+    getHomeTeam(): Team {
         return this.homeTeam;
     }
     setHomeTeam(homeTeam: Team) {
         this.homeTeam = homeTeam;
     }
 
-    getAwayTeam(): Team | null {
+    getAwayTeam(): Team {
         return this.awayTeam;
     }
     setAwayTeam(awayTeam: Team) {

@@ -171,6 +171,7 @@ export default class ContestDAO {
     async createContestGame(game: ContestGame, bracketId: number): Promise<ContestGame> {
         logger.verbose("Entering method createContestGame()", {
             class: this.className,
+            values: { game, bracketId },
         });
 
         const sql =
@@ -184,9 +185,9 @@ export default class ContestDAO {
                     game.getScoreAway(),
                     game.getStatusHome(),
                     game.getStatusAway(),
-                    game.getLocation()?.getId(),
-                    game.getHomeTeam()?.getId(),
-                    game.getAwayTeam()?.getId(),
+                    game.getLocation(),
+                    game.getHomeTeam(),
+                    game.getAwayTeam(),
                     bracketId,
                 ])
             ).rows;
@@ -581,6 +582,9 @@ export default class ContestDAO {
 
         const homeStatus = game.getStatusHome() === 0 ? null : game.getStatusHome();
         const awayStatus = game.getStatusAway() === 0 ? null : game.getStatusAway();
+        const location = game.getLocation().getId() === 0 ? null : game.getLocation().getId();
+        const homeTeam = game.getHomeTeam().getId() === 0 ? null : game.getHomeTeam().getId();
+        const awayTeam = game.getAwayTeam().getId() === 0 ? null : game.getAwayTeam().getId();
 
         const sql = `UPDATE contest_game 
         SET game_date=COALESCE($1, game_date), score_home=COALESCE($2, score_home), score_away=COALESCE($3, score_away), status_home=COALESCE($4, status_home), status_away=COALESCE($5, status_away), location_id=COALESCE($6, location_id), home_team_id=COALESCE($7, home_team_id), away_team_id=COALESCE($8, away_team_id), bracket_id=COALESCE($9, bracket_id) 
@@ -594,9 +598,9 @@ export default class ContestDAO {
                     game.getScoreAway(),
                     homeStatus,
                     awayStatus,
-                    game.getLocation()?.getId(),
-                    game.getHomeTeam()?.getId(),
-                    game.getAwayTeam()?.getId(),
+                    location,
+                    homeTeam,
+                    awayTeam,
                     bracketId,
                     game.getId(),
                 ])

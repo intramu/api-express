@@ -87,6 +87,7 @@ export class TeamBusinessService {
         }
 
         const newTeam = new Team({
+            ...team,
             //setting some default team values
             sportsmanshipScore: 4.0,
             status: TeamStatus.FINISHED,
@@ -390,6 +391,7 @@ export class TeamBusinessService {
         if (teamRequests.find((request) => request.authId === playerId)) {
             // refreshes invite if one already exists
             teamDatabase.updateJoinRequest(playerId, teamId, date);
+            return;
         }
 
         await teamDatabase.createJoinRequest(teamId, playerId, date);

@@ -11,9 +11,9 @@ export interface IContestGameDatabase {
     score_away: number | null;
     status_home: ContestGameStatus;
     status_away: ContestGameStatus;
-    location: Location | null;
-    home_team: Team | null;
-    away_team: Team | null;
+    location: Location;
+    home_team: Team;
+    away_team: Team;
 }
 
 export interface IContestGameReport {

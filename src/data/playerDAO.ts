@@ -359,4 +359,59 @@ export default class PlayerDAO {
             return players.map((player) => Player.fromDatabase(player));
         });
     }
+
+    /**
+     * Update player invite to team with given ids
+     * @param authorizingId - id of player creating invite; must not be null
+     * @param inviteeId - id of player receiving invite; must not be null
+     * @param teamId - id of team sending invite; must not be null
+     * @param inviteExpirationDate - must not be null
+     * @returns - the updated invite
+     * @throws - if error when updating player invite
+     */
+    async updatePlayerInvite(
+        authorizingId: string,
+        inviteeId: string,
+        teamId: number,
+        inviteExpirationDate: Date
+    ): Promise<IPlayerInvite> {
+        logger.verbose("Entering method createPlayerInvite()", {
+            class: this.className,
+            values: { authorizingId, inviteeId, teamId, inviteExpirationDate },
+        });
+
+        /** CTE first finds player name,
+         * then finds team name,
+         * then adds both to the invite.
+         *
+         * Will fail if no player or team is found*/
+        const sqlCte = `with player AS (
+            SELECT first_name, last_name FROM player WHERE auth_id = $1
+        ),
+        team AS (
+            SELECT name FROM team WHERE id = $2
+        )
+        UPDATE player_invites SET requesting_player_full_name = (SELECT CONCAT(first_name, last_name) FROM player), requesting_team_name = (SELECT name FROM team), expiration_time = $3 
+        WHERE player_AUTH_ID = $4 AND team_id = $2 RETURNING *`;
+
+        return withClient(async (querier) => {
+            const [invite] = (
+                await querier<IPlayerInviteDatabase>(sqlCte, [
+                    authorizingId,
+                    teamId,
+                    inviteExpirationDate,
+                    inviteeId,
+                ])
+            ).rows;
+
+            if (!invite) {
+                logger.error("Error updating invite", {
+                    class: this.className,
+                });
+                throw new Error("Error updating invite");
+            }
+
+            return convertFromDatabaseFormat(invite);
+        });
+    }
 }

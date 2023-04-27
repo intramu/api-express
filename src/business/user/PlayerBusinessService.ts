@@ -224,6 +224,12 @@ export class PlayerBusinessService {
         const date = new Date();
         date.setDate(date.getDate() + 7);
 
+        // refresh invite if it already exists
+        const invites = await playerDatabase.findAllPlayerInvites(inviteeId);
+        if (invites.find((invite) => invite.authId === inviteeId)) {
+            return playerDatabase.updatePlayerInvite(authorizingId, inviteeId, teamId, date);
+        }
+
         // add player invite to database
         return playerDatabase.createPlayerInvite(authorizingId, inviteeId, teamId, date);
 
@@ -236,7 +242,7 @@ export class PlayerBusinessService {
      * @returns - error response or player invite list
      */
     async findAllPlayerInvitesById(authorizingId: string): Promise<APIResponse | IPlayerInvite[]> {
-        logger.verbose("Entering method invitePlayerToTeam()", {
+        logger.verbose("Entering method findAllPlayerInvitesById()", {
             class: this.className,
             values: { authorizingId },
         });

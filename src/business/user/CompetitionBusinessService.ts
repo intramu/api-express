@@ -269,4 +269,24 @@ export class CompetitionBusinessService {
         // passed into patch request only changing stats
         return contestDatabase.patchContestGame(game, null);
     }
+
+    /**
+     * Finds all contest games under organization with given id
+     * @param authId - admin id
+     * @returns - error response or contest list
+     */
+    async findAllContestGames(authId: string): Promise<APIResponse | ContestGame[]> {
+        logger.verbose("Entering method reportGameScore()", {
+            class: this.className,
+            values: { authId },
+        });
+
+        // does organization exist
+        const org = await organizationDatabase.findOrganizationByAdminId(authId);
+        if (!org) {
+            return APIResponse.NewNotFound(authId);
+        }
+
+        return contestDatabase.findAllContestGames(org.getId());
+    }
 }

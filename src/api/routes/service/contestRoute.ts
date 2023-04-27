@@ -10,7 +10,7 @@ import {
     newContestSchema,
     newLeagueSchema,
 } from "../../../utilities/validation/competitionValidation";
-import { compIdParam, organizationIdParam } from "../../../utilities/validation/validationSchemas";
+import { compIdParam, organizationIdParam } from "../../../utilities/validation/common";
 
 const competitionService = new CompetitionBusinessService();
 

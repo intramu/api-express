@@ -232,6 +232,45 @@ export default class OrganizationDAO {
         return result;
     }
 
+    /**
+     * Retrieves email by email address
+     *
+     * Proof of concept list that would act as the interaction between GCU's API and this application
+     * When a user attempts to sign up with the organization it will retrieve this list and see
+     * @param orgId - must not be null
+     * @returns - email list with the given id
+     */
+    async findPocEmailById(
+        emailAddress: string,
+        orgId: string
+    ): Promise<{ emailAddress: string; organizationId: string } | null> {
+        logger.verbose("Entering method findPocEmailById()", {
+            class: this.className,
+            values: { orgId, emailAddress },
+        });
+
+        const sql =
+            "SELECT * FROM poc_organization_email_list WHERE email_address = $1 AND organization_id = $2";
+
+        return withClient(async (querier) => {
+            const [response] = (
+                await querier<{ email_address: string; organization_id: string }>(sql, [
+                    emailAddress,
+                    orgId,
+                ])
+            ).rows;
+
+            if (!response) {
+                return null;
+            }
+
+            return {
+                emailAddress: response.email_address,
+                organizationId: response.organization_id,
+            };
+        });
+    }
+
     // Probably don't need delete method until much later. There should be other alternatives rather
     // then completely deleting the organization. Will have to orchestrate what gets deleted.
 }

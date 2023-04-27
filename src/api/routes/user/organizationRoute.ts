@@ -18,6 +18,7 @@ const adminScoped = requiredScopes("all:organization all:application");
 router.use(checkJwt);
 router.use(adminScoped);
 
+/** Player funcs */
 // TODO: Add paging
 router.get("/players", async (req, res) => {
     const { sub = "" } = req.auth?.payload ?? {};
@@ -28,6 +29,7 @@ router.get("/players", async (req, res) => {
 
 router.patch("/players/:userId", authIdParam, async (req, res) => {});
 
+/** Admin Funcs */
 router
     .route("/admins")
     .get(async (req, res) => {
@@ -46,6 +48,7 @@ router
 
 router.patch("/admins/:userId", authIdParam, async (req, res) => {});
 
+/** Team Funcs */
 router.get("/teams", async (req, res) => {
     const { sub = "" } = req.auth?.payload ?? {};
     const response = await organizationService.findAllTeams(sub);
@@ -62,6 +65,7 @@ router.patch("/teams/:teamId", teamIdParam, async (req, res) => {
     return res.status(501).json(APIResponse.NotImplemented());
 });
 
+/** Organization Funcs */
 router
     .route("/")
     .get(async (req, res) => {
@@ -76,5 +80,13 @@ router
         // const response = await organizationService.patchOrganizationByAdminId(sub)
         return res.status(501).json(APIResponse.NotImplemented());
     });
+
+/** Location Funcs */
+router.route("/locations").get(async (req, res) => {
+    const { sub = "" } = req.auth?.payload ?? {};
+
+    const response = await organizationService.findAllLocations(sub);
+    return handleErrorResponse(response, res);
+});
 
 export default router;
